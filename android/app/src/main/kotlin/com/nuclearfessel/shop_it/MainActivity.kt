@@ -1,0 +1,5 @@
+package com.nuclearfessel.shop_it
+
+import io.flutter.embedding.android.FlutterActivity
+
+class MainActivity : FlutterActivity()
