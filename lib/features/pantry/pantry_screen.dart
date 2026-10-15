@@ -323,7 +323,10 @@ class _PantryBody extends ConsumerWidget {
                 : Align(
                     alignment: Alignment.centerLeft,
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 12,
+                      ),
                       child: Text(
                         current.name,
                         overflow: TextOverflow.ellipsis,

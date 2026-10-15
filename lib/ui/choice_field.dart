@@ -137,7 +137,11 @@ class _ChoiceFieldState<T> extends State<ChoiceField<T>> {
                 },
                 child: decoration == null
                     ? Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        // 12 in from the edges, like the icons inside the search field.
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
                         child: Row(
                           children: [
                             Expanded(child: label),
