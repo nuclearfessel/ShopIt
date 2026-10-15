@@ -168,8 +168,12 @@ class AppShell extends StatelessWidget {
     (KeylineIcons.archive, KeylineIcons.archive, 'Pantry'),
   ];
 
-  void _go(int i) =>
-      shell.goBranch(i, initialLocation: i == shell.currentIndex);
+  /// Switches screen. A message (like "Deleted 2 items - UNDO") belongs to the
+  /// screen that showed it, so it is dismissed rather than following you.
+  void _go(BuildContext context, int i) {
+    ScaffoldMessenger.of(context).clearSnackBars();
+    shell.goBranch(i, initialLocation: i == shell.currentIndex);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -180,7 +184,7 @@ class AppShell extends StatelessWidget {
           children: [
             NavigationRail(
               selectedIndex: shell.currentIndex,
-              onDestinationSelected: _go,
+              onDestinationSelected: (i) => _go(context, i),
               labelType: NavigationRailLabelType.all,
               destinations: [
                 for (final d in _destinations)
@@ -204,7 +208,7 @@ class AppShell extends StatelessWidget {
       body: shell,
       bottomNavigationBar: NavigationBar(
         selectedIndex: shell.currentIndex,
-        onDestinationSelected: _go,
+        onDestinationSelected: (i) => _go(context, i),
         destinations: [
           for (final d in _destinations)
             NavigationDestination(

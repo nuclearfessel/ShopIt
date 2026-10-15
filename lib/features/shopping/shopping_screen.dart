@@ -12,6 +12,7 @@ import '../settings/settings_dialog.dart';
 import 'tax_rates_dialog.dart';
 import '../../ui/keyline/keyline_icon.dart';
 import '../../ui/tip.dart';
+import '../../ui/undo_snack_bar.dart';
 
 class ShoppingScreen extends ConsumerStatefulWidget {
   const ShoppingScreen({super.key});
@@ -48,19 +49,12 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
     final db = ref.read(databaseProvider);
     final ids = await db.clearChecked(listId);
     if (!mounted || ids.isEmpty) return;
-    final messenger = ScaffoldMessenger.of(context);
-    messenger.clearSnackBars();
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text(
+    showUndoSnackBar(
+      context,
+      message:
           'Deleted ${ids.length} ${ids.length == 1 ? 'item' : 'items'} '
           'from your cart',
-        ),
-        action: SnackBarAction(
-          label: 'UNDO',
-          onPressed: () => db.restoreItems(ids),
-        ),
-      ),
+      onUndo: () => db.restoreItems(ids),
     );
   }
 
