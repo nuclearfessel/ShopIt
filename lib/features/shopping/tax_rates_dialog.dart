@@ -12,21 +12,22 @@ String formatPercent(double p) {
   return text.replaceFirst(RegExp(r'\.?0+$'), '');
 }
 
-/// Pick the sales tax rate for a list, and add, edit or delete saved rates.
+/// Sales tax rates: add, edit and delete saved rates, and (when [listId] is
+/// given) choose which one a shopping list uses. Lives in the settings dialog.
 ///
 /// No rates are built in: tax differs by country, state and region, so you
 /// enter the ones that apply where you shop (e.g. "Home 8.25%"), or tap "Use my
 /// location" to fill one in.
-class TaxRatesDialog extends ConsumerStatefulWidget {
-  const TaxRatesDialog({super.key, required this.listId});
+class TaxRatesSection extends ConsumerStatefulWidget {
+  const TaxRatesSection({super.key, this.listId});
 
-  final String listId;
+  final String? listId;
 
   @override
-  ConsumerState<TaxRatesDialog> createState() => _TaxRatesDialogState();
+  ConsumerState<TaxRatesSection> createState() => _TaxRatesSectionState();
 }
 
-class _TaxRatesDialogState extends ConsumerState<TaxRatesDialog> {
+class _TaxRatesSectionState extends ConsumerState<TaxRatesSection> {
   bool _busy = false;
   String? _status;
 
@@ -84,7 +85,8 @@ class _TaxRatesDialogState extends ConsumerState<TaxRatesDialog> {
                   'against a receipt.'
             : note,
       );
-      if (id != null) await db.setListTaxRate(widget.listId, id);
+      final listId = widget.listId;
+      if (id != null && listId != null) await db.setListTaxRate(listId, id);
     } on LookupException catch (e) {
       if (mounted) {
         setState(() {
@@ -115,110 +117,111 @@ class _TaxRatesDialogState extends ConsumerState<TaxRatesDialog> {
     }) => ListTile(
       dense: true,
       contentPadding: const EdgeInsets.only(left: 4, right: 0),
-      leading: Icon(
-        isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
-      ),
+      leading: widget.listId == null
+          ? const Icon(Icons.percent)
+          : Icon(
+              isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
+            ),
       title: Text(title, overflow: TextOverflow.ellipsis),
       subtitle: subtitle == null ? null : Text(subtitle),
       trailing: trailing,
       onTap: onTap,
     );
 
-    return AlertDialog(
-      title: const Text('Sales tax for this list'),
-      content: SizedBox(
-        width: 380,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Tax rates differ by country, state and region, so use the '
-                'rate that applies where you shop. Only items marked "has '
-                'sales tax" are taxed.',
-                style: theme.textTheme.bodySmall,
-              ),
-              const SizedBox(height: 8),
-              option(
-                title: 'No tax',
-                isSelected: selected == null,
-                onTap: () => db.setListTaxRate(widget.listId, null),
-              ),
-              for (final r in rates)
-                option(
-                  title: r.name,
-                  subtitle: _rateSubtitle(r),
-                  isSelected: selected == r.id,
-                  onTap: () => db.setListTaxRate(widget.listId, r.id),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        tooltip: 'Edit rate',
-                        visualDensity: VisualDensity.compact,
-                        icon: const Icon(Icons.edit_outlined),
-                        onPressed: () => _editRate(context, db, existing: r),
-                      ),
-                      IconButton(
-                        tooltip: 'Delete rate',
-                        visualDensity: VisualDensity.compact,
-                        icon: const Icon(Icons.delete_outline),
-                        onPressed: () => db.deleteTaxRate(r.id),
-                      ),
-                    ],
-                  ),
+    final listId = widget.listId;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Tax rates differ by country, state and region, so use the rate '
+          'that applies where you shop. Tax rules (what is taxed) are chosen '
+          'per rate.',
+          style: theme.textTheme.bodySmall,
+        ),
+        const SizedBox(height: 8),
+        if (listId != null)
+          option(
+            title: 'No tax',
+            isSelected: selected == null,
+            onTap: () => db.setListTaxRate(listId, null),
+          ),
+        for (final r in rates)
+          option(
+            title: r.name,
+            subtitle: _rateSubtitle(r),
+            isSelected: selected == r.id,
+            onTap: listId == null
+                ? () => _editRate(context, db, existing: r)
+                : () => db.setListTaxRate(listId, r.id),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  tooltip: 'Edit rate',
+                  visualDensity: VisualDensity.compact,
+                  icon: const Icon(Icons.edit_outlined),
+                  onPressed: () => _editRate(context, db, existing: r),
                 ),
-              const SizedBox(height: 4),
-              Wrap(
-                spacing: 4,
-                children: [
-                  TextButton.icon(
-                    onPressed: _busy
-                        ? null
-                        : () async {
-                            final id = await _editRate(context, db);
-                            if (id != null) {
-                              await db.setListTaxRate(widget.listId, id);
-                            }
-                          },
-                    icon: const Icon(Icons.add),
-                    label: const Text('Add a tax rate'),
-                  ),
-                  TextButton.icon(
-                    onPressed: _busy ? null : _useLocation,
-                    icon: const Icon(Icons.my_location),
-                    label: const Text('Use my location'),
-                  ),
-                ],
-              ),
-              if (_busy) const LinearProgressIndicator(),
-              if (_status != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 6),
-                  child: Text(_status!, style: theme.textTheme.bodySmall),
+                IconButton(
+                  tooltip: 'Delete rate',
+                  visualDensity: VisualDensity.compact,
+                  icon: const Icon(Icons.delete_outline),
+                  onPressed: () => db.deleteTaxRate(r.id),
                 ),
-              const SizedBox(height: 8),
-              Text(
-                'Using your location sends your coordinates to OpenStreetMap '
-                '(to name the place) and, in the US, to Ziptax (to find the '
-                'rate). Nothing is sent until you tap the button.',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.55),
-                ),
-              ),
-              TextButton(
-                onPressed: _busy ? null : () => _askForKey(context),
-                child: const Text('Ziptax API key...'),
-              ),
-            ],
+              ],
+            ),
+          ),
+        if (listId == null && rates.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(
+              'Open Settings from a shopping list to choose which rate that '
+              'list uses.',
+              style: theme.textTheme.bodySmall,
+            ),
+          ),
+        const SizedBox(height: 4),
+        Wrap(
+          spacing: 4,
+          children: [
+            TextButton.icon(
+              onPressed: _busy
+                  ? null
+                  : () async {
+                      final id = await _editRate(context, db);
+                      if (id != null && listId != null) {
+                        await db.setListTaxRate(listId, id);
+                      }
+                    },
+              icon: const Icon(Icons.add),
+              label: const Text('Add a tax rate'),
+            ),
+            TextButton.icon(
+              onPressed: _busy ? null : _useLocation,
+              icon: const Icon(Icons.my_location),
+              label: const Text('Use my location'),
+            ),
+          ],
+        ),
+        if (_busy) const LinearProgressIndicator(),
+        if (_status != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text(_status!, style: theme.textTheme.bodySmall),
+          ),
+        const SizedBox(height: 8),
+        Text(
+          'Using your location sends your coordinates to OpenStreetMap (to '
+          'name the place) and, in the US, to Ziptax (to find the rate). '
+          'Nothing is sent until you tap the button.',
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.55),
           ),
         ),
-      ),
-      actions: [
-        FilledButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Done'),
+        TextButton(
+          onPressed: _busy ? null : () => _askForKey(context),
+          child: const Text('Ziptax API key...'),
         ),
       ],
     );

@@ -8,6 +8,7 @@ import '../catalog/catalog_suggestions.dart';
 import '../../data/tax_rules.dart';
 import '../../data/totals.dart';
 import '../catalog/item_editor.dart';
+import '../settings/settings_dialog.dart';
 import 'tax_rates_dialog.dart';
 
 class ShoppingScreen extends ConsumerStatefulWidget {
@@ -85,7 +86,19 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
       data: (all) {
         if (all.isEmpty) {
           return Scaffold(
-            appBar: AppBar(title: const Text('Shopping')),
+            appBar: AppBar(
+              title: const Text('Shopping'),
+              actions: [
+                IconButton(
+                  tooltip: 'Settings',
+                  icon: const Icon(Icons.settings_outlined),
+                  onPressed: () => showDialog<void>(
+                    context: context,
+                    builder: (_) => const SettingsDialog(),
+                  ),
+                ),
+              ],
+            ),
             body: Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -123,6 +136,17 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
           appBar: AppBar(
             title: const Text('Shopping'),
             actions: [
+              IconButton(
+                tooltip: 'Settings',
+                icon: const Icon(Icons.settings_outlined),
+                onPressed: () => showDialog<void>(
+                  context: context,
+                  builder: (_) => SettingsDialog(
+                    listId: current.id,
+                    listName: current.name,
+                  ),
+                ),
+              ),
               PopupMenuButton<String>(
                 tooltip: 'List options',
                 icon: const Icon(Icons.more_vert),
@@ -142,11 +166,6 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
                     await db.setAllTaxable(current.id, v == 'taxAll');
                   } else if (v == 'taxAuto') {
                     await db.resetTaxToAutomatic(current.id);
-                  } else if (v == 'tax') {
-                    await showDialog<void>(
-                      context: context,
-                      builder: (_) => TaxRatesDialog(listId: current.id),
-                    );
                   } else if (v == 'deleteAll') {
                     if (await _confirm(
                       context,
@@ -162,10 +181,6 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
                 },
                 itemBuilder: (_) => [
                   const PopupMenuItem(value: 'new', child: Text('New list')),
-                  const PopupMenuItem(
-                    value: 'tax',
-                    child: Text('Sales tax rate...'),
-                  ),
                   const PopupMenuItem(
                     value: 'taxAuto',
                     child: Text('Use automatic tax rules'),

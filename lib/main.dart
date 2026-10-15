@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:window_manager/window_manager.dart';
 
 import 'app/app.dart';
+import 'app/theme_mode.dart';
 import 'data/database.dart';
 import 'data/providers.dart';
 
@@ -27,9 +28,13 @@ Future<void> main() async {
     );
   }
   final db = await openAppDatabase();
+  final themeMode = await loadThemeMode();
   runApp(
     ProviderScope(
-      overrides: [databaseProvider.overrideWithValue(db)],
+      overrides: [
+        databaseProvider.overrideWithValue(db),
+        initialThemeModeProvider.overrideWithValue(themeMode),
+      ],
       child: const ShopItApp(),
     ),
   );

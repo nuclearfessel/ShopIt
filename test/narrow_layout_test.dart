@@ -180,13 +180,25 @@ void main() {
         expect(find.byTooltip('Uncheck all'), findsOneWidget);
         expect(find.byTooltip('Delete all'), findsOneWidget);
       }
+      // Settings: theme options and the tax rates, from the gear icon.
+      await tester.tap(find.byTooltip('Settings'));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull, reason: 'settings dialog');
+      expect(find.text('Settings'), findsOneWidget);
+      expect(find.text('APPEARANCE'), findsOneWidget);
+      expect(find.text('Match system'), findsOneWidget);
+      expect(find.text('Light'), findsOneWidget);
+      expect(find.text('Dark'), findsOneWidget);
+      expect(find.textContaining('SALES TAX'), findsOneWidget);
+      expect(find.text('No tax'), findsOneWidget);
+      expect(find.text('Add a tax rate'), findsOneWidget);
+      await tester.tap(find.text('Done'));
+      await tester.pumpAndSettle();
+      // The old menu entry for tax is gone.
       await tester.tap(find.byTooltip('List options'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Sales tax rate...'));
-      await tester.pumpAndSettle();
-      expect(tester.takeException(), isNull, reason: 'tax dialog');
-      expect(find.text('Sales tax for this list'), findsOneWidget);
-      await tester.tap(find.text('Done'));
+      expect(find.text('Sales tax rate...'), findsNothing);
+      await tester.tapAt(const Offset(2, 2)); // dismiss the menu
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('Pantry').last);

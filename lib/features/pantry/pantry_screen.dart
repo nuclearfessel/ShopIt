@@ -6,6 +6,7 @@ import '../../data/catalog_seed.dart';
 import '../../data/providers.dart';
 import '../catalog/catalog_suggestions.dart';
 import '../catalog/item_editor.dart';
+import '../settings/settings_dialog.dart';
 
 class PantryScreen extends ConsumerWidget {
   const PantryScreen({super.key});
@@ -15,7 +16,19 @@ class PantryScreen extends ConsumerWidget {
     final items = ref.watch(pantryProvider);
     final db = ref.read(databaseProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('Pantry')),
+      appBar: AppBar(
+        title: const Text('Pantry'),
+        actions: [
+          IconButton(
+            tooltip: 'Settings',
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () => showDialog<void>(
+              context: context,
+              builder: (_) => const SettingsDialog(),
+            ),
+          ),
+        ],
+      ),
       body: items.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('Error: $e')),

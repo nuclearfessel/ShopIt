@@ -1,9 +1,11 @@
 import 'dart:io' show Platform;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../features/pantry/pantry_screen.dart';
+import 'theme_mode.dart';
 import 'title_bar.dart';
 import '../features/shopping/shopping_screen.dart';
 
@@ -116,7 +118,7 @@ ThemeData _buildTheme(Brightness brightness) {
   );
 }
 
-class ShopItApp extends StatefulWidget {
+class ShopItApp extends ConsumerStatefulWidget {
   const ShopItApp({super.key, this.windowChrome = true});
 
   /// Draw the custom title bar (Windows only). Tests turn this off because it
@@ -124,10 +126,10 @@ class ShopItApp extends StatefulWidget {
   final bool windowChrome;
 
   @override
-  State<ShopItApp> createState() => _ShopItAppState();
+  ConsumerState<ShopItApp> createState() => _ShopItAppState();
 }
 
-class _ShopItAppState extends State<ShopItApp> {
+class _ShopItAppState extends ConsumerState<ShopItApp> {
   final _router = _createRouter();
 
   @override
@@ -142,6 +144,7 @@ class _ShopItAppState extends State<ShopItApp> {
     debugShowCheckedModeBanner: false,
     theme: _buildTheme(Brightness.light),
     darkTheme: _buildTheme(Brightness.dark),
+    themeMode: ref.watch(themeModeProvider),
     routerConfig: _router,
     // On Windows the native title bar is hidden; draw our own.
     builder: (context, child) => widget.windowChrome && Platform.isWindows
