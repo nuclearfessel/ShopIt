@@ -179,6 +179,10 @@ void main() {
       // No list is open, so tax rates can be managed but not assigned.
       expect(find.text('No tax'), findsNothing);
       expect(find.text('Add a tax rate'), findsOneWidget);
+
+      // Let any tooltip timers finish before the test ends.
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump(const Duration(seconds: 2));
     });
   });
 }

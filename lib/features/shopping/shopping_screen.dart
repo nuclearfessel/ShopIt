@@ -11,6 +11,7 @@ import '../catalog/item_editor.dart';
 import '../../data/category_order.dart';
 import '../categories/category_color_dialog.dart';
 import '../categories/manage_categories_dialog.dart';
+import '../history/history_dialog.dart';
 import '../lists/list_settings_dialog.dart';
 import '../lists/manage_lists_dialog.dart';
 import '../settings/settings_dialog.dart';
@@ -68,6 +69,73 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
           'from your cart',
       onUndo: () => db.restoreItems(ids),
     );
+  }
+
+  /// The pencil in the add bar: fill in quantity, price, category and notes
+  /// before the item goes on the list.
+  Future<void> _addWithDetails(
+    ShoppingList list,
+    TaxContext? tax,
+    List<String> categories,
+  ) async {
+    final db = ref.read(databaseProvider);
+    final text = _controller.text.trim();
+    if (text.isEmpty) return;
+    // Start from the category remembered for this name, if there is one.
+    final match = (await db.searchCatalog(text))
+        .where((i) => i.name.toLowerCase() == text.toLowerCase())
+        .toList();
+    if (!mounted) return;
+    final category = list.autoCategorize
+        ? (match.isEmpty ? 'Other' : match.first.category)
+        : '';
+    final taxed = tax == null
+        ? true
+        : tax.rateForClass(classifyItem(text, category)) > 0;
+    final result = await showItemEditor(
+      context,
+      title: 'New item',
+      isNew: true,
+      showPrice: true,
+      categories: categories.isEmpty ? null : categories,
+      initial: ItemEdit(
+        name: text,
+        category: category,
+        unit: match.isEmpty ? '' : match.first.defaultUnit,
+        taxable: taxed,
+      ),
+      taxHint: tax == null
+          ? 'No sales tax rate is set for this list.'
+          : describeTax(text, category, tax, manual: false),
+    );
+    if (result is! ItemSaved || !mounted) return;
+    final e = result.edit;
+    final id = await db.addShoppingItem(
+      list.id,
+      e.name,
+      quantity: e.quantity,
+      unit: e.unit,
+      category: e.category,
+    );
+    await db.updateShoppingItem(
+      id,
+      name: e.name,
+      quantity: e.quantity,
+      unit: e.unit,
+      category: e.category,
+      price: e.price,
+      note: e.note,
+      taxable: e.taxable,
+      hasCoupon: e.hasCoupon,
+      taxManual:
+          tax != null &&
+          e.taxable != (tax.rateForClass(classifyItem(e.name, e.category)) > 0),
+    );
+    // A category chosen by hand is what this item gets from now on.
+    if (e.category.isNotEmpty && e.category != category) {
+      await db.assignCategory(e.name, e.category);
+    }
+    if (mounted) setState(_controller.clear);
   }
 
   /// Enter key: use the catalog entry with exactly this name if there is one,
@@ -358,10 +426,30 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
                     hintText: 'Search or add an item',
                     prefixIcon: const KeylineIcon(KeylineIcons.search),
                     border: const OutlineInputBorder(),
-                    suffixIcon: IconButton(
-                      tooltip: 'Add item',
-                      icon: const KeylineIcon(KeylineIcons.plus),
-                      onPressed: () => _submit(current),
+                    suffixIcon: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (_controller.text.trim().isNotEmpty)
+                          IconButton(
+                            tooltip: 'Edit details before adding',
+                            icon: const KeylineIcon(KeylineIcons.pen),
+                            onPressed: () =>
+                                _addWithDetails(current, taxCtx, categoryNames),
+                          ),
+                        IconButton(
+                          tooltip: 'History',
+                          icon: const KeylineIcon(KeylineIcons.history),
+                          onPressed: () => showDialog<void>(
+                            context: context,
+                            builder: (_) => HistoryDialog(list: current),
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: 'Add item',
+                          icon: const KeylineIcon(KeylineIcons.plus),
+                          onPressed: () => _submit(current),
+                        ),
+                      ],
                     ),
                   ),
                   onSubmitted: (_) => _submit(current),
@@ -427,8 +515,14 @@ List<Widget> _grouped(
 }) {
   final open = rows.where((i) => !i.checked).toList();
   final done = rows.where((i) => i.checked).toList();
-  Widget tile(ShoppingItem i) =>
-      _ItemTile(item: i, db: db, lists: lists, listId: listId, tax: tax);
+  Widget tile(ShoppingItem i) => _ItemTile(
+    item: i,
+    db: db,
+    lists: lists,
+    listId: listId,
+    tax: tax,
+    categories: categoryNames.isEmpty ? null : categoryNames,
+  );
   final cart = done.isEmpty
       ? null
       : _CartSection(
@@ -633,7 +727,11 @@ class _ItemTile extends StatelessWidget {
     required this.lists,
     required this.listId,
     required this.tax,
+    this.categories,
   });
+
+  /// The categories to offer when editing (null = the built-in ones).
+  final List<String>? categories;
   final ShoppingItem item;
   final AppDatabase db;
   final List<ShoppingList> lists;
@@ -671,19 +769,28 @@ class _ItemTile extends StatelessWidget {
           : describeTax(item.name, item.category, tax!, manual: item.taxManual),
       lists: [for (final l in lists) (id: l.id, name: l.name)],
       currentListId: listId,
+      categories: categories,
     );
-    Future<void> save(ItemEdit edit) => db.updateShoppingItem(
-      item.id,
-      name: edit.name,
-      quantity: edit.quantity,
-      unit: edit.unit,
-      category: edit.category,
-      price: edit.price,
-      note: edit.note,
-      taxable: edit.taxable,
-      hasCoupon: edit.hasCoupon,
-      taxManual: _manual(edit),
-    );
+    Future<void> save(ItemEdit edit) async {
+      await db.updateShoppingItem(
+        item.id,
+        name: edit.name,
+        quantity: edit.quantity,
+        unit: edit.unit,
+        category: edit.category,
+        price: edit.price,
+        note: edit.note,
+        taxable: edit.taxable,
+        hasCoupon: edit.hasCoupon,
+        taxManual: _manual(edit),
+      );
+      // Changing the category is permanent: adding the item again (typing it or
+      // from history) files it there.
+      if (edit.category != item.category) {
+        await db.assignCategory(edit.name, edit.category);
+      }
+    }
+
     switch (result) {
       case ItemSaved(:final edit):
         await save(edit);

@@ -111,6 +111,12 @@ Future<ItemEditorResult?> showItemEditor(
   List<ListChoice> lists = const [],
   String? currentListId,
   String? taxHint,
+
+  /// The categories to choose from (defaults to the built-in ones).
+  List<String>? categories,
+
+  /// A new item that is about to be added: no Delete, and Save says Add.
+  bool isNew = false,
 }) {
   Widget sheet(BuildContext _) => _ItemEditorSheet(
     title: title,
@@ -120,6 +126,8 @@ Future<ItemEditorResult?> showItemEditor(
     lists: lists,
     currentListId: currentListId,
     taxHint: taxHint,
+    categories: categories,
+    isNew: isNew,
   );
   // Wide windows (side navigation visible): a dialog centered in the window.
   // Narrow windows (bottom navigation): a bottom sheet.
@@ -153,6 +161,8 @@ class _ItemEditorSheet extends StatefulWidget {
     required this.lists,
     required this.currentListId,
     required this.taxHint,
+    required this.categories,
+    required this.isNew,
   });
 
   final String title;
@@ -164,6 +174,8 @@ class _ItemEditorSheet extends StatefulWidget {
 
   /// Why the item is or is not taxed, shown under the tax checkbox.
   final String? taxHint;
+  final List<String>? categories;
+  final bool isNew;
 
   @override
   State<_ItemEditorSheet> createState() => _ItemEditorSheetState();
@@ -346,7 +358,7 @@ class _ItemEditorSheetState extends State<_ItemEditorSheet> {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final categories = {
-      ...catalogSeed.keys,
+      ...(widget.categories ?? catalogSeed.keys),
       if (_category.isNotEmpty) _category,
     };
     final price = _priceValue;
@@ -417,10 +429,12 @@ class _ItemEditorSheetState extends State<_ItemEditorSheet> {
                               ),
                       ),
                       Tip(
-                        'Save your changes',
+                        widget.isNew
+                            ? 'Add this item to the list'
+                            : 'Save your changes',
                         child: FilledButton(
                           onPressed: _save,
-                          child: const Text('Save'),
+                          child: Text(widget.isNew ? 'Add' : 'Save'),
                         ),
                       ),
                     ],
@@ -612,14 +626,15 @@ class _ItemEditorSheetState extends State<_ItemEditorSheet> {
               child: Wrap(
                 alignment: WrapAlignment.spaceEvenly,
                 children: [
-                  Tip(
-                    'Delete this item',
-                    child: TextButton.icon(
-                      onPressed: () => Navigator.pop(context, ItemDeleted()),
-                      icon: const KeylineIcon(KeylineIcons.bin),
-                      label: const Text('Delete'),
+                  if (!widget.isNew)
+                    Tip(
+                      'Delete this item',
+                      child: TextButton.icon(
+                        onPressed: () => Navigator.pop(context, ItemDeleted()),
+                        icon: const KeylineIcon(KeylineIcons.bin),
+                        label: const Text('Delete'),
+                      ),
                     ),
-                  ),
                   if (canMoveCopy) ...[
                     Tip(
                       'Move this item to another list',

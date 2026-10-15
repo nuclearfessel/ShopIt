@@ -215,6 +215,22 @@ void main() {
     _expectAllTipped(tester, 'colour dialog from a header');
   });
 
+  testWidgets('history and the new item editor have tooltips', (tester) async {
+    await pumpShopIt(tester, history: [fakeHistory('h1', 'Milk')]);
+    await tester.tap(find.byTooltip('History'));
+    await _settle(tester);
+    _expectAllTipped(tester, 'history dialog');
+    await tester.tap(find.text('Done'));
+    await _settle(tester);
+
+    await tester.enterText(find.byType(TextField).first, 'Oat milk');
+    await tester.pump(const Duration(milliseconds: 300));
+    _expectAllTipped(tester, 'add bar with the pencil');
+    await tester.tap(find.byTooltip('Edit details before adding'));
+    await _settle(tester);
+    _expectAllTipped(tester, 'new item editor');
+  });
+
   testWidgets('pantry: every control has a tooltip', (tester) async {
     await pumpShopIt(tester);
     await tester.tap(find.byTooltip('Go to Pantry'));

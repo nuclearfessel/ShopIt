@@ -17,6 +17,10 @@ class PantryScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final items = ref.watch(pantryProvider);
     final db = ref.read(databaseProvider);
+    final categories = [
+      for (final c in ref.watch(categoriesProvider).value ?? const <Category>[])
+        c.name,
+    ];
     return Scaffold(
       appBar: AppBar(
         title: const Text('Pantry'),
@@ -37,12 +41,15 @@ class PantryScreen extends ConsumerWidget {
         data: (rows) => rows.isEmpty
             ? const Center(child: Text('Pantry is empty'))
             : ListView(
-                children: [for (final i in rows) _PantryTile(item: i, db: db)],
+                children: [
+                  for (final i in rows)
+                    _PantryTile(item: i, db: db, categories: categories),
+                ],
               ),
       ),
       floatingActionButton: FloatingActionButton(
         tooltip: 'Add pantry item',
-        onPressed: () => _showAddDialog(context, db),
+        onPressed: () => _showAddDialog(context, db, categories),
         child: const KeylineIcon(KeylineIcons.plus),
       ),
     );
@@ -55,7 +62,14 @@ String _date(DateTime d) =>
     '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
 class _PantryTile extends StatelessWidget {
-  const _PantryTile({required this.item, required this.db});
+  const _PantryTile({
+    required this.item,
+    required this.db,
+    required this.categories,
+  });
+
+  /// The user's categories to choose from when editing.
+  final List<String> categories;
   final PantryItem item;
   final AppDatabase db;
 
@@ -164,6 +178,7 @@ class _PantryTile extends StatelessWidget {
       context,
       title: 'Edit pantry item',
       showPantryFields: true,
+      categories: categories.isEmpty ? null : categories,
       initial: ItemEdit(
         name: item.name,
         quantity: item.quantity,
@@ -186,6 +201,9 @@ class _PantryTile extends StatelessWidget {
           expiryDate: edit.expiry,
           note: edit.note,
         );
+        if (edit.category != item.category) {
+          await db.assignCategory(edit.name, edit.category);
+        }
       case ItemDeleted():
         await db.deletePantryItem(item.id);
       case ItemMoved() || ItemCopied() || null:
@@ -194,7 +212,11 @@ class _PantryTile extends StatelessWidget {
   }
 }
 
-Future<void> _showAddDialog(BuildContext context, AppDatabase db) {
+Future<void> _showAddDialog(
+  BuildContext context,
+  AppDatabase db,
+  List<String> categories,
+) {
   final name = TextEditingController();
   final qty = TextEditingController(text: '1');
   final unit = TextEditingController();
@@ -236,7 +258,8 @@ Future<void> _showAddDialog(BuildContext context, AppDatabase db) {
                   key: ValueKey(category),
                   decoration: const InputDecoration(labelText: 'Category'),
                   items: [
-                    for (final c in catalogSeed.keys)
+                    for (final c
+                        in categories.isEmpty ? catalogSeed.keys : categories)
                       DropdownMenuItem(value: c, child: Text(c)),
                   ],
                   onChanged: (v) => setState(() => category = v ?? ''),

@@ -84,6 +84,7 @@ Future<void> pumpShopIt(
   List<TaxRate> rates = const [],
   List<ListCategoryOrder> categoryOrder = const [],
   List<Category>? categories,
+  List<HistoryEntry> history = const [],
   GlobalKey? boundary,
 }) async {
   tester.view.physicalSize = Size(width, height);
@@ -130,6 +131,7 @@ Future<void> pumpShopIt(
         ]),
       ),
       pantryProvider.overrideWith((_) => Stream.value(thePantry)),
+      historyProvider.overrideWith((_) => Stream.value(history)),
       catalogSearchProvider.overrideWith(
         (ref, q) async => [
           fakeCatalog('Onions'),
@@ -194,3 +196,18 @@ Future<Shot> capture(
   });
   return result!;
 }
+
+HistoryEntry fakeHistory(
+  String id,
+  String name, {
+  String category = 'Dairy & Eggs',
+  int daysAgo = 0,
+}) => HistoryEntry(
+  id: id,
+  updatedAt: _t,
+  name: name,
+  category: category,
+  unit: '',
+  lastUsed: _t.subtract(Duration(days: daysAgo)),
+  useCount: 1,
+);

@@ -658,14 +658,15 @@ class AppDatabase extends _$AppDatabase {
             ]))
           .watch();
 
-  Future<void> addShoppingItem(
+  /// Adds an item and returns its id.
+  Future<String> addShoppingItem(
     String listId,
     String name, {
     double quantity = 1,
     String unit = '',
     String category = '',
   }) async {
-    await into(shoppingItems).insert(
+    final row = await into(shoppingItems).insertReturning(
       ShoppingItemsCompanion.insert(
         listId: listId,
         name: name,
@@ -678,6 +679,7 @@ class AppDatabase extends _$AppDatabase {
     );
     await _rememberItem(name, category, unit);
     await recordHistory(name, category, unit);
+    return row.id;
   }
 
   Future<void> setChecked(String id, bool checked) =>
