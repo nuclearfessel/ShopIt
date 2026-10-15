@@ -25,6 +25,7 @@ class ChoiceField<T> extends StatefulWidget {
     required this.onChanged,
     this.decoration,
     this.textStyle,
+    this.inset = 12,
   });
 
   final List<Choice<T>> choices;
@@ -32,6 +33,10 @@ class ChoiceField<T> extends StatefulWidget {
   final ValueChanged<T> onChanged;
   final InputDecoration? decoration;
   final TextStyle? textStyle;
+
+  /// Space between the edge and the text/chevron of the plain (undecorated)
+  /// variant, so it lines up with neighbouring fields.
+  final double inset;
 
   @override
   State<ChoiceField<T>> createState() => _ChoiceFieldState<T>();

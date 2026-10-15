@@ -482,6 +482,7 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
                     ? Tip(
                         'Choose a list',
                         child: ChoiceField<String>(
+                          inset: 20,
                           value: current.id,
                           choices: [for (final l in all) Choice(l.id, l.name)],
                           textStyle: Theme.of(context).textTheme.titleMedium,
@@ -492,7 +493,7 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
                         alignment: Alignment.centerLeft,
                         child: Padding(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
+                            horizontal: 20,
                             vertical: 12,
                           ),
                           child: Text(
@@ -510,32 +511,41 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
                   onChanged: (_) => setState(() {}),
                   decoration: InputDecoration(
                     hintText: 'Search or add an item',
-                    prefixIcon: const KeylineIcon(KeylineIcons.search),
+                    prefixIcon: const Padding(
+                      padding: EdgeInsets.only(left: 8),
+                      child: KeylineIcon(KeylineIcons.search),
+                    ),
                     border: const OutlineInputBorder(),
-                    suffixIcon: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (_controller.text.trim().isNotEmpty)
+                    suffixIcon: Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (_controller.text.trim().isNotEmpty)
+                            IconButton(
+                              tooltip: 'Edit details before adding',
+                              icon: const KeylineIcon(KeylineIcons.pen),
+                              onPressed: () => _addWithDetails(
+                                current,
+                                taxCtx,
+                                categoryNames,
+                              ),
+                            ),
                           IconButton(
-                            tooltip: 'Edit details before adding',
-                            icon: const KeylineIcon(KeylineIcons.pen),
-                            onPressed: () =>
-                                _addWithDetails(current, taxCtx, categoryNames),
+                            tooltip: 'History',
+                            icon: const KeylineIcon(KeylineIcons.history),
+                            onPressed: () => showDialog<void>(
+                              context: context,
+                              builder: (_) => HistoryDialog(list: current),
+                            ),
                           ),
-                        IconButton(
-                          tooltip: 'History',
-                          icon: const KeylineIcon(KeylineIcons.history),
-                          onPressed: () => showDialog<void>(
-                            context: context,
-                            builder: (_) => HistoryDialog(list: current),
+                          IconButton(
+                            tooltip: 'Add item',
+                            icon: const KeylineIcon(KeylineIcons.plus),
+                            onPressed: () => _submit(current),
                           ),
-                        ),
-                        IconButton(
-                          tooltip: 'Add item',
-                          icon: const KeylineIcon(KeylineIcons.plus),
-                          onPressed: () => _submit(current),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                   onSubmitted: (_) => _submit(current),
