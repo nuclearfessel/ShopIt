@@ -1,13 +1,14 @@
 # Cloud mailbox
 
-Shop-it stores each paired device's list snapshot in a shared household
-mailbox so the phone and the computer can sync without being on the same
-Wi-Fi.
+Shop-it stores each paired device's latest list snapshot as a retained MQTT
+message so the phone and the computer can sync without being on the same
+Wi-Fi, and without being online at the same moment.
 
-The app talks to a free key/value host by default
-(`keyvalue.immanuel.co`). The eight-character household code is the secret
-path. No Shop-it account is required.
+The default broker is the public HiveMQ endpoint (`broker.hivemq.com` on
+port 8883). The eight-character household code is part of the topic path.
+No Shop-it account is required.
 
-If that host is ever unavailable, point `CloudMailbox(baseUrl: …)` at any
-compatible GetValue/UpdateValue endpoint, or deploy a small Worker of your
-own that implements the same two routes.
+Topic layout:
+
+- `shopit/1/{code}/{deviceId}` — retained snapshot for one device
+- subscribers use `shopit/1/{code}/+` to collect every device in the household

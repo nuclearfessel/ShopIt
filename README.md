@@ -9,10 +9,10 @@ On a wide window, Shopping and Pantry are in the rail on the left. On a phone, t
 
 ## Install
 
-The current release is **0.0.4**.
+The current release is **0.0.5**.
 
-- [Windows installer](https://github.com/nuclearfessel/Shop-it/releases/download/v0.0.4/Shop-it-Setup-0.0.4.exe)
-- [Android APK](https://github.com/nuclearfessel/Shop-it/releases/download/v0.0.4/Shop-it-0.0.4.apk)
+- [Windows installer](https://github.com/nuclearfessel/Shop-it/releases/download/v0.0.5/Shop-it-Setup-0.0.5.exe)
+- [Android APK](https://github.com/nuclearfessel/Shop-it/releases/download/v0.0.5/Shop-it-0.0.5.apk)
 
 Install the Windows package and run Shop-it. On Android, allow install from the APK, then open it. Every app update that is merged to `main` publishes the next version, stepping by 0.0.1.
 

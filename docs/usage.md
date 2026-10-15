@@ -43,7 +43,7 @@ If Windows asks whether to allow Shop-it on private networks, choose allow. The 
 
 ### Over the internet
 
-When the phone is on mobile data, or the two are not on the same Wi-Fi, use cloud sync. On one device tap **Create cloud code**, then on the other enter that eight-character code and tap **Join with code**. Both apps need an internet connection while they are open. Lists still sync even when the devices are not near each other.
+When the phone is on mobile data, or the two are not on the same Wi-Fi, use cloud sync. On one device tap **Create cloud code**, then on the other enter that eight-character code and tap **Join with code**. Both apps need an internet connection while they are open. Lists still sync even when the devices are not near each other. Cloud sync uses a public MQTT mailbox; leave the household and create a new code if an older release could not reach the mailbox.
 
 ### Same list name
 
