@@ -94,8 +94,7 @@ class CloudMailboxDoc {
 
 /// Reads and writes the household mailbox over HTTPS.
 class CloudMailbox {
-  CloudMailbox({this.baseUrl = defaultCloudMailboxBase, HttpClient? client})
-    : _client = client;
+  CloudMailbox({this.baseUrl = defaultCloudMailboxBase, this._client});
 
   final String baseUrl;
   final HttpClient? _client;

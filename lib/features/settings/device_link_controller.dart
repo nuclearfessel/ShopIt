@@ -92,7 +92,7 @@ class DeviceLinkState {
 
 /// Shares lists on the same Wi-Fi and, when paired, through the cloud mailbox.
 class DeviceLinkController extends Notifier<DeviceLinkState> {
-  DeviceLinkController({CloudMailbox? mailbox}) : _mailbox = mailbox;
+  DeviceLinkController({this._mailbox});
 
   final CloudMailbox? _mailbox;
   final _host = DeviceHost();

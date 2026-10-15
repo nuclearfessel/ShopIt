@@ -314,9 +314,7 @@ extension DeviceSync on AppDatabase {
       var local = await (select(
         shoppingItems,
       )..where((t) => t.id.equals(id))).getSingleOrNull();
-      if (local == null) {
-        local = await _shoppingItemByName(listId, name);
-      }
+      local ??= await _shoppingItemByName(listId, name);
       if (local != null &&
           !_take(at, local.updatedAt, _identical(_shoppingJson(local), row))) {
         continue;
