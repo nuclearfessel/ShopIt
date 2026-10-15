@@ -3,7 +3,8 @@
 A shopping and pantry list app for Windows and Android.
 
 ![Shop-it on Windows](docs/screenshots/windows.png)
-![Shop-it on Android](docs/screenshots/android.png)
+
+<img src="docs/screenshots/android.png" alt="Shop-it on Android" width="280" />
 
 On a wide window, Shopping and Pantry are in the rail on the left. On a phone, they are in the bar at the bottom.
 
