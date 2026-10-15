@@ -1,32 +1,40 @@
 # Shop-it
 
-A shopping and pantry list app for Windows and Android.
+Shop-it is a shopping and pantry list app for Windows and Android. The same lists, categories, prices, and tax settings work on both.
 
 ![Shop-it on Windows](docs/screenshots/windows.png)
 
 <img src="docs/screenshots/android.png" alt="Shop-it on Android" width="280" />
 
-On a wide window, Shopping and Pantry are in the rail on the left. On a phone, they are in the bar at the bottom.
+## Download
 
-## Install
+**Current version: 0.0.5**
 
-The current release is **0.0.5**.
+| Platform | Package |
+| --- | --- |
+| Windows | [Shop-it-Setup-0.0.5.exe](https://github.com/nuclearfessel/Shop-it/releases/download/v0.0.5/Shop-it-Setup-0.0.5.exe) |
+| Android | [Shop-it-0.0.5.apk](https://github.com/nuclearfessel/Shop-it/releases/download/v0.0.5/Shop-it-0.0.5.apk) |
 
-- [Windows installer](https://github.com/nuclearfessel/Shop-it/releases/download/v0.0.5/Shop-it-Setup-0.0.5.exe)
-- [Android APK](https://github.com/nuclearfessel/Shop-it/releases/download/v0.0.5/Shop-it-0.0.5.apk)
+On Windows, run the installer. On Android, allow installs from the APK, then open it. Older packages stay in [Releases](https://github.com/nuclearfessel/Shop-it/releases) until a newer build replaces them; only the three newest releases are kept.
 
-Install the Windows package and run Shop-it. On Android, allow install from the APK, then open it. Every app update that is merged to `main` publishes the next version, stepping by 0.0.1.
+## Features
 
-The [release section](https://github.com/nuclearfessel/Shop-it/releases) keeps only the three newest releases. Older ones are removed when a new release is published.
+- **Shopping** — lists with categories, quantities, prices, coupons, and a cart
+- **Pantry** — what you already have, with counts or full/low levels
+- **Sales tax** — saved rates, optional location lookup, per-list and per-item control
+- **Sync** — share lists between your phone and computer
 
-## How to use
+On a wide window, Shopping and Pantry sit in the left rail. On a phone, they sit in the bottom bar. Open **Settings** from the gear for appearance, tax, sharing, and About.
 
-The full guide is in [Using Shop-it](docs/usage.md). In short:
+## Sync
 
-- Add lists and items on **Shopping**. Check an item to put it in the cart.
-- Keep what you already have on **Pantry**. Move or copy items between the two.
-- Open **Settings** from the gear for appearance, sales tax, and sharing.
-- To share on the same network, turn on **Share on this Wi-Fi** on both devices.
-- Away from that network, create a **cloud code** on one device and enter it on the other. Lists sync over the internet while each app is open.
-- If both devices already have a grocery list with the same name, sync appends items into that list instead of creating a second copy.
-- **About** is the last section in Settings. It shows the app name and version.
+Open **Settings → Share lists** on both devices.
+
+- **Same Wi-Fi** — turn on **Share on this Wi-Fi** while both apps are open. If Windows asks to allow Shop-it on private networks, choose allow.
+- **Away from home** — create a cloud code on one device and enter it on the other. Both need internet while the apps are open.
+
+If both sides already have a list with the same name, sync merges them and appends items instead of creating a duplicate list.
+
+## Docs
+
+Full walkthrough: [Using Shop-it](docs/usage.md).
