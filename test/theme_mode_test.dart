@@ -80,7 +80,8 @@ void main() {
       await tester.tap(find.byTooltip('Settings'));
       await tester.pumpAndSettle();
       expect(find.byType(SettingsDialog), findsOneWidget);
-      await tester.tap(find.text(label));
+      // Tap the segment (found by its tooltip, which every segment has).
+      await tester.tap(find.byTooltip(label));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Done'));
       await tester.pumpAndSettle();
@@ -125,7 +126,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byTooltip('Settings'));
       await tester.pumpAndSettle();
-      expect(find.text('Match system'), findsOneWidget);
+      expect(find.byType(SegmentedButton<ThemeMode>), findsOneWidget);
       // No list is open, so tax rates can be managed but not assigned.
       expect(find.text('No tax'), findsNothing);
       expect(find.text('Add a tax rate'), findsOneWidget);

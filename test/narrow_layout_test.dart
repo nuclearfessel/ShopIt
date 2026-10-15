@@ -186,9 +186,16 @@ void main() {
       expect(tester.takeException(), isNull, reason: 'settings dialog');
       expect(find.text('Settings'), findsOneWidget);
       expect(find.text('APPEARANCE'), findsOneWidget);
-      expect(find.text('Match system'), findsOneWidget);
-      expect(find.text('Light'), findsOneWidget);
-      expect(find.text('Dark'), findsOneWidget);
+      // A segmented control: System / Light / Dark.
+      expect(find.byType(SegmentedButton<ThemeMode>), findsOneWidget);
+      for (final tip in ['Match system', 'Light', 'Dark']) {
+        expect(find.byTooltip(tip), findsOneWidget, reason: tip);
+      }
+      // Wide dialogs show the labels, narrow ones just the icons.
+      expect(find.text('Light'), width >= 480 ? findsOneWidget : findsNothing);
+      await tester.tap(find.byTooltip('Light'));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull, reason: 'theme segments');
       expect(find.textContaining('SALES TAX'), findsOneWidget);
       expect(find.text('No tax'), findsOneWidget);
       expect(find.text('Add a tax rate'), findsOneWidget);

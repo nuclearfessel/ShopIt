@@ -14,10 +14,16 @@ class SettingsDialog extends ConsumerWidget {
   final String? listId;
   final String? listName;
 
+  /// (mode, tooltip, segment label, icon)
   static const _options = [
-    (ThemeMode.system, 'Match system', Icons.brightness_auto_outlined),
-    (ThemeMode.light, 'Light', Icons.light_mode_outlined),
-    (ThemeMode.dark, 'Dark', Icons.dark_mode_outlined),
+    (
+      ThemeMode.system,
+      'Match system',
+      'System',
+      Icons.brightness_auto_outlined,
+    ),
+    (ThemeMode.light, 'Light', 'Light', Icons.light_mode_outlined),
+    (ThemeMode.dark, 'Dark', 'Dark', Icons.dark_mode_outlined),
   ];
 
   @override
@@ -46,19 +52,32 @@ class SettingsDialog extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               heading('Appearance'),
-              for (final (m, label, icon) in _options)
-                ListTile(
-                  dense: true,
-                  contentPadding: const EdgeInsets.only(left: 4, right: 4),
-                  leading: Icon(
-                    mode == m
-                        ? Icons.radio_button_checked
-                        : Icons.radio_button_off,
-                  ),
-                  title: Text(label),
-                  trailing: Icon(icon, size: 20),
-                  onTap: () => ref.read(themeModeProvider.notifier).set(m),
-                ),
+              // Segmented control: System / Light / Dark. Icons only (with
+              // tooltips) when the dialog is too narrow for the labels.
+              LayoutBuilder(
+                builder: (context, box) {
+                  final compact = box.maxWidth < 300;
+                  return SizedBox(
+                    width: double.infinity,
+                    child: SegmentedButton<ThemeMode>(
+                      showSelectedIcon: false,
+                      expandedInsets: EdgeInsets.zero,
+                      segments: [
+                        for (final (m, label, short, icon) in _options)
+                          ButtonSegment(
+                            value: m,
+                            tooltip: label,
+                            icon: Icon(icon, size: 18),
+                            label: compact ? null : Text(short),
+                          ),
+                      ],
+                      selected: {mode},
+                      onSelectionChanged: (s) =>
+                          ref.read(themeModeProvider.notifier).set(s.first),
+                    ),
+                  );
+                },
+              ),
               const Divider(height: 24),
               heading(
                 listName == null ? 'Sales tax' : 'Sales tax for "$listName"',
