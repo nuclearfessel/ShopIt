@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../features/pantry/pantry_screen.dart';
+import '../features/settings/device_link_controller.dart';
 import 'theme_mode.dart';
 import 'title_bar.dart';
 import '../features/shopping/shopping_screen.dart';
@@ -144,18 +145,22 @@ class _ShopItAppState extends ConsumerState<ShopItApp> {
   }
 
   @override
-  Widget build(BuildContext context) => MaterialApp.router(
-    title: 'Shop-it',
-    debugShowCheckedModeBanner: false,
-    theme: _buildTheme(Brightness.light),
-    darkTheme: _buildTheme(Brightness.dark),
-    themeMode: ref.watch(themeModeProvider),
-    routerConfig: _router,
-    // On Windows the native title bar is hidden; draw our own.
-    builder: (context, child) => widget.windowChrome && Platform.isWindows
-        ? WindowFrame(child: child ?? const SizedBox.shrink())
-        : child ?? const SizedBox.shrink(),
-  );
+  Widget build(BuildContext context) {
+    // Keeps a saved link to the other device alive while the app is open.
+    ref.watch(deviceLinkProvider);
+    return MaterialApp.router(
+      title: 'Shop-it',
+      debugShowCheckedModeBanner: false,
+      theme: _buildTheme(Brightness.light),
+      darkTheme: _buildTheme(Brightness.dark),
+      themeMode: ref.watch(themeModeProvider),
+      routerConfig: _router,
+      // On Windows the native title bar is hidden; draw our own.
+      builder: (context, child) => widget.windowChrome && Platform.isWindows
+          ? WindowFrame(child: child ?? const SizedBox.shrink())
+          : child ?? const SizedBox.shrink(),
+    );
+  }
 }
 
 /// Side rail on wide windows (Windows), bottom bar on narrow ones (Android).

@@ -5,6 +5,8 @@ import '../../app/theme_mode.dart';
 import '../shopping/tax_rates_dialog.dart';
 import '../../ui/keyline/keyline_icon.dart';
 import '../../ui/tip.dart';
+import 'device_link_controller.dart';
+import 'device_link_dialog.dart';
 
 /// App settings: light/dark theme and the sales tax rates.
 ///
@@ -27,6 +29,7 @@ class SettingsDialog extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final mode = ref.watch(themeModeProvider);
+    final link = ref.watch(deviceLinkProvider);
 
     Widget heading(String text) => Padding(
       padding: const EdgeInsets.only(top: 4, bottom: 4),
@@ -80,6 +83,44 @@ class SettingsDialog extends ConsumerWidget {
                 listName == null ? 'Sales tax' : 'Sales tax for "$listName"',
               ),
               TaxRatesSection(listId: listId),
+              const Divider(height: 24),
+              heading('Devices'),
+              Text(
+                'Lists you add on your phone and on this computer show up on '
+                'both, while Shop-it is open on the same Wi-Fi.',
+                style: theme.textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                link.summary,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                ),
+              ),
+              if (link.error != null) ...[
+                const SizedBox(height: 4),
+                Text(
+                  link.error!,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.error,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 8),
+              Tip(
+                'Share lists with your other device',
+                child: OutlinedButton(
+                  onPressed: () => showDialog<void>(
+                    context: context,
+                    builder: (_) => const DeviceLinkDialog(),
+                  ),
+                  child: Text(
+                    link.role == DeviceRole.none
+                        ? 'Share lists'
+                        : 'Manage sharing',
+                  ),
+                ),
+              ),
             ],
           ),
         ),

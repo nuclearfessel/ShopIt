@@ -1,13 +1,15 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Network for the tax-rate lookups; location only when the user taps
-         "Use my location" in the sales tax dialog. -->
+    <!-- Network for the tax-rate lookups and for sharing lists with Shop-it
+         on another device. Location only when the user taps "Use my location"
+         in the sales tax dialog. -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <application
         android:label="shop_it"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:usesCleartextTraffic="true">
         <activity
             android:name=".MainActivity"
             android:exported="true"

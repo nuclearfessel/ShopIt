@@ -15,8 +15,8 @@ part 'database.g.dart';
 const _uuid = Uuid();
 String newId() => _uuid.v4();
 
-/// Columns shared by every synced table. Rows are soft-deleted so a future
-/// sync can propagate deletions.
+/// Columns shared by every synced table. Rows are soft-deleted so a deletion
+/// on one device can be applied on the other (see device_sync.dart).
 mixin SyncColumns on Table {
   TextColumn get id => text().clientDefault(newId)();
   DateTimeColumn get updatedAt => dateTime().clientDefault(DateTime.now)();
@@ -797,6 +797,9 @@ class AppDatabase extends _$AppDatabase {
           .watch();
 
   /// Saves the manual category order for one list: [ordered] first to last.
+  ///
+  /// Touches the list's updated time so the order is included the next time
+  /// lists are shared with another device.
   Future<void> setListCategoryOrder(String listId, List<String> ordered) =>
       transaction(() async {
         await (delete(
@@ -811,6 +814,9 @@ class AppDatabase extends _$AppDatabase {
             ),
           );
         }
+        await (update(shoppingLists)..where((t) => t.id.equals(listId))).write(
+          ShoppingListsCompanion(updatedAt: Value(DateTime.now())),
+        );
       });
 
   /// Remembers that [name] belongs in [category] from now on, so adding it
