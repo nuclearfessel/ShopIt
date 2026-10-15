@@ -1,3 +1,5 @@
+import 'import_rows.dart';
+
 import 'dart:io';
 
 import 'package:drift/drift.dart';
@@ -511,6 +513,84 @@ class AppDatabase extends _$AppDatabase {
               updatedAt: Value(DateTime.now()),
             ),
           );
+
+  // ---- Importing ----
+
+  /// Makes sure every category named in [names] exists, and returns each one's
+  /// proper spelling by lower-case name (so "dairy" lands in "Dairy & Eggs"
+  /// only if that is what the file said; otherwise a new category is added).
+  Future<Map<String, String>> _canonicalCategories(
+    Iterable<String> names,
+  ) async {
+    final existing = {
+      for (final c in await select(categories).get())
+        c.name.toLowerCase(): c.name,
+    };
+    for (final raw in names) {
+      final n = raw.trim();
+      if (n.isEmpty || existing.containsKey(n.toLowerCase())) continue;
+      await addCategory(n);
+      existing[n.toLowerCase()] = n;
+    }
+    return existing;
+  }
+
+  /// Adds items read from a CSV file to a shopping list. Categories the file
+  /// names that do not exist yet are created. Returns how many were added.
+  Future<int> importShoppingItems(
+    String listId,
+    List<ShoppingCsvRow> rows,
+  ) async {
+    final canon = await _canonicalCategories(rows.map((r) => r.category));
+    String cat(String c) => canon[c.trim().toLowerCase()] ?? '';
+    await transaction(() async {
+      for (final r in rows) {
+        await into(shoppingItems).insert(
+          ShoppingItemsCompanion.insert(
+            listId: listId,
+            name: r.name,
+            quantity: Value(r.quantity),
+            unit: Value(r.unit),
+            category: Value(cat(r.category)),
+            checked: Value(r.checked),
+            price: Value(r.price),
+            note: Value(r.note),
+            taxable: const Value(true),
+            hasCoupon: Value(r.coupon),
+          ),
+        );
+      }
+    });
+    for (final r in rows) {
+      await recordHistory(r.name, cat(r.category), r.unit);
+    }
+    return rows.length;
+  }
+
+  /// Adds items read from a CSV file to a pantry list. Returns how many.
+  Future<int> importPantryItems(String listId, List<PantryCsvRow> rows) async {
+    final canon = await _canonicalCategories(rows.map((r) => r.category));
+    String cat(String c) => canon[c.trim().toLowerCase()] ?? '';
+    await transaction(() async {
+      for (final r in rows) {
+        await into(pantryItems).insert(
+          PantryItemsCompanion.insert(
+            name: r.name,
+            quantity: Value(r.quantity),
+            unit: Value(r.unit),
+            category: Value(cat(r.category)),
+            location: Value(r.location),
+            expiryDate: Value(r.expiry),
+            note: Value(r.note),
+            listId: Value(listId),
+            quantityMode: Value(r.mode),
+            level: Value(r.level),
+          ),
+        );
+      }
+    });
+    return rows.length;
+  }
 
   // ---- Moving and copying items between lists ----
 

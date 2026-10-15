@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/catalog_seed.dart';
 import '../../data/category_order.dart';
+import '../../data/list_csv.dart';
+import '../../services/file_service.dart';
 import '../../data/database.dart';
 import '../../data/providers.dart';
 import '../../ui/category_header.dart';
@@ -165,6 +167,51 @@ class _PantryBody extends ConsumerWidget {
                     onUndo: outcome.undo,
                   );
                 }
+              } else if (v == 'export') {
+                final rows = items.value ?? const <PantryItem>[];
+                final saved = await ref
+                    .read(fileServiceProvider)
+                    .saveText(
+                      fileName: '${safeFileName(current.name)}.csv',
+                      text: pantryItemsToCsv(rows),
+                    );
+                if (saved && context.mounted) {
+                  showInfoSnackBar(
+                    context,
+                    'Exported ${rows.length} '
+                    '${rows.length == 1 ? 'item' : 'items'} from '
+                    '"${current.name}"',
+                  );
+                }
+              } else if (v == 'import') {
+                final picked = await ref.read(fileServiceProvider).pickText();
+                if (picked == null || !context.mounted) return;
+                final rows = parsePantryCsv(picked.text);
+                if (rows.isEmpty) {
+                  showInfoSnackBar(
+                    context,
+                    'No items were found in "${picked.name}"',
+                  );
+                  return;
+                }
+                final name = await askNameDialog(
+                  context,
+                  title: 'Import as a new pantry list',
+                  initial: picked.name,
+                  confirmLabel: 'Import',
+                  confirmTip: 'Create a pantry list from this file',
+                );
+                if (name == null || !context.mounted) return;
+                final id = await db.addList(name, kind: 'pantry');
+                await db.importPantryItems(id, rows);
+                onSelect(id);
+                if (context.mounted) {
+                  showInfoSnackBar(
+                    context,
+                    'Imported ${rows.length} '
+                    '${rows.length == 1 ? 'item' : 'items'} into "$name"',
+                  );
+                }
               } else if (v == 'itemsSetting') {
                 await showDialog<void>(
                   context: context,
@@ -230,6 +277,20 @@ class _PantryBody extends ConsumerWidget {
                 child: Tip(
                   'Rename, reorder or delete your pantry lists',
                   child: const Text('Manage lists'),
+                ),
+              ),
+              PopupMenuItem(
+                value: 'export',
+                child: Tip(
+                  'Save this list as a CSV file',
+                  child: const Text('Export list'),
+                ),
+              ),
+              PopupMenuItem(
+                value: 'import',
+                child: Tip(
+                  'Make a new pantry list from a CSV file',
+                  child: const Text('Import list'),
                 ),
               ),
               PopupMenuItem(

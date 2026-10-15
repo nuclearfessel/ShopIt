@@ -9,6 +9,8 @@ import '../../data/tax_rules.dart';
 import '../../data/totals.dart';
 import '../catalog/item_editor.dart';
 import '../../data/category_order.dart';
+import '../../data/list_csv.dart';
+import '../../services/file_service.dart';
 import '../categories/category_color_dialog.dart';
 import '../categories/manage_categories_dialog.dart';
 import '../history/history_dialog.dart';
@@ -280,6 +282,53 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
                         onUndo: outcome.undo,
                       );
                     }
+                  } else if (v == 'export') {
+                    final rows = items.value ?? const <ShoppingItem>[];
+                    final saved = await ref
+                        .read(fileServiceProvider)
+                        .saveText(
+                          fileName: '${safeFileName(current.name)}.csv',
+                          text: shoppingItemsToCsv(rows),
+                        );
+                    if (saved && context.mounted) {
+                      showInfoSnackBar(
+                        context,
+                        'Exported ${rows.length} '
+                        '${rows.length == 1 ? 'item' : 'items'} from '
+                        '"${current.name}"',
+                      );
+                    }
+                  } else if (v == 'import') {
+                    final picked = await ref
+                        .read(fileServiceProvider)
+                        .pickText();
+                    if (picked == null || !context.mounted) return;
+                    final rows = parseShoppingCsv(picked.text);
+                    if (rows.isEmpty) {
+                      showInfoSnackBar(
+                        context,
+                        'No items were found in "${picked.name}"',
+                      );
+                      return;
+                    }
+                    final name = await askNameDialog(
+                      context,
+                      title: 'Import as a new list',
+                      initial: picked.name,
+                      confirmLabel: 'Import',
+                      confirmTip: 'Create a list from this file',
+                    );
+                    if (name == null || !context.mounted) return;
+                    final id = await db.addList(name);
+                    await db.importShoppingItems(id, rows);
+                    setState(() => _listId = id);
+                    if (context.mounted) {
+                      showInfoSnackBar(
+                        context,
+                        'Imported ${rows.length} '
+                        '${rows.length == 1 ? 'item' : 'items'} into "$name"',
+                      );
+                    }
                   } else if (v == 'checkAll') {
                     await db.checkAll(current.id);
                   } else if (v == 'uncheckAll') {
@@ -367,6 +416,20 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
                     child: Tip(
                       'Rename, reorder or delete your lists',
                       child: const Text('Manage lists'),
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: 'export',
+                    child: Tip(
+                      'Save this list as a CSV file',
+                      child: const Text('Export list'),
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: 'import',
+                    child: Tip(
+                      'Make a new list from a CSV file',
+                      child: const Text('Import list'),
                     ),
                   ),
                   PopupMenuItem(

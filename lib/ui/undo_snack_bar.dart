@@ -27,3 +27,18 @@ void showUndoSnackBar(
     ),
   );
 }
+
+/// Shows a short message (no Undo). Like [showUndoSnackBar] it goes away by
+/// itself and has a close button; a newer message replaces an older one.
+void showInfoSnackBar(BuildContext context, String message) {
+  final messenger = ScaffoldMessenger.of(context);
+  messenger.clearSnackBars();
+  messenger.showSnackBar(
+    SnackBar(
+      content: Text(message),
+      duration: kUndoSnackBarDuration,
+      persist: false,
+      showCloseIcon: true,
+    ),
+  );
+}

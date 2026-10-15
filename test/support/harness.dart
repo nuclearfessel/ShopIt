@@ -8,6 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shop_it/app/app.dart';
 import 'package:shop_it/data/database.dart';
 import 'package:shop_it/data/providers.dart';
+import 'package:shop_it/services/file_service.dart';
 
 final _t = DateTime(2026, 1, 1);
 
@@ -101,6 +102,7 @@ Future<void> pumpShopIt(
   List<Category>? categories,
   List<HistoryEntry> history = const [],
   GlobalKey? boundary,
+  FileService? fileService,
 }) async {
   tester.view.physicalSize = Size(width, height);
   tester.view.devicePixelRatio = 1;
@@ -118,6 +120,8 @@ Future<void> pumpShopIt(
 
   Widget app = ProviderScope(
     overrides: [
+      if (fileService != null)
+        fileServiceProvider.overrideWithValue(fileService),
       // Never opened: every query below is replaced.
       databaseProvider.overrideWithValue(AppDatabase.memory()),
       listsProvider.overrideWith((_) => Stream.value(theLists)),
@@ -236,3 +240,27 @@ HistoryEntry fakeHistory(
   lastUsed: _t.subtract(Duration(days: daysAgo)),
   useCount: 1,
 );
+
+/// A [FileService] that records what is saved and returns a canned file.
+class FakeFileService implements FileService {
+  FakeFileService({this.picked});
+
+  PickedText? picked;
+  String? savedName;
+  String? savedText;
+  bool cancelSave = false;
+
+  @override
+  Future<bool> saveText({
+    required String fileName,
+    required String text,
+  }) async {
+    if (cancelSave) return false;
+    savedName = fileName;
+    savedText = text;
+    return true;
+  }
+
+  @override
+  Future<PickedText?> pickText() async => picked;
+}
