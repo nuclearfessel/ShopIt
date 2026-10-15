@@ -5,7 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/database.dart';
 import '../../data/providers.dart';
 import '../catalog/catalog_suggestions.dart';
+import '../../data/totals.dart';
 import '../catalog/item_editor.dart';
+import 'tax_rates_dialog.dart';
 
 class ShoppingScreen extends ConsumerStatefulWidget {
   const ShoppingScreen({super.key});
@@ -97,6 +99,10 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
                       await db.deleteList(current.id);
                       setState(() => _listId = null);
                     }
+                  } else if (v == 'tax') {
+                    await showDialog<void>(
+                        context: context,
+                        builder: (_) => TaxRatesDialog(listId: current.id));
                   } else if (v == 'deleteAll') {
                     if (await _confirm(
                         context,
@@ -113,6 +119,8 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
                   const PopupMenuItem(
                       value: 'clear', child: Text('Clear checked items')),
                   const PopupMenuItem(value: 'new', child: Text('New list')),
+                  const PopupMenuItem(
+                      value: 'tax', child: Text('Sales tax rate...')),
                   const PopupMenuItem(
                       value: 'delete', child: Text('Delete this list')),
                   const PopupMenuItem(
@@ -167,7 +175,14 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
                       ]),
               ),
             ),
-            _TotalBar(rows: items.value ?? const []),
+            _TotalBar(
+              rows: items.value ?? const [],
+              rate: ref
+                  .watch(taxRatesProvider)
+                  .value
+                  ?.where((r) => r.id == current.taxRateId)
+                  .firstOrNull,
+            ),
           ]),
         );
       },
@@ -319,20 +334,20 @@ class _ItemTile extends StatelessWidget {
   }
 }
 
-/// "Total 12.40 · 3 left" across priced items; hidden when nothing has a price.
+/// Subtotal, tax (at the list's chosen rate) and total, plus what is still to
+/// buy. Hidden when nothing has a price.
 class _TotalBar extends StatelessWidget {
-  const _TotalBar({required this.rows});
+  const _TotalBar({required this.rows, required this.rate});
   final List<ShoppingItem> rows;
+  final TaxRate? rate;
 
   @override
   Widget build(BuildContext context) {
-    final priced = rows.where((i) => i.price != null);
-    if (priced.isEmpty) return const SizedBox.shrink();
-    double sum(Iterable<ShoppingItem> r) =>
-        r.fold(0, (a, i) => a + i.price! * i.quantity);
-    final left = priced.where((i) => !i.checked);
+    final t = computeTotals(rows, rate?.percent);
+    if (!t.hasPrices) return const SizedBox.shrink();
+    final theme = Theme.of(context);
     return Material(
-      color: Theme.of(context).colorScheme.surfaceContainer,
+      color: theme.colorScheme.surfaceContainer,
       child: SafeArea(
         top: false,
         child: Padding(
@@ -340,10 +355,15 @@ class _TotalBar extends StatelessWidget {
           child: Wrap(
             alignment: WrapAlignment.spaceBetween,
             spacing: 16,
+            runSpacing: 4,
             children: [
-              Text('Total ${formatMoney(sum(priced))}',
-                  style: Theme.of(context).textTheme.titleSmall),
-              Text('Still to buy ${formatMoney(sum(left))}'),
+              if (rate != null) Text('Subtotal ${formatMoney(t.subtotal)}'),
+              if (rate != null)
+                Text('Tax ${formatPercent(rate!.percent)}% '
+                    '${formatMoney(t.tax)}'),
+              Text('Total ${formatMoney(t.total)}',
+                  style: theme.textTheme.titleSmall),
+              Text('Still to buy ${formatMoney(t.remaining)}'),
             ],
           ),
         ),

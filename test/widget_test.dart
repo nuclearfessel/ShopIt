@@ -137,6 +137,24 @@ void main() {
     expect(await db.watchShoppingItems(party.id).first, hasLength(2));
   });
 
+  test('tax rates: user-defined, chosen per list, deleting resets lists', () async {
+    final list = (await db.watchLists().first).single;
+    expect(list.taxRateId, isNull);
+    expect(await db.watchTaxRates().first, isEmpty); // none built in
+
+    final id = await db.addTaxRate('Home', 8.25);
+    await db.setListTaxRate(list.id, id);
+    expect((await db.watchLists().first).single.taxRateId, id);
+
+    await db.updateTaxRate(id, 'Home (county)', 8.5);
+    final rate = (await db.watchTaxRates().first).single;
+    expect((rate.name, rate.percent), ('Home (county)', 8.5));
+
+    await db.deleteTaxRate(id);
+    expect(await db.watchTaxRates().first, isEmpty);
+    expect((await db.watchLists().first).single.taxRateId, isNull);
+  });
+
   test('catalog is seeded with ordered categories', () async {
     final cats = await db.watchCategories().first;
     expect(cats.first.name, 'Produce');

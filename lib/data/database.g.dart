@@ -51,8 +51,25 @@ class $ShoppingListsTable extends ShoppingLists
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _taxRateIdMeta = const VerificationMeta(
+    'taxRateId',
+  );
   @override
-  List<GeneratedColumn> get $columns => [id, updatedAt, deletedAt, name];
+  late final GeneratedColumn<String> taxRateId = GeneratedColumn<String>(
+    'tax_rate_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    updatedAt,
+    deletedAt,
+    name,
+    taxRateId,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -88,6 +105,12 @@ class $ShoppingListsTable extends ShoppingLists
     } else if (isInserting) {
       context.missing(_nameMeta);
     }
+    if (data.containsKey('tax_rate_id')) {
+      context.handle(
+        _taxRateIdMeta,
+        taxRateId.isAcceptableOrUnknown(data['tax_rate_id']!, _taxRateIdMeta),
+      );
+    }
     return context;
   }
 
@@ -113,6 +136,10 @@ class $ShoppingListsTable extends ShoppingLists
         DriftSqlType.string,
         data['${effectivePrefix}name'],
       )!,
+      taxRateId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}tax_rate_id'],
+      ),
     );
   }
 
@@ -127,11 +154,15 @@ class ShoppingList extends DataClass implements Insertable<ShoppingList> {
   final DateTime updatedAt;
   final DateTime? deletedAt;
   final String name;
+
+  /// Which saved tax rate applies to this list; null means no tax.
+  final String? taxRateId;
   const ShoppingList({
     required this.id,
     required this.updatedAt,
     this.deletedAt,
     required this.name,
+    this.taxRateId,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -142,6 +173,9 @@ class ShoppingList extends DataClass implements Insertable<ShoppingList> {
       map['deleted_at'] = Variable<DateTime>(deletedAt);
     }
     map['name'] = Variable<String>(name);
+    if (!nullToAbsent || taxRateId != null) {
+      map['tax_rate_id'] = Variable<String>(taxRateId);
+    }
     return map;
   }
 
@@ -153,6 +187,9 @@ class ShoppingList extends DataClass implements Insertable<ShoppingList> {
           ? const Value.absent()
           : Value(deletedAt),
       name: Value(name),
+      taxRateId: taxRateId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(taxRateId),
     );
   }
 
@@ -166,6 +203,7 @@ class ShoppingList extends DataClass implements Insertable<ShoppingList> {
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
       name: serializer.fromJson<String>(json['name']),
+      taxRateId: serializer.fromJson<String?>(json['taxRateId']),
     );
   }
   @override
@@ -176,6 +214,7 @@ class ShoppingList extends DataClass implements Insertable<ShoppingList> {
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'deletedAt': serializer.toJson<DateTime?>(deletedAt),
       'name': serializer.toJson<String>(name),
+      'taxRateId': serializer.toJson<String?>(taxRateId),
     };
   }
 
@@ -184,11 +223,13 @@ class ShoppingList extends DataClass implements Insertable<ShoppingList> {
     DateTime? updatedAt,
     Value<DateTime?> deletedAt = const Value.absent(),
     String? name,
+    Value<String?> taxRateId = const Value.absent(),
   }) => ShoppingList(
     id: id ?? this.id,
     updatedAt: updatedAt ?? this.updatedAt,
     deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
     name: name ?? this.name,
+    taxRateId: taxRateId.present ? taxRateId.value : this.taxRateId,
   );
   ShoppingList copyWithCompanion(ShoppingListsCompanion data) {
     return ShoppingList(
@@ -196,6 +237,7 @@ class ShoppingList extends DataClass implements Insertable<ShoppingList> {
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
       name: data.name.present ? data.name.value : this.name,
+      taxRateId: data.taxRateId.present ? data.taxRateId.value : this.taxRateId,
     );
   }
 
@@ -205,13 +247,14 @@ class ShoppingList extends DataClass implements Insertable<ShoppingList> {
           ..write('id: $id, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt, ')
-          ..write('name: $name')
+          ..write('name: $name, ')
+          ..write('taxRateId: $taxRateId')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, updatedAt, deletedAt, name);
+  int get hashCode => Object.hash(id, updatedAt, deletedAt, name, taxRateId);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -219,7 +262,8 @@ class ShoppingList extends DataClass implements Insertable<ShoppingList> {
           other.id == this.id &&
           other.updatedAt == this.updatedAt &&
           other.deletedAt == this.deletedAt &&
-          other.name == this.name);
+          other.name == this.name &&
+          other.taxRateId == this.taxRateId);
 }
 
 class ShoppingListsCompanion extends UpdateCompanion<ShoppingList> {
@@ -227,12 +271,14 @@ class ShoppingListsCompanion extends UpdateCompanion<ShoppingList> {
   final Value<DateTime> updatedAt;
   final Value<DateTime?> deletedAt;
   final Value<String> name;
+  final Value<String?> taxRateId;
   final Value<int> rowid;
   const ShoppingListsCompanion({
     this.id = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.deletedAt = const Value.absent(),
     this.name = const Value.absent(),
+    this.taxRateId = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   ShoppingListsCompanion.insert({
@@ -240,6 +286,7 @@ class ShoppingListsCompanion extends UpdateCompanion<ShoppingList> {
     this.updatedAt = const Value.absent(),
     this.deletedAt = const Value.absent(),
     required String name,
+    this.taxRateId = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : name = Value(name);
   static Insertable<ShoppingList> custom({
@@ -247,6 +294,7 @@ class ShoppingListsCompanion extends UpdateCompanion<ShoppingList> {
     Expression<DateTime>? updatedAt,
     Expression<DateTime>? deletedAt,
     Expression<String>? name,
+    Expression<String>? taxRateId,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -254,6 +302,7 @@ class ShoppingListsCompanion extends UpdateCompanion<ShoppingList> {
       if (updatedAt != null) 'updated_at': updatedAt,
       if (deletedAt != null) 'deleted_at': deletedAt,
       if (name != null) 'name': name,
+      if (taxRateId != null) 'tax_rate_id': taxRateId,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -263,6 +312,7 @@ class ShoppingListsCompanion extends UpdateCompanion<ShoppingList> {
     Value<DateTime>? updatedAt,
     Value<DateTime?>? deletedAt,
     Value<String>? name,
+    Value<String?>? taxRateId,
     Value<int>? rowid,
   }) {
     return ShoppingListsCompanion(
@@ -270,6 +320,7 @@ class ShoppingListsCompanion extends UpdateCompanion<ShoppingList> {
       updatedAt: updatedAt ?? this.updatedAt,
       deletedAt: deletedAt ?? this.deletedAt,
       name: name ?? this.name,
+      taxRateId: taxRateId ?? this.taxRateId,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -289,6 +340,9 @@ class ShoppingListsCompanion extends UpdateCompanion<ShoppingList> {
     if (name.present) {
       map['name'] = Variable<String>(name.value);
     }
+    if (taxRateId.present) {
+      map['tax_rate_id'] = Variable<String>(taxRateId.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -302,6 +356,7 @@ class ShoppingListsCompanion extends UpdateCompanion<ShoppingList> {
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt, ')
           ..write('name: $name, ')
+          ..write('taxRateId: $taxRateId, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -2366,6 +2421,362 @@ class CatalogItemsCompanion extends UpdateCompanion<CatalogItem> {
   }
 }
 
+class $TaxRatesTable extends TaxRates with TableInfo<$TaxRatesTable, TaxRate> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $TaxRatesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    clientDefault: newId,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    clientDefault: DateTime.now,
+  );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _percentMeta = const VerificationMeta(
+    'percent',
+  );
+  @override
+  late final GeneratedColumn<double> percent = GeneratedColumn<double>(
+    'percent',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    updatedAt,
+    deletedAt,
+    name,
+    percent,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'tax_rates';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<TaxRate> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('percent')) {
+      context.handle(
+        _percentMeta,
+        percent.isAcceptableOrUnknown(data['percent']!, _percentMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_percentMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  TaxRate map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return TaxRate(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}deleted_at'],
+      ),
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      percent: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}percent'],
+      )!,
+    );
+  }
+
+  @override
+  $TaxRatesTable createAlias(String alias) {
+    return $TaxRatesTable(attachedDatabase, alias);
+  }
+}
+
+class TaxRate extends DataClass implements Insertable<TaxRate> {
+  final String id;
+  final DateTime updatedAt;
+  final DateTime? deletedAt;
+  final String name;
+  final double percent;
+  const TaxRate({
+    required this.id,
+    required this.updatedAt,
+    this.deletedAt,
+    required this.name,
+    required this.percent,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
+    map['name'] = Variable<String>(name);
+    map['percent'] = Variable<double>(percent);
+    return map;
+  }
+
+  TaxRatesCompanion toCompanion(bool nullToAbsent) {
+    return TaxRatesCompanion(
+      id: Value(id),
+      updatedAt: Value(updatedAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+      name: Value(name),
+      percent: Value(percent),
+    );
+  }
+
+  factory TaxRate.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return TaxRate(
+      id: serializer.fromJson<String>(json['id']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
+      name: serializer.fromJson<String>(json['name']),
+      percent: serializer.fromJson<double>(json['percent']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
+      'name': serializer.toJson<String>(name),
+      'percent': serializer.toJson<double>(percent),
+    };
+  }
+
+  TaxRate copyWith({
+    String? id,
+    DateTime? updatedAt,
+    Value<DateTime?> deletedAt = const Value.absent(),
+    String? name,
+    double? percent,
+  }) => TaxRate(
+    id: id ?? this.id,
+    updatedAt: updatedAt ?? this.updatedAt,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+    name: name ?? this.name,
+    percent: percent ?? this.percent,
+  );
+  TaxRate copyWithCompanion(TaxRatesCompanion data) {
+    return TaxRate(
+      id: data.id.present ? data.id.value : this.id,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      name: data.name.present ? data.name.value : this.name,
+      percent: data.percent.present ? data.percent.value : this.percent,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TaxRate(')
+          ..write('id: $id, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('name: $name, ')
+          ..write('percent: $percent')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, updatedAt, deletedAt, name, percent);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is TaxRate &&
+          other.id == this.id &&
+          other.updatedAt == this.updatedAt &&
+          other.deletedAt == this.deletedAt &&
+          other.name == this.name &&
+          other.percent == this.percent);
+}
+
+class TaxRatesCompanion extends UpdateCompanion<TaxRate> {
+  final Value<String> id;
+  final Value<DateTime> updatedAt;
+  final Value<DateTime?> deletedAt;
+  final Value<String> name;
+  final Value<double> percent;
+  final Value<int> rowid;
+  const TaxRatesCompanion({
+    this.id = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.name = const Value.absent(),
+    this.percent = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  TaxRatesCompanion.insert({
+    this.id = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    required String name,
+    required double percent,
+    this.rowid = const Value.absent(),
+  }) : name = Value(name),
+       percent = Value(percent);
+  static Insertable<TaxRate> custom({
+    Expression<String>? id,
+    Expression<DateTime>? updatedAt,
+    Expression<DateTime>? deletedAt,
+    Expression<String>? name,
+    Expression<double>? percent,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (name != null) 'name': name,
+      if (percent != null) 'percent': percent,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  TaxRatesCompanion copyWith({
+    Value<String>? id,
+    Value<DateTime>? updatedAt,
+    Value<DateTime?>? deletedAt,
+    Value<String>? name,
+    Value<double>? percent,
+    Value<int>? rowid,
+  }) {
+    return TaxRatesCompanion(
+      id: id ?? this.id,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      name: name ?? this.name,
+      percent: percent ?? this.percent,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (percent.present) {
+      map['percent'] = Variable<double>(percent.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TaxRatesCompanion(')
+          ..write('id: $id, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('name: $name, ')
+          ..write('percent: $percent, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -2374,6 +2785,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $PantryItemsTable pantryItems = $PantryItemsTable(this);
   late final $CategoriesTable categories = $CategoriesTable(this);
   late final $CatalogItemsTable catalogItems = $CatalogItemsTable(this);
+  late final $TaxRatesTable taxRates = $TaxRatesTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -2384,6 +2796,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     pantryItems,
     categories,
     catalogItems,
+    taxRates,
   ];
 }
 
@@ -2393,6 +2806,7 @@ typedef $$ShoppingListsTableCreateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<DateTime?> deletedAt,
       required String name,
+      Value<String?> taxRateId,
       Value<int> rowid,
     });
 typedef $$ShoppingListsTableUpdateCompanionBuilder =
@@ -2401,6 +2815,7 @@ typedef $$ShoppingListsTableUpdateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<DateTime?> deletedAt,
       Value<String> name,
+      Value<String?> taxRateId,
       Value<int> rowid,
     });
 
@@ -2460,6 +2875,11 @@ class $$ShoppingListsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<String> get taxRateId => $composableBuilder(
+    column: $table.taxRateId,
+    builder: (column) => ColumnFilters(column),
+  );
+
   Expression<bool> shoppingItemsRefs(
     Expression<bool> Function($$ShoppingItemsTableFilterComposer f) f,
   ) {
@@ -2514,6 +2934,11 @@ class $$ShoppingListsTableOrderingComposer
     column: $table.name,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get taxRateId => $composableBuilder(
+    column: $table.taxRateId,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$ShoppingListsTableAnnotationComposer
@@ -2536,6 +2961,9 @@ class $$ShoppingListsTableAnnotationComposer
 
   GeneratedColumn<String> get name =>
       $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get taxRateId =>
+      $composableBuilder(column: $table.taxRateId, builder: (column) => column);
 
   Expression<T> shoppingItemsRefs<T extends Object>(
     Expression<T> Function($$ShoppingItemsTableAnnotationComposer a) f,
@@ -2595,12 +3023,14 @@ class $$ShoppingListsTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<DateTime?> deletedAt = const Value.absent(),
                 Value<String> name = const Value.absent(),
+                Value<String?> taxRateId = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ShoppingListsCompanion(
                 id: id,
                 updatedAt: updatedAt,
                 deletedAt: deletedAt,
                 name: name,
+                taxRateId: taxRateId,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -2609,12 +3039,14 @@ class $$ShoppingListsTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<DateTime?> deletedAt = const Value.absent(),
                 required String name,
+                Value<String?> taxRateId = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ShoppingListsCompanion.insert(
                 id: id,
                 updatedAt: updatedAt,
                 deletedAt: deletedAt,
                 name: name,
+                taxRateId: taxRateId,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -3866,6 +4298,207 @@ typedef $$CatalogItemsTableProcessedTableManager =
       CatalogItem,
       PrefetchHooks Function()
     >;
+typedef $$TaxRatesTableCreateCompanionBuilder = TaxRatesCompanion Function({
+  Value<String> id,
+  Value<DateTime> updatedAt,
+  Value<DateTime?> deletedAt,
+  required String name,
+  required double percent,
+  Value<int> rowid,
+});
+typedef $$TaxRatesTableUpdateCompanionBuilder = TaxRatesCompanion Function({
+  Value<String> id,
+  Value<DateTime> updatedAt,
+  Value<DateTime?> deletedAt,
+  Value<String> name,
+  Value<double> percent,
+  Value<int> rowid,
+});
+
+class $$TaxRatesTableFilterComposer
+    extends Composer<_$AppDatabase, $TaxRatesTable> {
+  $$TaxRatesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get percent => $composableBuilder(
+    column: $table.percent,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$TaxRatesTableOrderingComposer
+    extends Composer<_$AppDatabase, $TaxRatesTable> {
+  $$TaxRatesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get percent => $composableBuilder(
+    column: $table.percent,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$TaxRatesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $TaxRatesTable> {
+  $$TaxRatesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<double> get percent =>
+      $composableBuilder(column: $table.percent, builder: (column) => column);
+}
+
+class $$TaxRatesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $TaxRatesTable,
+          TaxRate,
+          $$TaxRatesTableFilterComposer,
+          $$TaxRatesTableOrderingComposer,
+          $$TaxRatesTableAnnotationComposer,
+          $$TaxRatesTableCreateCompanionBuilder,
+          $$TaxRatesTableUpdateCompanionBuilder,
+          (TaxRate, BaseReferences<_$AppDatabase, $TaxRatesTable, TaxRate>),
+          TaxRate,
+          PrefetchHooks Function()
+        > {
+  $$TaxRatesTableTableManager(_$AppDatabase db, $TaxRatesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$TaxRatesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$TaxRatesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$TaxRatesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<double> percent = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => TaxRatesCompanion(
+                id: id,
+                updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                name: name,
+                percent: percent,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                required String name,
+                required double percent,
+                Value<int> rowid = const Value.absent(),
+              }) => TaxRatesCompanion.insert(
+                id: id,
+                updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                name: name,
+                percent: percent,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$TaxRatesTable, TaxRate>(table),
+                  BaseReferences<_$AppDatabase, $TaxRatesTable, TaxRate>(
+                    db,
+                    table,
+                    e,
+                  ),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$TaxRatesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $TaxRatesTable,
+      TaxRate,
+      $$TaxRatesTableFilterComposer,
+      $$TaxRatesTableOrderingComposer,
+      $$TaxRatesTableAnnotationComposer,
+      $$TaxRatesTableCreateCompanionBuilder,
+      $$TaxRatesTableUpdateCompanionBuilder,
+      (TaxRate, BaseReferences<_$AppDatabase, $TaxRatesTable, TaxRate>),
+      TaxRate,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -3880,4 +4513,6 @@ class $AppDatabaseManager {
       $$CategoriesTableTableManager(_db, _db.categories);
   $$CatalogItemsTableTableManager get catalogItems =>
       $$CatalogItemsTableTableManager(_db, _db.catalogItems);
+  $$TaxRatesTableTableManager get taxRates =>
+      $$TaxRatesTableTableManager(_db, _db.taxRates);
 }

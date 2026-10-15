@@ -22,7 +22,10 @@ class CatalogSuggestions extends ConsumerWidget {
     if (items.isEmpty) return const SizedBox.shrink();
     final small = Theme.of(context).textTheme.bodySmall;
     return ConstrainedBox(
-      constraints: const BoxConstraints(maxHeight: 320),
+      // Scale with the window so the suggestions never squeeze the rest of the
+      // screen into an overflow on short windows.
+      constraints: BoxConstraints(
+          maxHeight: (MediaQuery.sizeOf(context).height * 0.3).clamp(120.0, 320.0)),
       child: Card(
         margin: const EdgeInsets.symmetric(horizontal: 12),
         child: ListView(

@@ -20,5 +20,8 @@ final catalogSearchProvider = FutureProvider.autoDispose
     .family<List<CatalogItem>, String>(
         (ref, query) => ref.watch(databaseProvider).searchCatalog(query));
 
+final taxRatesProvider = StreamProvider<List<TaxRate>>(
+    (ref) => ref.watch(databaseProvider).watchTaxRates());
+
 final pantryProvider = StreamProvider<List<PantryItem>>(
     (ref) => ref.watch(databaseProvider).watchPantry());

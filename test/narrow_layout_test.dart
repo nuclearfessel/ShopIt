@@ -9,7 +9,11 @@ import 'package:shop_it/data/providers.dart';
 final _t = DateTime(2026, 1, 1);
 const _longName = 'Extra mature cheddar cheese block family size';
 
-final _list = ShoppingList(id: 'l1', updatedAt: _t, name: 'Groceries');
+final _list =
+    ShoppingList(id: 'l1', updatedAt: _t, name: 'Groceries', taxRateId: 'r1');
+
+final _rate = TaxRate(
+    id: 'r1', updatedAt: _t, name: 'Home, a long region name', percent: 8.25);
 
 ShoppingItem _item(String id, String name, {bool checked = false}) =>
     ShoppingItem(
@@ -57,6 +61,7 @@ void main() {
         overrides: [
           // Never opened: the providers below replace every query.
           databaseProvider.overrideWithValue(AppDatabase.memory()),
+          taxRatesProvider.overrideWith((_) => Stream.value([_rate])),
           listsProvider.overrideWith((_) => Stream.value([_list])),
           categoriesProvider.overrideWith((_) => Stream.value(
               [Category(name: 'Dairy & Eggs', sortOrder: 0)])),
@@ -113,6 +118,17 @@ void main() {
         expect(find.byType(Dialog), findsNothing, reason: 'bottom sheet when narrow');
       }
       await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+
+      // Sales tax dialog (and the tax lines in the totals bar).
+      expect(find.textContaining('Tax 8.25%'), findsOneWidget);
+      await tester.tap(find.byTooltip('List options'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Sales tax rate...'));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull, reason: 'tax dialog');
+      expect(find.text('Sales tax for this list'), findsOneWidget);
+      await tester.tap(find.text('Done'));
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('Pantry').last);

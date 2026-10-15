@@ -26,6 +26,16 @@ mixin SyncColumns on Table {
 
 class ShoppingLists extends Table with SyncColumns {
   TextColumn get name => text()();
+
+  /// Which saved tax rate applies to this list; null means no tax.
+  TextColumn get taxRateId => text().nullable()();
+}
+
+/// User-defined sales tax rates. Rates differ by country, state and region, so
+/// none are built in: the user names and enters their own (e.g. "Home 8.25").
+class TaxRates extends Table with SyncColumns {
+  TextColumn get name => text()();
+  RealColumn get percent => real()();
 }
 
 class ShoppingItems extends Table with SyncColumns {
@@ -78,7 +88,14 @@ class CatalogItems extends Table with SyncColumns {
 }
 
 @DriftDatabase(
-    tables: [ShoppingLists, ShoppingItems, PantryItems, Categories, CatalogItems])
+    tables: [
+      ShoppingLists,
+      ShoppingItems,
+      PantryItems,
+      Categories,
+      CatalogItems,
+      TaxRates
+    ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
@@ -86,7 +103,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.memory() : super(NativeDatabase.memory());
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -122,6 +139,11 @@ class AppDatabase extends _$AppDatabase {
             // v5: sales tax and coupon flags.
             await m.addColumn(shoppingItems, shoppingItems.taxable);
             await m.addColumn(shoppingItems, shoppingItems.hasCoupon);
+          }
+          if (from < 6) {
+            // v6: user-defined tax rates, chosen per shopping list.
+            await m.createTable(taxRates);
+            await m.addColumn(shoppingLists, shoppingLists.taxRateId);
           }
         },
       );
@@ -210,6 +232,42 @@ class AppDatabase extends _$AppDatabase {
         ..where((t) => t.deletedAt.isNull())
         ..orderBy([(t) => OrderingTerm.asc(t.name)]))
       .watch();
+
+  // ---- Tax rates ----
+  Stream<List<TaxRate>> watchTaxRates() => (select(taxRates)
+        ..where((t) => t.deletedAt.isNull())
+        ..orderBy([(t) => OrderingTerm.asc(t.name)]))
+      .watch();
+
+  Future<String> addTaxRate(String name, double percent) async {
+    final row = TaxRatesCompanion.insert(name: name, percent: percent);
+    final created = await into(taxRates).insertReturning(row);
+    return created.id;
+  }
+
+  Future<void> updateTaxRate(String id, String name, double percent) =>
+      (update(taxRates)..where((t) => t.id.equals(id))).write(TaxRatesCompanion(
+          name: Value(name),
+          percent: Value(percent),
+          updatedAt: Value(DateTime.now())));
+
+  /// Deletes a rate; lists that used it go back to "no tax".
+  Future<void> deleteTaxRate(String id) async {
+    final now = DateTime.now();
+    await transaction(() async {
+      await (update(shoppingLists)..where((t) => t.taxRateId.equals(id))).write(
+          ShoppingListsCompanion(
+              taxRateId: const Value(null), updatedAt: Value(now)));
+      await (update(taxRates)..where((t) => t.id.equals(id))).write(
+          TaxRatesCompanion(deletedAt: Value(now), updatedAt: Value(now)));
+    });
+  }
+
+  /// Chooses the tax rate for a list; null means no tax.
+  Future<void> setListTaxRate(String listId, String? rateId) =>
+      (update(shoppingLists)..where((t) => t.id.equals(listId))).write(
+          ShoppingListsCompanion(
+              taxRateId: Value(rateId), updatedAt: Value(DateTime.now())));
 
   Future<void> addList(String name) =>
       into(shoppingLists).insert(ShoppingListsCompanion.insert(name: name));
