@@ -45,6 +45,32 @@ void main() {
     expect(await db.watchShoppingItems(party.id).first, isEmpty);
   });
 
+  test('catalog is seeded with ordered categories', () async {
+    final cats = await db.watchCategories().first;
+    expect(cats.first.name, 'Produce');
+    expect(cats.map((c) => c.name), contains('Dairy & Eggs'));
+    final milk = await db.searchCatalog('milk');
+    expect(milk.map((i) => i.name), contains('Milk'));
+    expect(milk.firstWhere((i) => i.name == 'Milk').category, 'Dairy & Eggs');
+  });
+
+  test('catalog search ranks prefix matches first and ignores case', () async {
+    final r = await db.searchCatalog('BUT');
+    expect(r.first.name.toLowerCase().startsWith('but'), isTrue);
+    expect(await db.searchCatalog('%'), isEmpty);
+    expect(await db.searchCatalog('   '), isEmpty);
+  });
+
+  test('typed items are remembered once, with their category', () async {
+    final list = (await db.watchLists().first).single;
+    await db.addShoppingItem(list.id, 'Kombucha', category: 'Beverages');
+    await db.addShoppingItem(list.id, 'kombucha', category: 'Beverages');
+    final r = await db.searchCatalog('kombucha');
+    expect(r, hasLength(1));
+    expect(r.single.isCustom, isTrue);
+    expect(r.single.category, 'Beverages');
+  });
+
   test('pantry sorts by soonest expiry, undated last', () async {
     final now = DateTime.now();
     await db.addPantryItem('Rice');

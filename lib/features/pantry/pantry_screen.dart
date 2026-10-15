@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/database.dart';
+import '../../data/catalog_seed.dart';
 import '../../data/providers.dart';
+import '../catalog/catalog_suggestions.dart';
 
 class PantryScreen extends ConsumerWidget {
   const PantryScreen({super.key});
@@ -91,6 +93,8 @@ Future<void> _showAddDialog(BuildContext context, AppDatabase db) {
   final unit = TextEditingController();
   final location = TextEditingController();
   DateTime? expiry;
+  var category = '';
+  String? pickedName;
   return showDialog<void>(
     context: context,
     builder: (ctx) => StatefulBuilder(
@@ -101,7 +105,29 @@ Future<void> _showAddDialog(BuildContext context, AppDatabase db) {
             TextField(
                 controller: name,
                 autofocus: true,
-                decoration: const InputDecoration(labelText: 'Name')),
+                onChanged: (_) => setState(() {}),
+                decoration: const InputDecoration(
+                    labelText: 'Search or add an item',
+                    prefixIcon: Icon(Icons.search))),
+            CatalogSuggestions(
+              query: pickedName == name.text ? '' : name.text,
+              onPick: (i) => setState(() {
+                name.text = i.name;
+                pickedName = i.name;
+                category = i.category;
+                if (unit.text.isEmpty) unit.text = i.defaultUnit;
+              }),
+            ),
+            DropdownButtonFormField<String>(
+              initialValue: category.isEmpty ? null : category,
+              key: ValueKey(category),
+              decoration: const InputDecoration(labelText: 'Category'),
+              items: [
+                for (final c in catalogSeed.keys)
+                  DropdownMenuItem(value: c, child: Text(c)),
+              ],
+              onChanged: (v) => setState(() => category = v ?? ''),
+            ),
             Row(children: [
               Expanded(
                   child: TextField(
@@ -153,7 +179,8 @@ Future<void> _showAddDialog(BuildContext context, AppDatabase db) {
                   quantity: double.tryParse(qty.text.trim()) ?? 1,
                   unit: unit.text.trim(),
                   expiryDate: expiry,
-                  location: location.text.trim());
+                  location: location.text.trim(),
+                  category: category.isEmpty ? 'Other' : category);
               Navigator.pop(ctx);
             },
             child: const Text('Add'),

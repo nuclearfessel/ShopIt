@@ -6,6 +6,8 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 
+import 'catalog_seed.dart';
+
 part 'database.g.dart';
 
 const _uuid = Uuid();
@@ -41,9 +43,29 @@ class PantryItems extends Table with SyncColumns {
   TextColumn get unit => text().withDefault(const Constant(''))();
   DateTimeColumn get expiryDate => dateTime().nullable()();
   TextColumn get location => text().withDefault(const Constant(''))();
+  TextColumn get category => text().withDefault(const Constant(''))();
 }
 
-@DriftDatabase(tables: [ShoppingLists, ShoppingItems, PantryItems])
+/// Store-aisle categories; [sortOrder] is the walking order used to group lists.
+class Categories extends Table {
+  TextColumn get name => text()();
+  IntColumn get sortOrder => integer()();
+
+  @override
+  Set<Column> get primaryKey => {name};
+}
+
+/// Searchable catalog of known items. Seeded from `catalog_seed.dart`; items
+/// the user types in themselves are remembered with [isCustom] set.
+class CatalogItems extends Table with SyncColumns {
+  TextColumn get name => text()();
+  TextColumn get category => text()();
+  TextColumn get defaultUnit => text().withDefault(const Constant(''))();
+  BoolColumn get isCustom => boolean().withDefault(const Constant(false))();
+}
+
+@DriftDatabase(
+    tables: [ShoppingLists, ShoppingItems, PantryItems, Categories, CatalogItems])
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
@@ -51,7 +73,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.memory() : super(NativeDatabase.memory());
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -59,8 +81,64 @@ class AppDatabase extends _$AppDatabase {
           await m.createAll();
           await into(shoppingLists)
               .insert(ShoppingListsCompanion.insert(name: 'Groceries'));
+          await _seedCatalog();
+        },
+        onUpgrade: (m, from, to) async {
+          if (from < 2) {
+            await m.createTable(categories);
+            await m.createTable(catalogItems);
+            await m.addColumn(pantryItems, pantryItems.category);
+            await _seedCatalog();
+          }
         },
       );
+
+  Future<void> _seedCatalog() => batch((b) {
+        var order = 0;
+        for (final entry in catalogSeed.entries) {
+          b.insert(categories,
+              CategoriesCompanion.insert(name: entry.key, sortOrder: order++));
+          b.insertAll(catalogItems, [
+            for (final item in entry.value)
+              CatalogItemsCompanion.insert(name: item, category: entry.key),
+          ]);
+        }
+      });
+
+  // ---- Catalog ----
+  Stream<List<Category>> watchCategories() => (select(categories)
+        ..orderBy([(t) => OrderingTerm.asc(t.sortOrder)]))
+      .watch();
+
+  /// Case-insensitive search; names starting with [query] rank first, then
+  /// names containing it as a word, then anywhere.
+  Future<List<CatalogItem>> searchCatalog(String query, {int limit = 8}) {
+    final q = query.trim().toLowerCase().replaceAll(RegExp(r'[%_\\]'), '');
+    if (q.isEmpty) return Future.value(const []);
+    return (select(catalogItems)
+          ..where((t) => t.deletedAt.isNull() & t.name.lower().like('%$q%'))
+          ..orderBy([
+            (t) => OrderingTerm.desc(t.name.lower().like('$q%')),
+            (t) => OrderingTerm.desc(t.name.lower().like('% $q%')),
+            (t) => OrderingTerm.asc(t.name),
+          ])
+          ..limit(limit))
+        .get();
+  }
+
+  /// Remembers an item typed by the user so it is suggested next time.
+  Future<void> _rememberItem(String name, String category, String unit) async {
+    final exists = await (select(catalogItems)
+          ..where((t) => t.name.lower().equals(name.toLowerCase()))
+          ..limit(1))
+        .get();
+    if (exists.isNotEmpty) return;
+    await into(catalogItems).insert(CatalogItemsCompanion.insert(
+        name: name,
+        category: category.isEmpty ? 'Other' : category,
+        defaultUnit: Value(unit),
+        isCustom: const Value(true)));
+  }
 
   // ---- Shopping lists ----
   Stream<List<ShoppingList>> watchLists() => (select(shoppingLists)
@@ -92,12 +170,15 @@ class AppDatabase extends _$AppDatabase {
           .watch();
 
   Future<void> addShoppingItem(String listId, String name,
-          {double quantity = 1, String unit = ''}) =>
-      into(shoppingItems).insert(ShoppingItemsCompanion.insert(
-          listId: listId,
-          name: name,
-          quantity: Value(quantity),
-          unit: Value(unit)));
+      {double quantity = 1, String unit = '', String category = ''}) async {
+    await into(shoppingItems).insert(ShoppingItemsCompanion.insert(
+        listId: listId,
+        name: name,
+        quantity: Value(quantity),
+        unit: Value(unit),
+        category: Value(category)));
+    await _rememberItem(name, category, unit);
+  }
 
   Future<void> setChecked(String id, bool checked) =>
       (update(shoppingItems)..where((t) => t.id.equals(id))).write(
@@ -134,16 +215,20 @@ class AppDatabase extends _$AppDatabase {
       .watch();
 
   Future<void> addPantryItem(String name,
-          {double quantity = 1,
-          String unit = '',
-          DateTime? expiryDate,
-          String location = ''}) =>
-      into(pantryItems).insert(PantryItemsCompanion.insert(
-          name: name,
-          quantity: Value(quantity),
-          unit: Value(unit),
-          expiryDate: Value(expiryDate),
-          location: Value(location)));
+      {double quantity = 1,
+      String unit = '',
+      DateTime? expiryDate,
+      String location = '',
+      String category = ''}) async {
+    await into(pantryItems).insert(PantryItemsCompanion.insert(
+        name: name,
+        quantity: Value(quantity),
+        unit: Value(unit),
+        expiryDate: Value(expiryDate),
+        location: Value(location),
+        category: Value(category)));
+    await _rememberItem(name, category, unit);
+  }
 
   Future<void> updatePantryQuantity(String id, double quantity) =>
       (update(pantryItems)..where((t) => t.id.equals(id))).write(

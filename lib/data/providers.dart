@@ -13,5 +13,12 @@ final shoppingItemsProvider =
     StreamProvider.family<List<ShoppingItem>, String>((ref, listId) =>
         ref.watch(databaseProvider).watchShoppingItems(listId));
 
+final categoriesProvider = StreamProvider<List<Category>>(
+    (ref) => ref.watch(databaseProvider).watchCategories());
+
+final catalogSearchProvider = FutureProvider.autoDispose
+    .family<List<CatalogItem>, String>(
+        (ref, query) => ref.watch(databaseProvider).searchCatalog(query));
+
 final pantryProvider = StreamProvider<List<PantryItem>>(
     (ref) => ref.watch(databaseProvider).watchPantry());

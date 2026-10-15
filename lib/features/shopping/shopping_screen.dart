@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/database.dart';
 import '../../data/providers.dart';
+import '../catalog/catalog_suggestions.dart';
 
 class ShoppingScreen extends ConsumerStatefulWidget {
   const ShoppingScreen({super.key});
@@ -27,11 +28,23 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
     await ref.read(databaseProvider).addList(name);
   }
 
-  void _add(String listId) {
+  void _add(String listId, String name, String category) {
+    ref
+        .read(databaseProvider)
+        .addShoppingItem(listId, name, category: category);
+    setState(_controller.clear);
+  }
+
+  /// Enter key: use the catalog entry with exactly this name if there is one,
+  /// otherwise add the text as a new item under "Other".
+  Future<void> _submit(String listId) async {
     final name = _controller.text.trim();
     if (name.isEmpty) return;
-    ref.read(databaseProvider).addShoppingItem(listId, name);
-    _controller.clear();
+    final match = (await ref.read(databaseProvider).searchCatalog(name))
+        .where((i) => i.name.toLowerCase() == name.toLowerCase());
+    if (!mounted) return;
+    _add(listId, match.isEmpty ? name : match.first.name,
+        match.isEmpty ? 'Other' : match.first.category);
   }
 
   @override
@@ -53,6 +66,10 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
             all.firstWhere((l) => l.id == _listId, orElse: () => all.first);
         final db = ref.read(databaseProvider);
         final items = ref.watch(shoppingItemsProvider(current.id));
+        final categoryOrder = {
+          for (final c in ref.watch(categoriesProvider).value ?? const <Category>[])
+            c.name: c.sortOrder,
+        };
         return Scaffold(
           appBar: AppBar(
             title: DropdownButtonHideUnderline(
@@ -89,15 +106,21 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
               padding: const EdgeInsets.all(12),
               child: TextField(
                 controller: _controller,
+                onChanged: (_) => setState(() {}),
                 decoration: InputDecoration(
-                  hintText: 'Add an item',
+                  hintText: 'Search or add an item',
+                  prefixIcon: const Icon(Icons.search),
                   border: const OutlineInputBorder(),
                   suffixIcon: IconButton(
                       icon: const Icon(Icons.add),
-                      onPressed: () => _add(current.id)),
+                      onPressed: () => _submit(current.id)),
                 ),
-                onSubmitted: (_) => _add(current.id),
+                onSubmitted: (_) => _submit(current.id),
               ),
+            ),
+            CatalogSuggestions(
+              query: _controller.text,
+              onPick: (i) => _add(current.id, i.name, i.category),
             ),
             Expanded(
               child: items.when(
@@ -106,7 +129,7 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
                 data: (rows) => rows.isEmpty
                     ? const Center(child: Text('Nothing to buy'))
                     : ListView(children: [
-                        for (final i in rows) _ItemTile(item: i, db: db),
+                        ..._grouped(rows, categoryOrder, db),
                       ]),
               ),
             ),
@@ -115,6 +138,45 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
       },
     );
   }
+}
+
+/// Unchecked items under category headers in store-walking order, followed by
+/// a "Checked" section.
+List<Widget> _grouped(
+    List<ShoppingItem> rows, Map<String, int> order, AppDatabase db) {
+  final open = rows.where((i) => !i.checked);
+  final done = rows.where((i) => i.checked);
+  final byCategory = <String, List<ShoppingItem>>{};
+  for (final i in open) {
+    byCategory.putIfAbsent(i.category.isEmpty ? 'Other' : i.category, () => []).add(i);
+  }
+  final names = byCategory.keys.toList()
+    ..sort((a, b) => (order[a] ?? 1 << 20).compareTo(order[b] ?? 1 << 20));
+  return [
+    for (final n in names) ...[
+      _Header(n),
+      for (final i in byCategory[n]!) _ItemTile(item: i, db: db),
+    ],
+    if (done.isNotEmpty) ...[
+      const _Header('Checked'),
+      for (final i in done) _ItemTile(item: i, db: db),
+    ],
+  ];
+}
+
+class _Header extends StatelessWidget {
+  const _Header(this.text);
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+        child: Text(text,
+            style: Theme.of(context)
+                .textTheme
+                .labelLarge
+                ?.copyWith(color: Theme.of(context).colorScheme.primary)),
+      );
 }
 
 class _ItemTile extends StatelessWidget {
