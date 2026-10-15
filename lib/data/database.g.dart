@@ -417,6 +417,25 @@ class $ShoppingItemsTable extends ShoppingItems
     requiredDuringInsert: false,
     defaultValue: const Constant(''),
   );
+  static const VerificationMeta _priceMeta = const VerificationMeta('price');
+  @override
+  late final GeneratedColumn<double> price = GeneratedColumn<double>(
+    'price',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _noteMeta = const VerificationMeta('note');
+  @override
+  late final GeneratedColumn<String> note = GeneratedColumn<String>(
+    'note',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -428,6 +447,8 @@ class $ShoppingItemsTable extends ShoppingItems
     unit,
     checked,
     category,
+    price,
+    note,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -496,6 +517,18 @@ class $ShoppingItemsTable extends ShoppingItems
         category.isAcceptableOrUnknown(data['category']!, _categoryMeta),
       );
     }
+    if (data.containsKey('price')) {
+      context.handle(
+        _priceMeta,
+        price.isAcceptableOrUnknown(data['price']!, _priceMeta),
+      );
+    }
+    if (data.containsKey('note')) {
+      context.handle(
+        _noteMeta,
+        note.isAcceptableOrUnknown(data['note']!, _noteMeta),
+      );
+    }
     return context;
   }
 
@@ -541,6 +574,14 @@ class $ShoppingItemsTable extends ShoppingItems
         DriftSqlType.string,
         data['${effectivePrefix}category'],
       )!,
+      price: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}price'],
+      ),
+      note: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}note'],
+      )!,
     );
   }
 
@@ -560,6 +601,10 @@ class ShoppingItem extends DataClass implements Insertable<ShoppingItem> {
   final String unit;
   final bool checked;
   final String category;
+
+  /// Price of one unit; the line total is price * quantity.
+  final double? price;
+  final String note;
   const ShoppingItem({
     required this.id,
     required this.updatedAt,
@@ -570,6 +615,8 @@ class ShoppingItem extends DataClass implements Insertable<ShoppingItem> {
     required this.unit,
     required this.checked,
     required this.category,
+    this.price,
+    required this.note,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -585,6 +632,10 @@ class ShoppingItem extends DataClass implements Insertable<ShoppingItem> {
     map['unit'] = Variable<String>(unit);
     map['checked'] = Variable<bool>(checked);
     map['category'] = Variable<String>(category);
+    if (!nullToAbsent || price != null) {
+      map['price'] = Variable<double>(price);
+    }
+    map['note'] = Variable<String>(note);
     return map;
   }
 
@@ -601,6 +652,10 @@ class ShoppingItem extends DataClass implements Insertable<ShoppingItem> {
       unit: Value(unit),
       checked: Value(checked),
       category: Value(category),
+      price: price == null && nullToAbsent
+          ? const Value.absent()
+          : Value(price),
+      note: Value(note),
     );
   }
 
@@ -619,6 +674,8 @@ class ShoppingItem extends DataClass implements Insertable<ShoppingItem> {
       unit: serializer.fromJson<String>(json['unit']),
       checked: serializer.fromJson<bool>(json['checked']),
       category: serializer.fromJson<String>(json['category']),
+      price: serializer.fromJson<double?>(json['price']),
+      note: serializer.fromJson<String>(json['note']),
     );
   }
   @override
@@ -634,6 +691,8 @@ class ShoppingItem extends DataClass implements Insertable<ShoppingItem> {
       'unit': serializer.toJson<String>(unit),
       'checked': serializer.toJson<bool>(checked),
       'category': serializer.toJson<String>(category),
+      'price': serializer.toJson<double?>(price),
+      'note': serializer.toJson<String>(note),
     };
   }
 
@@ -647,6 +706,8 @@ class ShoppingItem extends DataClass implements Insertable<ShoppingItem> {
     String? unit,
     bool? checked,
     String? category,
+    Value<double?> price = const Value.absent(),
+    String? note,
   }) => ShoppingItem(
     id: id ?? this.id,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -657,6 +718,8 @@ class ShoppingItem extends DataClass implements Insertable<ShoppingItem> {
     unit: unit ?? this.unit,
     checked: checked ?? this.checked,
     category: category ?? this.category,
+    price: price.present ? price.value : this.price,
+    note: note ?? this.note,
   );
   ShoppingItem copyWithCompanion(ShoppingItemsCompanion data) {
     return ShoppingItem(
@@ -669,6 +732,8 @@ class ShoppingItem extends DataClass implements Insertable<ShoppingItem> {
       unit: data.unit.present ? data.unit.value : this.unit,
       checked: data.checked.present ? data.checked.value : this.checked,
       category: data.category.present ? data.category.value : this.category,
+      price: data.price.present ? data.price.value : this.price,
+      note: data.note.present ? data.note.value : this.note,
     );
   }
 
@@ -683,7 +748,9 @@ class ShoppingItem extends DataClass implements Insertable<ShoppingItem> {
           ..write('quantity: $quantity, ')
           ..write('unit: $unit, ')
           ..write('checked: $checked, ')
-          ..write('category: $category')
+          ..write('category: $category, ')
+          ..write('price: $price, ')
+          ..write('note: $note')
           ..write(')'))
         .toString();
   }
@@ -699,6 +766,8 @@ class ShoppingItem extends DataClass implements Insertable<ShoppingItem> {
     unit,
     checked,
     category,
+    price,
+    note,
   );
   @override
   bool operator ==(Object other) =>
@@ -712,7 +781,9 @@ class ShoppingItem extends DataClass implements Insertable<ShoppingItem> {
           other.quantity == this.quantity &&
           other.unit == this.unit &&
           other.checked == this.checked &&
-          other.category == this.category);
+          other.category == this.category &&
+          other.price == this.price &&
+          other.note == this.note);
 }
 
 class ShoppingItemsCompanion extends UpdateCompanion<ShoppingItem> {
@@ -725,6 +796,8 @@ class ShoppingItemsCompanion extends UpdateCompanion<ShoppingItem> {
   final Value<String> unit;
   final Value<bool> checked;
   final Value<String> category;
+  final Value<double?> price;
+  final Value<String> note;
   final Value<int> rowid;
   const ShoppingItemsCompanion({
     this.id = const Value.absent(),
@@ -736,6 +809,8 @@ class ShoppingItemsCompanion extends UpdateCompanion<ShoppingItem> {
     this.unit = const Value.absent(),
     this.checked = const Value.absent(),
     this.category = const Value.absent(),
+    this.price = const Value.absent(),
+    this.note = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   ShoppingItemsCompanion.insert({
@@ -748,6 +823,8 @@ class ShoppingItemsCompanion extends UpdateCompanion<ShoppingItem> {
     this.unit = const Value.absent(),
     this.checked = const Value.absent(),
     this.category = const Value.absent(),
+    this.price = const Value.absent(),
+    this.note = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : listId = Value(listId),
        name = Value(name);
@@ -761,6 +838,8 @@ class ShoppingItemsCompanion extends UpdateCompanion<ShoppingItem> {
     Expression<String>? unit,
     Expression<bool>? checked,
     Expression<String>? category,
+    Expression<double>? price,
+    Expression<String>? note,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -773,6 +852,8 @@ class ShoppingItemsCompanion extends UpdateCompanion<ShoppingItem> {
       if (unit != null) 'unit': unit,
       if (checked != null) 'checked': checked,
       if (category != null) 'category': category,
+      if (price != null) 'price': price,
+      if (note != null) 'note': note,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -787,6 +868,8 @@ class ShoppingItemsCompanion extends UpdateCompanion<ShoppingItem> {
     Value<String>? unit,
     Value<bool>? checked,
     Value<String>? category,
+    Value<double?>? price,
+    Value<String>? note,
     Value<int>? rowid,
   }) {
     return ShoppingItemsCompanion(
@@ -799,6 +882,8 @@ class ShoppingItemsCompanion extends UpdateCompanion<ShoppingItem> {
       unit: unit ?? this.unit,
       checked: checked ?? this.checked,
       category: category ?? this.category,
+      price: price ?? this.price,
+      note: note ?? this.note,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -833,6 +918,12 @@ class ShoppingItemsCompanion extends UpdateCompanion<ShoppingItem> {
     if (category.present) {
       map['category'] = Variable<String>(category.value);
     }
+    if (price.present) {
+      map['price'] = Variable<double>(price.value);
+    }
+    if (note.present) {
+      map['note'] = Variable<String>(note.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -851,6 +942,8 @@ class ShoppingItemsCompanion extends UpdateCompanion<ShoppingItem> {
           ..write('unit: $unit, ')
           ..write('checked: $checked, ')
           ..write('category: $category, ')
+          ..write('price: $price, ')
+          ..write('note: $note, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -962,6 +1055,16 @@ class $PantryItemsTable extends PantryItems
     requiredDuringInsert: false,
     defaultValue: const Constant(''),
   );
+  static const VerificationMeta _noteMeta = const VerificationMeta('note');
+  @override
+  late final GeneratedColumn<String> note = GeneratedColumn<String>(
+    'note',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -973,6 +1076,7 @@ class $PantryItemsTable extends PantryItems
     expiryDate,
     location,
     category,
+    note,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1039,6 +1143,12 @@ class $PantryItemsTable extends PantryItems
         category.isAcceptableOrUnknown(data['category']!, _categoryMeta),
       );
     }
+    if (data.containsKey('note')) {
+      context.handle(
+        _noteMeta,
+        note.isAcceptableOrUnknown(data['note']!, _noteMeta),
+      );
+    }
     return context;
   }
 
@@ -1084,6 +1194,10 @@ class $PantryItemsTable extends PantryItems
         DriftSqlType.string,
         data['${effectivePrefix}category'],
       )!,
+      note: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}note'],
+      )!,
     );
   }
 
@@ -1103,6 +1217,7 @@ class PantryItem extends DataClass implements Insertable<PantryItem> {
   final DateTime? expiryDate;
   final String location;
   final String category;
+  final String note;
   const PantryItem({
     required this.id,
     required this.updatedAt,
@@ -1113,6 +1228,7 @@ class PantryItem extends DataClass implements Insertable<PantryItem> {
     this.expiryDate,
     required this.location,
     required this.category,
+    required this.note,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1130,6 +1246,7 @@ class PantryItem extends DataClass implements Insertable<PantryItem> {
     }
     map['location'] = Variable<String>(location);
     map['category'] = Variable<String>(category);
+    map['note'] = Variable<String>(note);
     return map;
   }
 
@@ -1148,6 +1265,7 @@ class PantryItem extends DataClass implements Insertable<PantryItem> {
           : Value(expiryDate),
       location: Value(location),
       category: Value(category),
+      note: Value(note),
     );
   }
 
@@ -1166,6 +1284,7 @@ class PantryItem extends DataClass implements Insertable<PantryItem> {
       expiryDate: serializer.fromJson<DateTime?>(json['expiryDate']),
       location: serializer.fromJson<String>(json['location']),
       category: serializer.fromJson<String>(json['category']),
+      note: serializer.fromJson<String>(json['note']),
     );
   }
   @override
@@ -1181,6 +1300,7 @@ class PantryItem extends DataClass implements Insertable<PantryItem> {
       'expiryDate': serializer.toJson<DateTime?>(expiryDate),
       'location': serializer.toJson<String>(location),
       'category': serializer.toJson<String>(category),
+      'note': serializer.toJson<String>(note),
     };
   }
 
@@ -1194,6 +1314,7 @@ class PantryItem extends DataClass implements Insertable<PantryItem> {
     Value<DateTime?> expiryDate = const Value.absent(),
     String? location,
     String? category,
+    String? note,
   }) => PantryItem(
     id: id ?? this.id,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -1204,6 +1325,7 @@ class PantryItem extends DataClass implements Insertable<PantryItem> {
     expiryDate: expiryDate.present ? expiryDate.value : this.expiryDate,
     location: location ?? this.location,
     category: category ?? this.category,
+    note: note ?? this.note,
   );
   PantryItem copyWithCompanion(PantryItemsCompanion data) {
     return PantryItem(
@@ -1218,6 +1340,7 @@ class PantryItem extends DataClass implements Insertable<PantryItem> {
           : this.expiryDate,
       location: data.location.present ? data.location.value : this.location,
       category: data.category.present ? data.category.value : this.category,
+      note: data.note.present ? data.note.value : this.note,
     );
   }
 
@@ -1232,7 +1355,8 @@ class PantryItem extends DataClass implements Insertable<PantryItem> {
           ..write('unit: $unit, ')
           ..write('expiryDate: $expiryDate, ')
           ..write('location: $location, ')
-          ..write('category: $category')
+          ..write('category: $category, ')
+          ..write('note: $note')
           ..write(')'))
         .toString();
   }
@@ -1248,6 +1372,7 @@ class PantryItem extends DataClass implements Insertable<PantryItem> {
     expiryDate,
     location,
     category,
+    note,
   );
   @override
   bool operator ==(Object other) =>
@@ -1261,7 +1386,8 @@ class PantryItem extends DataClass implements Insertable<PantryItem> {
           other.unit == this.unit &&
           other.expiryDate == this.expiryDate &&
           other.location == this.location &&
-          other.category == this.category);
+          other.category == this.category &&
+          other.note == this.note);
 }
 
 class PantryItemsCompanion extends UpdateCompanion<PantryItem> {
@@ -1274,6 +1400,7 @@ class PantryItemsCompanion extends UpdateCompanion<PantryItem> {
   final Value<DateTime?> expiryDate;
   final Value<String> location;
   final Value<String> category;
+  final Value<String> note;
   final Value<int> rowid;
   const PantryItemsCompanion({
     this.id = const Value.absent(),
@@ -1285,6 +1412,7 @@ class PantryItemsCompanion extends UpdateCompanion<PantryItem> {
     this.expiryDate = const Value.absent(),
     this.location = const Value.absent(),
     this.category = const Value.absent(),
+    this.note = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   PantryItemsCompanion.insert({
@@ -1297,6 +1425,7 @@ class PantryItemsCompanion extends UpdateCompanion<PantryItem> {
     this.expiryDate = const Value.absent(),
     this.location = const Value.absent(),
     this.category = const Value.absent(),
+    this.note = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : name = Value(name);
   static Insertable<PantryItem> custom({
@@ -1309,6 +1438,7 @@ class PantryItemsCompanion extends UpdateCompanion<PantryItem> {
     Expression<DateTime>? expiryDate,
     Expression<String>? location,
     Expression<String>? category,
+    Expression<String>? note,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -1321,6 +1451,7 @@ class PantryItemsCompanion extends UpdateCompanion<PantryItem> {
       if (expiryDate != null) 'expiry_date': expiryDate,
       if (location != null) 'location': location,
       if (category != null) 'category': category,
+      if (note != null) 'note': note,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -1335,6 +1466,7 @@ class PantryItemsCompanion extends UpdateCompanion<PantryItem> {
     Value<DateTime?>? expiryDate,
     Value<String>? location,
     Value<String>? category,
+    Value<String>? note,
     Value<int>? rowid,
   }) {
     return PantryItemsCompanion(
@@ -1347,6 +1479,7 @@ class PantryItemsCompanion extends UpdateCompanion<PantryItem> {
       expiryDate: expiryDate ?? this.expiryDate,
       location: location ?? this.location,
       category: category ?? this.category,
+      note: note ?? this.note,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1381,6 +1514,9 @@ class PantryItemsCompanion extends UpdateCompanion<PantryItem> {
     if (category.present) {
       map['category'] = Variable<String>(category.value);
     }
+    if (note.present) {
+      map['note'] = Variable<String>(note.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1399,6 +1535,7 @@ class PantryItemsCompanion extends UpdateCompanion<PantryItem> {
           ..write('expiryDate: $expiryDate, ')
           ..write('location: $location, ')
           ..write('category: $category, ')
+          ..write('note: $note, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -2449,6 +2586,8 @@ typedef $$ShoppingItemsTableCreateCompanionBuilder =
       Value<String> unit,
       Value<bool> checked,
       Value<String> category,
+      Value<double?> price,
+      Value<String> note,
       Value<int> rowid,
     });
 typedef $$ShoppingItemsTableUpdateCompanionBuilder =
@@ -2462,6 +2601,8 @@ typedef $$ShoppingItemsTableUpdateCompanionBuilder =
       Value<String> unit,
       Value<bool> checked,
       Value<String> category,
+      Value<double?> price,
+      Value<String> note,
       Value<int> rowid,
     });
 
@@ -2540,6 +2681,16 @@ class $$ShoppingItemsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<double> get price => $composableBuilder(
+    column: $table.price,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get note => $composableBuilder(
+    column: $table.note,
+    builder: (column) => ColumnFilters(column),
+  );
+
   $$ShoppingListsTableFilterComposer get listId {
     final $$ShoppingListsTableFilterComposer composer = $composerBuilder(
       composer: this,
@@ -2613,6 +2764,16 @@ class $$ShoppingItemsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<double> get price => $composableBuilder(
+    column: $table.price,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get note => $composableBuilder(
+    column: $table.note,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$ShoppingListsTableOrderingComposer get listId {
     final $$ShoppingListsTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -2669,6 +2830,12 @@ class $$ShoppingItemsTableAnnotationComposer
 
   GeneratedColumn<String> get category =>
       $composableBuilder(column: $table.category, builder: (column) => column);
+
+  GeneratedColumn<double> get price =>
+      $composableBuilder(column: $table.price, builder: (column) => column);
+
+  GeneratedColumn<String> get note =>
+      $composableBuilder(column: $table.note, builder: (column) => column);
 
   $$ShoppingListsTableAnnotationComposer get listId {
     final $$ShoppingListsTableAnnotationComposer composer = $composerBuilder(
@@ -2731,6 +2898,8 @@ class $$ShoppingItemsTableTableManager
                 Value<String> unit = const Value.absent(),
                 Value<bool> checked = const Value.absent(),
                 Value<String> category = const Value.absent(),
+                Value<double?> price = const Value.absent(),
+                Value<String> note = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ShoppingItemsCompanion(
                 id: id,
@@ -2742,6 +2911,8 @@ class $$ShoppingItemsTableTableManager
                 unit: unit,
                 checked: checked,
                 category: category,
+                price: price,
+                note: note,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -2755,6 +2926,8 @@ class $$ShoppingItemsTableTableManager
                 Value<String> unit = const Value.absent(),
                 Value<bool> checked = const Value.absent(),
                 Value<String> category = const Value.absent(),
+                Value<double?> price = const Value.absent(),
+                Value<String> note = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ShoppingItemsCompanion.insert(
                 id: id,
@@ -2766,6 +2939,8 @@ class $$ShoppingItemsTableTableManager
                 unit: unit,
                 checked: checked,
                 category: category,
+                price: price,
+                note: note,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -2844,6 +3019,7 @@ typedef $$PantryItemsTableCreateCompanionBuilder =
       Value<DateTime?> expiryDate,
       Value<String> location,
       Value<String> category,
+      Value<String> note,
       Value<int> rowid,
     });
 typedef $$PantryItemsTableUpdateCompanionBuilder =
@@ -2857,6 +3033,7 @@ typedef $$PantryItemsTableUpdateCompanionBuilder =
       Value<DateTime?> expiryDate,
       Value<String> location,
       Value<String> category,
+      Value<String> note,
       Value<int> rowid,
     });
 
@@ -2911,6 +3088,11 @@ class $$PantryItemsTableFilterComposer
 
   ColumnFilters<String> get category => $composableBuilder(
     column: $table.category,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get note => $composableBuilder(
+    column: $table.note,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -2968,6 +3150,11 @@ class $$PantryItemsTableOrderingComposer
     column: $table.category,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get note => $composableBuilder(
+    column: $table.note,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$PantryItemsTableAnnotationComposer
@@ -3007,6 +3194,9 @@ class $$PantryItemsTableAnnotationComposer
 
   GeneratedColumn<String> get category =>
       $composableBuilder(column: $table.category, builder: (column) => column);
+
+  GeneratedColumn<String> get note =>
+      $composableBuilder(column: $table.note, builder: (column) => column);
 }
 
 class $$PantryItemsTableTableManager
@@ -3049,6 +3239,7 @@ class $$PantryItemsTableTableManager
                 Value<DateTime?> expiryDate = const Value.absent(),
                 Value<String> location = const Value.absent(),
                 Value<String> category = const Value.absent(),
+                Value<String> note = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => PantryItemsCompanion(
                 id: id,
@@ -3060,6 +3251,7 @@ class $$PantryItemsTableTableManager
                 expiryDate: expiryDate,
                 location: location,
                 category: category,
+                note: note,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -3073,6 +3265,7 @@ class $$PantryItemsTableTableManager
                 Value<DateTime?> expiryDate = const Value.absent(),
                 Value<String> location = const Value.absent(),
                 Value<String> category = const Value.absent(),
+                Value<String> note = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => PantryItemsCompanion.insert(
                 id: id,
@@ -3084,6 +3277,7 @@ class $$PantryItemsTableTableManager
                 expiryDate: expiryDate,
                 location: location,
                 category: category,
+                note: note,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

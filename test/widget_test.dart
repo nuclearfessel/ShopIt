@@ -61,6 +61,50 @@ void main() {
     expect((await db.watchLists().first).map((l) => l.name), ['Fresh start']);
   });
 
+  test('item details can be edited and cleared', () async {
+    final list = (await db.watchLists().first).single;
+    await db.addShoppingItem(list.id, 'Milk', category: 'Dairy & Eggs');
+    final milk = (await db.watchShoppingItems(list.id).first).single;
+    expect(milk.price, isNull);
+    expect(milk.note, '');
+
+    await db.updateShoppingItem(milk.id,
+        name: 'Oat milk',
+        quantity: 2,
+        unit: 'cartons',
+        category: 'Dairy & Eggs',
+        price: 1.75,
+        note: 'Barista edition');
+    var m = (await db.watchShoppingItems(list.id).first).single;
+    expect((m.name, m.quantity, m.unit, m.price, m.note),
+        ('Oat milk', 2.0, 'cartons', 1.75, 'Barista edition'));
+
+    await db.updateShoppingItem(m.id,
+        name: m.name,
+        quantity: m.quantity,
+        unit: m.unit,
+        category: m.category,
+        price: null,
+        note: '');
+    m = (await db.watchShoppingItems(list.id).first).single;
+    expect(m.price, isNull);
+
+    await db.addPantryItem('Rice',
+        expiryDate: DateTime(2030, 1, 1), location: 'Shelf');
+    final rice = (await db.watchPantry().first).single;
+    await db.updatePantryItem(rice.id,
+        name: 'Basmati rice',
+        quantity: 3,
+        unit: 'kg',
+        category: 'Pasta, Rice & Grains',
+        location: 'Cupboard',
+        expiryDate: null,
+        note: 'Open bag on top');
+    final r = (await db.watchPantry().first).single;
+    expect((r.name, r.location, r.expiryDate, r.note),
+        ('Basmati rice', 'Cupboard', null, 'Open bag on top'));
+  });
+
   test('catalog is seeded with ordered categories', () async {
     final cats = await db.watchCategories().first;
     expect(cats.first.name, 'Produce');

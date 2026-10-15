@@ -20,7 +20,9 @@ ShoppingItem _item(String id, String name, {bool checked = false}) =>
         quantity: 1,
         unit: '',
         checked: checked,
-        category: 'Dairy & Eggs');
+        category: 'Dairy & Eggs',
+        price: 3.5,
+        note: 'Brand X, the blue one, check for a coupon first');
 
 CatalogItem _cat(String name, {String parent = ''}) => CatalogItem(
     id: name,
@@ -30,6 +32,15 @@ CatalogItem _cat(String name, {String parent = ''}) => CatalogItem(
     defaultUnit: '',
     isCustom: false,
     parentName: parent);
+
+/// Scrolls the (last) list until [finder] is built; rows far below the fold
+/// aren't built by the lazy list.
+Future<void> _reveal(WidgetTester tester, Finder finder) async {
+  for (var i = 0; i < 12 && finder.evaluate().isEmpty; i++) {
+    await tester.drag(find.byType(ListView).last, const Offset(0, -250));
+    await tester.pump();
+  }
+}
 
 /// Renders the app at several window widths and fails on any layout overflow.
 void main() {
@@ -61,7 +72,8 @@ void main() {
                     unit: 'family packets',
                     expiryDate: DateTime.now().add(const Duration(days: 2)),
                     location: 'Fridge, top shelf, at the back',
-                    category: 'Dairy & Eggs'),
+                    category: 'Dairy & Eggs',
+                    note: 'Opened last week, use for the pasta bake'),
               ])),
           catalogSearchProvider.overrideWith((ref, q) async => [
                 _cat('Onions'),
@@ -78,9 +90,32 @@ void main() {
       await tester.pump(const Duration(milliseconds: 300));
       expect(tester.takeException(), isNull, reason: 'shopping suggestions');
 
+      // Clear the search so the suggestions don't push the list off screen.
+      await tester.enterText(find.byType(TextField).first, '');
+      await tester.pump(const Duration(milliseconds: 300));
+
+      // Item details sheet from the shopping list.
+      await _reveal(tester, find.text('Milk'));
+      await tester.tap(find.text('Milk'));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull, reason: 'shopping item editor');
+      expect(find.text('Edit item'), findsOneWidget);
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+
       await tester.tap(find.text('Pantry').last);
       await tester.pump(const Duration(milliseconds: 500));
+      await tester.pump(const Duration(milliseconds: 500)); // stream emits
       expect(tester.takeException(), isNull, reason: 'pantry screen');
+
+      // Item details sheet from the pantry.
+      expect(find.text(_longName), findsOneWidget, reason: 'pantry row shown');
+      await tester.tap(find.text(_longName));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull, reason: 'pantry item editor');
+      expect(find.text('Edit pantry item'), findsOneWidget);
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
 
       await tester.tap(find.byType(FloatingActionButton));
       await tester.pump(const Duration(milliseconds: 500));

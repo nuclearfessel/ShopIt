@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/database.dart';
 import '../../data/providers.dart';
 import '../catalog/catalog_suggestions.dart';
+import '../catalog/item_editor.dart';
 
 class ShoppingScreen extends ConsumerStatefulWidget {
   const ShoppingScreen({super.key});
@@ -165,6 +166,7 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
                       ]),
               ),
             ),
+            _TotalBar(rows: items.value ?? const []),
           ]),
         );
       },
@@ -216,25 +218,106 @@ class _ItemTile extends StatelessWidget {
   final ShoppingItem item;
   final AppDatabase db;
 
+  Future<void> _edit(BuildContext context) async {
+    final result = await showItemEditor(
+      context,
+      title: 'Edit item',
+      showPrice: true,
+      initial: ItemEdit(
+        name: item.name,
+        quantity: item.quantity,
+        unit: item.unit,
+        category: item.category,
+        price: item.price,
+        note: item.note,
+      ),
+    );
+    switch (result) {
+      case ItemSaved(:final edit):
+        await db.updateShoppingItem(item.id,
+            name: edit.name,
+            quantity: edit.quantity,
+            unit: edit.unit,
+            category: edit.category,
+            price: edit.price,
+            note: edit.note);
+      case ItemDeleted():
+        await db.deleteShoppingItem(item.id);
+      case null:
+        break;
+    }
+  }
+
   @override
-  Widget build(BuildContext context) => Dismissible(
-        key: ValueKey(item.id),
-        background: Container(color: Colors.red.shade300),
-        onDismissed: (_) => db.deleteShoppingItem(item.id),
-        child: CheckboxListTile(
-          value: item.checked,
-          onChanged: (v) => db.setChecked(item.id, v ?? false),
-          controlAffinity: ListTileControlAffinity.leading,
-          title: Text(item.name,
-              style: item.checked
-                  ? const TextStyle(decoration: TextDecoration.lineThrough)
-                  : null),
-          secondary: IconButton(
-              tooltip: 'Delete',
-              icon: const Icon(Icons.close),
-              onPressed: () => db.deleteShoppingItem(item.id)),
+  Widget build(BuildContext context) {
+    final details = [
+      if (item.quantity != 1 || item.unit.isNotEmpty)
+        '${formatQuantity(item.quantity)} ${item.unit}'.trim(),
+      if (item.price != null) formatMoney(item.price! * item.quantity),
+    ].join(' · ');
+    return Dismissible(
+      key: ValueKey(item.id),
+      background: Container(color: Colors.red.shade300),
+      onDismissed: (_) => db.deleteShoppingItem(item.id),
+      child: ListTile(
+        onTap: () => _edit(context),
+        leading: Checkbox(
+            value: item.checked,
+            onChanged: (v) => db.setChecked(item.id, v ?? false)),
+        title: Text(item.name,
+            style: item.checked
+                ? const TextStyle(decoration: TextDecoration.lineThrough)
+                : null),
+        subtitle: (details.isEmpty && item.note.isEmpty)
+            ? null
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (details.isNotEmpty) Text(details),
+                  if (item.note.isNotEmpty)
+                    Text(item.note, maxLines: 2, overflow: TextOverflow.ellipsis),
+                ],
+              ),
+        trailing: IconButton(
+            tooltip: 'Edit',
+            icon: const Icon(Icons.edit_outlined),
+            onPressed: () => _edit(context)),
+      ),
+    );
+  }
+}
+
+/// "Total 12.40 · 3 left" across priced items; hidden when nothing has a price.
+class _TotalBar extends StatelessWidget {
+  const _TotalBar({required this.rows});
+  final List<ShoppingItem> rows;
+
+  @override
+  Widget build(BuildContext context) {
+    final priced = rows.where((i) => i.price != null);
+    if (priced.isEmpty) return const SizedBox.shrink();
+    double sum(Iterable<ShoppingItem> r) =>
+        r.fold(0, (a, i) => a + i.price! * i.quantity);
+    final left = priced.where((i) => !i.checked);
+    return Material(
+      color: Theme.of(context).colorScheme.surfaceContainer,
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          child: Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            spacing: 16,
+            children: [
+              Text('Total ${formatMoney(sum(priced))}',
+                  style: Theme.of(context).textTheme.titleSmall),
+              Text('Still to buy ${formatMoney(sum(left))}'),
+            ],
+          ),
         ),
-      );
+      ),
+    );
+  }
 }
 
 Future<bool> _confirm(BuildContext context, String title, String message) async {

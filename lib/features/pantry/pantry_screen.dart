@@ -5,6 +5,7 @@ import '../../data/database.dart';
 import '../../data/catalog_seed.dart';
 import '../../data/providers.dart';
 import '../catalog/catalog_suggestions.dart';
+import '../catalog/item_editor.dart';
 
 class PantryScreen extends ConsumerWidget {
   const PantryScreen({super.key});
@@ -76,6 +77,11 @@ class _PantryTile extends StatelessWidget {
               if (details.isNotEmpty)
                 Text(details,
                     style: theme.textTheme.bodySmall?.copyWith(color: color)),
+              if (item.note.isNotEmpty)
+                Text(item.note,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall),
             ]);
         final stepper = Row(mainAxisSize: MainAxisSize.min, children: [
           IconButton(
@@ -96,16 +102,51 @@ class _PantryTile extends StatelessWidget {
                   db.updatePantryQuantity(item.id, item.quantity + 1)),
         ]);
         // Narrow windows: put the stepper under the text instead of beside it.
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: box.maxWidth < 380
-              ? Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [text, stepper])
-              : Row(children: [Expanded(child: text), stepper]),
+        return InkWell(
+          onTap: () => _edit(context),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: box.maxWidth < 380
+                ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [text, stepper])
+                : Row(children: [Expanded(child: text), stepper]),
+          ),
         );
       }),
     );
+  }
+
+  Future<void> _edit(BuildContext context) async {
+    final result = await showItemEditor(
+      context,
+      title: 'Edit pantry item',
+      showPantryFields: true,
+      initial: ItemEdit(
+        name: item.name,
+        quantity: item.quantity,
+        unit: item.unit,
+        category: item.category,
+        note: item.note,
+        location: item.location,
+        expiry: item.expiryDate,
+      ),
+    );
+    switch (result) {
+      case ItemSaved(:final edit):
+        await db.updatePantryItem(item.id,
+            name: edit.name,
+            quantity: edit.quantity,
+            unit: edit.unit,
+            category: edit.category,
+            location: edit.location,
+            expiryDate: edit.expiry,
+            note: edit.note);
+      case ItemDeleted():
+        await db.deletePantryItem(item.id);
+      case null:
+        break;
+    }
   }
 }
 

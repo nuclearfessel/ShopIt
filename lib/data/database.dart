@@ -35,6 +35,10 @@ class ShoppingItems extends Table with SyncColumns {
   TextColumn get unit => text().withDefault(const Constant(''))();
   BoolColumn get checked => boolean().withDefault(const Constant(false))();
   TextColumn get category => text().withDefault(const Constant(''))();
+
+  /// Price of one unit; the line total is price * quantity.
+  RealColumn get price => real().nullable()();
+  TextColumn get note => text().withDefault(const Constant(''))();
 }
 
 class PantryItems extends Table with SyncColumns {
@@ -44,6 +48,7 @@ class PantryItems extends Table with SyncColumns {
   DateTimeColumn get expiryDate => dateTime().nullable()();
   TextColumn get location => text().withDefault(const Constant(''))();
   TextColumn get category => text().withDefault(const Constant(''))();
+  TextColumn get note => text().withDefault(const Constant(''))();
 }
 
 /// Store-aisle categories; [sortOrder] is the walking order used to group lists.
@@ -77,7 +82,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.memory() : super(NativeDatabase.memory());
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -102,6 +107,12 @@ class AppDatabase extends _$AppDatabase {
                 .go();
             await delete(categories).go();
             await _seedCatalog();
+          }
+          if (from < 4) {
+            // v4: item details (price, notes).
+            await m.addColumn(shoppingItems, shoppingItems.price);
+            await m.addColumn(shoppingItems, shoppingItems.note);
+            await m.addColumn(pantryItems, pantryItems.note);
           }
         },
       );
@@ -242,6 +253,24 @@ class AppDatabase extends _$AppDatabase {
           ShoppingItemsCompanion(
               checked: Value(checked), updatedAt: Value(DateTime.now())));
 
+  /// Saves everything the item editor can change. [price] null clears it.
+  Future<void> updateShoppingItem(String id,
+          {required String name,
+          required double quantity,
+          required String unit,
+          required String category,
+          double? price,
+          required String note}) =>
+      (update(shoppingItems)..where((t) => t.id.equals(id))).write(
+          ShoppingItemsCompanion(
+              name: Value(name),
+              quantity: Value(quantity),
+              unit: Value(unit),
+              category: Value(category),
+              price: Value(price),
+              note: Value(note),
+              updatedAt: Value(DateTime.now())));
+
   Future<void> deleteShoppingItem(String id) {
     final now = DateTime.now();
     return (update(shoppingItems)..where((t) => t.id.equals(id))).write(
@@ -291,6 +320,26 @@ class AppDatabase extends _$AppDatabase {
       (update(pantryItems)..where((t) => t.id.equals(id))).write(
           PantryItemsCompanion(
               quantity: Value(quantity), updatedAt: Value(DateTime.now())));
+
+  /// Saves everything the item editor can change. [expiryDate] null clears it.
+  Future<void> updatePantryItem(String id,
+          {required String name,
+          required double quantity,
+          required String unit,
+          required String category,
+          required String location,
+          DateTime? expiryDate,
+          required String note}) =>
+      (update(pantryItems)..where((t) => t.id.equals(id))).write(
+          PantryItemsCompanion(
+              name: Value(name),
+              quantity: Value(quantity),
+              unit: Value(unit),
+              category: Value(category),
+              location: Value(location),
+              expiryDate: Value(expiryDate),
+              note: Value(note),
+              updatedAt: Value(DateTime.now())));
 
   Future<void> deletePantryItem(String id) {
     final now = DateTime.now();
