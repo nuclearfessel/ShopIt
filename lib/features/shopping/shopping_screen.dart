@@ -10,6 +10,7 @@ import '../../data/totals.dart';
 import '../catalog/item_editor.dart';
 import '../settings/settings_dialog.dart';
 import 'tax_rates_dialog.dart';
+import '../../ui/keyline/keyline_icon.dart';
 
 class ShoppingScreen extends ConsumerStatefulWidget {
   const ShoppingScreen({super.key});
@@ -91,7 +92,7 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
               actions: [
                 IconButton(
                   tooltip: 'Settings',
-                  icon: const Icon(Icons.settings_outlined),
+                  icon: const KeylineIcon(KeylineIcons.settings),
                   onPressed: () => showDialog<void>(
                     context: context,
                     builder: (_) => const SettingsDialog(),
@@ -107,7 +108,7 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
                   const SizedBox(height: 12),
                   FilledButton.icon(
                     onPressed: _newList,
-                    icon: const Icon(Icons.playlist_add),
+                    icon: const KeylineIcon(KeylineIcons.listPlus),
                     label: const Text('Create a list'),
                   ),
                 ],
@@ -138,7 +139,7 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
             actions: [
               IconButton(
                 tooltip: 'Settings',
-                icon: const Icon(Icons.settings_outlined),
+                icon: const KeylineIcon(KeylineIcons.settings),
                 onPressed: () => showDialog<void>(
                   context: context,
                   builder: (_) => SettingsDialog(
@@ -149,7 +150,7 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
               ),
               PopupMenuButton<String>(
                 tooltip: 'List options',
-                icon: const Icon(Icons.more_vert),
+                icon: const KeylineIcon(KeylineIcons.moreVertical),
                 onSelected: (v) async {
                   if (v == 'new') {
                     await _newList();
@@ -229,10 +230,10 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
                   onChanged: (_) => setState(() {}),
                   decoration: InputDecoration(
                     hintText: 'Search or add an item',
-                    prefixIcon: const Icon(Icons.search),
+                    prefixIcon: const KeylineIcon(KeylineIcons.search),
                     border: const OutlineInputBorder(),
                     suffixIcon: IconButton(
-                      icon: const Icon(Icons.add),
+                      icon: const KeylineIcon(KeylineIcons.plus),
                       onPressed: () => _submit(current.id),
                     ),
                   ),
@@ -416,31 +417,28 @@ class _CartSection extends StatelessWidget {
                           tooltip: 'Uncheck all',
                           visualDensity: compact,
                           iconSize: 20,
-                          icon: const Icon(Icons.remove_done),
+                          icon: const KeylineIcon(KeylineIcons.listX),
                           onPressed: onUncheckAll,
                         ),
                         IconButton(
                           tooltip: 'Delete all',
                           visualDensity: compact,
                           iconSize: 20,
-                          icon: const Icon(Icons.delete_sweep_outlined),
+                          icon: const KeylineIcon(KeylineIcons.bin2),
                           onPressed: onDeleteAll,
                         ),
                       ] else ...[
                         TextButton.icon(
                           style: small,
                           onPressed: onUncheckAll,
-                          icon: const Icon(Icons.remove_done, size: 16),
+                          icon: const KeylineIcon(KeylineIcons.listX, size: 16),
                           label: const Text('Uncheck all'),
                         ),
                         const SizedBox(width: 4),
                         TextButton.icon(
                           style: small,
                           onPressed: onDeleteAll,
-                          icon: const Icon(
-                            Icons.delete_sweep_outlined,
-                            size: 16,
-                          ),
+                          icon: const KeylineIcon(KeylineIcons.bin2, size: 16),
                           label: const Text('Delete all'),
                         ),
                       ],

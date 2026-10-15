@@ -8,6 +8,7 @@ import '../features/pantry/pantry_screen.dart';
 import 'theme_mode.dart';
 import 'title_bar.dart';
 import '../features/shopping/shopping_screen.dart';
+import '../ui/keyline/keyline_icon.dart';
 
 GoRouter _createRouter() => GoRouter(
   initialLocation: '/shopping',
@@ -95,6 +96,9 @@ ThemeData _buildTheme(Brightness brightness) {
       backgroundColor: scheme.surface,
       foregroundColor: scheme.onSurface,
       surfaceTintColor: Colors.transparent,
+      // The title keeps the text colour; the icons in the bar are key lime.
+      iconTheme: IconThemeData(color: lime),
+      actionsIconTheme: IconThemeData(color: lime),
     ),
     cardTheme: CardThemeData(color: scheme.surfaceContainerLow),
     iconTheme: base.iconTheme.copyWith(color: lime),
@@ -164,8 +168,8 @@ class AppShell extends StatelessWidget {
   final StatefulNavigationShell shell;
 
   static const _destinations = [
-    (Icons.shopping_cart_outlined, Icons.shopping_cart, 'Shopping'),
-    (Icons.kitchen_outlined, Icons.kitchen, 'Pantry'),
+    (KeylineIcons.shoppingCart, KeylineIcons.shoppingCart, 'Shopping'),
+    (KeylineIcons.archive, KeylineIcons.archive, 'Pantry'),
   ];
 
   void _go(int i) =>
@@ -185,8 +189,8 @@ class AppShell extends StatelessWidget {
               destinations: [
                 for (final d in _destinations)
                   NavigationRailDestination(
-                    icon: Icon(d.$1),
-                    selectedIcon: Icon(d.$2),
+                    icon: KeylineIcon(d.$1),
+                    selectedIcon: KeylineIcon(d.$2),
                     label: Text(d.$3),
                   ),
               ],
@@ -205,8 +209,8 @@ class AppShell extends StatelessWidget {
         destinations: [
           for (final d in _destinations)
             NavigationDestination(
-              icon: Icon(d.$1),
-              selectedIcon: Icon(d.$2),
+              icon: KeylineIcon(d.$1),
+              selectedIcon: KeylineIcon(d.$2),
               label: d.$3,
             ),
         ],

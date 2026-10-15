@@ -5,6 +5,7 @@ import '../../data/database.dart';
 import '../../data/providers.dart';
 import '../../data/tax_rules.dart';
 import '../../services/tax_lookup.dart';
+import '../../ui/keyline/keyline_icon.dart';
 
 String formatPercent(double p) {
   final text = p.toStringAsFixed(3);
@@ -118,9 +119,9 @@ class _TaxRatesSectionState extends ConsumerState<TaxRatesSection> {
       dense: true,
       contentPadding: const EdgeInsets.only(left: 4, right: 0),
       leading: widget.listId == null
-          ? const Icon(Icons.percent)
-          : Icon(
-              isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
+          ? const KeylineIcon(KeylineIcons.percent)
+          : KeylineIcon(
+              isSelected ? KeylineIcons.circleCheck : KeylineIcons.circle,
             ),
       title: Text(title, overflow: TextOverflow.ellipsis),
       subtitle: subtitle == null ? null : Text(subtitle),
@@ -160,13 +161,13 @@ class _TaxRatesSectionState extends ConsumerState<TaxRatesSection> {
                 IconButton(
                   tooltip: 'Edit rate',
                   visualDensity: VisualDensity.compact,
-                  icon: const Icon(Icons.edit_outlined),
+                  icon: const KeylineIcon(KeylineIcons.pen),
                   onPressed: () => _editRate(context, db, existing: r),
                 ),
                 IconButton(
                   tooltip: 'Delete rate',
                   visualDensity: VisualDensity.compact,
-                  icon: const Icon(Icons.delete_outline),
+                  icon: const KeylineIcon(KeylineIcons.bin),
                   onPressed: () => db.deleteTaxRate(r.id),
                 ),
               ],
@@ -194,12 +195,12 @@ class _TaxRatesSectionState extends ConsumerState<TaxRatesSection> {
                         await db.setListTaxRate(listId, id);
                       }
                     },
-              icon: const Icon(Icons.add),
+              icon: const KeylineIcon(KeylineIcons.plus),
               label: const Text('Add a tax rate'),
             ),
             TextButton.icon(
               onPressed: _busy ? null : _useLocation,
-              icon: const Icon(Icons.my_location),
+              icon: const KeylineIcon(KeylineIcons.locateFixed),
               label: const Text('Use my location'),
             ),
           ],

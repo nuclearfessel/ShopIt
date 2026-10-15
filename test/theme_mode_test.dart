@@ -113,6 +113,25 @@ void main() {
       expect(shown(tester), Brightness.light);
     });
 
+    testWidgets('icons in the app bar are key lime in both themes', (
+      tester,
+    ) async {
+      await pumpApp(tester, platform: Brightness.dark);
+      PaintPattern gearIs(Color c) => paints..path(color: c);
+      RenderObject gear() => tester.renderObject(
+        find.descendant(
+          of: find.byTooltip('Settings'),
+          matching: find.byType(CustomPaint),
+        ),
+      );
+      expect(shown(tester), Brightness.dark);
+      expect(gear(), gearIs(keyLimeOnDark));
+
+      await choose(tester, 'Light');
+      expect(shown(tester), Brightness.light);
+      expect(gear(), gearIs(keyLimeOnLight));
+    });
+
     testWidgets('a forced theme ignores the system setting', (tester) async {
       await pumpApp(tester, platform: Brightness.dark);
       expect(shown(tester), Brightness.dark); // system is dark by default

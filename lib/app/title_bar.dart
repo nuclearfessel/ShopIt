@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:window_manager/window_manager.dart';
 
+import '../ui/keyline/keyline_icon.dart';
+
 /// Custom window title bar that replaces the native Windows one so the whole
 /// window, chrome included, is drawn in the app's own style.
 class AppTitleBar extends StatefulWidget {
@@ -53,7 +55,11 @@ class _AppTitleBarState extends State<AppTitleBar> with WindowListener {
                     padding: const EdgeInsets.only(left: 16),
                     child: Row(
                       children: [
-                        Icon(Icons.shopping_basket, size: 20, color: lime),
+                        KeylineIcon(
+                          KeylineIcons.shoppingBasket,
+                          size: 20,
+                          color: lime,
+                        ),
                         const SizedBox(width: 10),
                         Text(
                           'Shop-it',
@@ -67,17 +73,17 @@ class _AppTitleBarState extends State<AppTitleBar> with WindowListener {
               ),
             ),
             _Dot(
-              icon: Icons.remove,
+              icon: KeylineIcons.minus,
               color: lime,
               onTap: () => windowManager.minimize(),
             ),
             _Dot(
-              icon: _maximized ? Icons.filter_none : Icons.crop_square,
+              icon: _maximized ? KeylineIcons.copy : KeylineIcons.square,
               color: lime,
               onTap: _toggleMaximize,
             ),
             _Dot(
-              icon: Icons.close,
+              icon: KeylineIcons.x,
               color: lime,
               hover: scheme.error,
               onTap: () => windowManager.close(),
@@ -106,7 +112,7 @@ class _Dot extends StatefulWidget {
     required this.onTap,
     this.hover,
   });
-  final IconData icon;
+  final KeylineIconData icon;
   final Color color;
   final Color? hover;
   final VoidCallback onTap;
@@ -133,7 +139,7 @@ class _DotState extends State<_Dot> {
           height: 32,
           margin: const EdgeInsets.symmetric(horizontal: 2),
           decoration: BoxDecoration(color: bg, shape: BoxShape.circle),
-          child: Icon(
+          child: KeylineIcon(
             widget.icon,
             size: 16,
             color: _over && widget.hover != null ? widget.hover : widget.color,

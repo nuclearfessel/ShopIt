@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/theme_mode.dart';
 import '../shopping/tax_rates_dialog.dart';
+import '../../ui/keyline/keyline_icon.dart';
 
 /// App settings: light/dark theme and the sales tax rates.
 ///
@@ -16,14 +17,9 @@ class SettingsDialog extends ConsumerWidget {
 
   /// (mode, tooltip, segment label, icon)
   static const _options = [
-    (
-      ThemeMode.system,
-      'Match system',
-      'System',
-      Icons.brightness_auto_outlined,
-    ),
-    (ThemeMode.light, 'Light', 'Light', Icons.light_mode_outlined),
-    (ThemeMode.dark, 'Dark', 'Dark', Icons.dark_mode_outlined),
+    (ThemeMode.system, 'Match system', 'System', KeylineIcons.monitor),
+    (ThemeMode.light, 'Light', 'Light', KeylineIcons.sun),
+    (ThemeMode.dark, 'Dark', 'Dark', KeylineIcons.moon),
   ];
 
   @override
@@ -67,7 +63,7 @@ class SettingsDialog extends ConsumerWidget {
                           ButtonSegment(
                             value: m,
                             tooltip: label,
-                            icon: Icon(icon, size: 18),
+                            icon: KeylineIcon(icon, size: 18),
                             label: compact ? null : Text(short),
                           ),
                       ],

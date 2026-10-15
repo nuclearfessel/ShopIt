@@ -7,6 +7,7 @@ import '../../data/providers.dart';
 import '../catalog/catalog_suggestions.dart';
 import '../catalog/item_editor.dart';
 import '../settings/settings_dialog.dart';
+import '../../ui/keyline/keyline_icon.dart';
 
 class PantryScreen extends ConsumerWidget {
   const PantryScreen({super.key});
@@ -21,7 +22,7 @@ class PantryScreen extends ConsumerWidget {
         actions: [
           IconButton(
             tooltip: 'Settings',
-            icon: const Icon(Icons.settings_outlined),
+            icon: const KeylineIcon(KeylineIcons.settings),
             onPressed: () => showDialog<void>(
               context: context,
               builder: (_) => const SettingsDialog(),
@@ -41,7 +42,7 @@ class PantryScreen extends ConsumerWidget {
       floatingActionButton: FloatingActionButton(
         tooltip: 'Add pantry item',
         onPressed: () => _showAddDialog(context, db),
-        child: const Icon(Icons.add),
+        child: const KeylineIcon(KeylineIcons.plus),
       ),
     );
   }
@@ -111,7 +112,7 @@ class _PantryTile extends StatelessWidget {
               IconButton(
                 tooltip: 'Decrease',
                 visualDensity: VisualDensity.compact,
-                icon: const Icon(Icons.remove_circle_outline),
+                icon: const KeylineIcon(KeylineIcons.circleMinus),
                 onPressed: item.quantity <= 0
                     ? null
                     : () => db.updatePantryQuantity(item.id, item.quantity - 1),
@@ -125,7 +126,7 @@ class _PantryTile extends StatelessWidget {
               IconButton(
                 tooltip: 'Increase',
                 visualDensity: VisualDensity.compact,
-                icon: const Icon(Icons.add_circle_outline),
+                icon: const KeylineIcon(KeylineIcons.circlePlus),
                 onPressed: () =>
                     db.updatePantryQuantity(item.id, item.quantity + 1),
               ),
@@ -212,7 +213,7 @@ Future<void> _showAddDialog(BuildContext context, AppDatabase db) {
                 onChanged: (_) => setState(() {}),
                 decoration: const InputDecoration(
                   labelText: 'Search or add an item',
-                  prefixIcon: Icon(Icons.search),
+                  prefixIcon: KeylineIcon(KeylineIcons.search),
                 ),
               ),
               CatalogSuggestions(

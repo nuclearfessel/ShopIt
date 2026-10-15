@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../data/catalog_seed.dart';
+import '../../ui/keyline/keyline_icon.dart';
 
 /// Values edited in [showItemEditor]. Fields that don't apply to an item kind
 /// (price/tax/coupon for pantry items, expiry/location for shopping items)
@@ -290,13 +291,13 @@ class _ItemEditorSheetState extends State<_ItemEditorSheet> {
       mainAxisSize: MainAxisSize.min,
       children: [
         _StepButton(
-          icon: Icons.remove,
+          icon: KeylineIcons.minus,
           tooltip: 'Less',
           onPressed: () => _step(-1),
         ),
         VerticalDivider(width: 1, color: scheme.outline),
         _StepButton(
-          icon: Icons.add,
+          icon: KeylineIcons.plus,
           tooltip: 'More',
           onPressed: () => _step(1),
         ),
@@ -389,7 +390,7 @@ class _ItemEditorSheetState extends State<_ItemEditorSheet> {
                             )
                           : TextButton.icon(
                               onPressed: () => Navigator.pop(context),
-                              icon: const Icon(Icons.close),
+                              icon: const KeylineIcon(KeylineIcons.x),
                               label: const Text('Cancel'),
                             ),
                       Expanded(
@@ -537,10 +538,10 @@ class _ItemEditorSheetState extends State<_ItemEditorSheet> {
                           decoration: InputDecoration(
                             labelText: 'Expiry date',
                             suffixIcon: _expiry == null
-                                ? const Icon(Icons.calendar_today_outlined)
+                                ? const KeylineIcon(KeylineIcons.calendar)
                                 : IconButton(
                                     tooltip: 'Clear date',
-                                    icon: const Icon(Icons.close),
+                                    icon: const KeylineIcon(KeylineIcons.x),
                                     onPressed: () =>
                                         setState(() => _expiry = null),
                                   ),
@@ -580,18 +581,18 @@ class _ItemEditorSheetState extends State<_ItemEditorSheet> {
                 children: [
                   TextButton.icon(
                     onPressed: () => Navigator.pop(context, ItemDeleted()),
-                    icon: const Icon(Icons.delete_outline),
+                    icon: const KeylineIcon(KeylineIcons.bin),
                     label: const Text('Delete'),
                   ),
                   if (canMoveCopy) ...[
                     TextButton.icon(
                       onPressed: canMove ? () => _chooseList(move: true) : null,
-                      icon: const Icon(Icons.drive_file_move_outline),
+                      icon: const KeylineIcon(KeylineIcons.folderArrowRight),
                       label: const Text('Move'),
                     ),
                     TextButton.icon(
                       onPressed: () => _chooseList(move: false),
-                      icon: const Icon(Icons.content_copy),
+                      icon: const KeylineIcon(KeylineIcons.copy),
                       label: const Text('Copy'),
                     ),
                   ],
@@ -613,7 +614,7 @@ class _StepButton extends StatelessWidget {
     required this.onPressed,
   });
 
-  final IconData icon;
+  final KeylineIconData icon;
   final String tooltip;
   final VoidCallback onPressed;
 
@@ -624,7 +625,7 @@ class _StepButton extends StatelessWidget {
     child: IconButton(
       tooltip: tooltip,
       onPressed: onPressed,
-      icon: Icon(icon, size: 20),
+      icon: KeylineIcon(icon, size: 20),
       style: IconButton.styleFrom(
         shape: const RoundedRectangleBorder(),
         padding: EdgeInsets.zero,
