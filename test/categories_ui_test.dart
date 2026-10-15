@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shop_it/data/category_order.dart';
 import 'package:shop_it/data/database.dart';
 import 'package:shop_it/features/categories/category_color_dialog.dart';
+import 'package:shop_it/ui/category_color.dart';
 
 import 'support/harness.dart';
 
@@ -232,6 +233,51 @@ void main() {
       await pumpShopIt(tester);
       await _openMenu(tester, 'Manage categories');
       expect(find.text('Reset order'), findsNothing);
+    });
+
+    testWidgets('the dot shows the color the header really has', (
+      tester,
+    ) async {
+      await pumpShopIt(
+        tester,
+        items: [fakeItem('a', 'Apples', category: 'Produce')],
+        categories: [_c('Produce', 0, color: 0xFFE53935), _c('Bakery', 1)],
+      );
+      final headerColor = tester
+          .widget<Text>(find.text('PRODUCE'))
+          .style
+          ?.color;
+      await _openMenu(tester, 'Manage categories');
+
+      Color dotOf(String name) =>
+          (tester
+                      .widget<Container>(
+                        find.descendant(
+                          // the dialog's row (the list header has the same tip)
+                          of: find.descendant(
+                            of: find.byType(AlertDialog),
+                            matching: find.byTooltip(
+                              'Change the color of "$name"',
+                            ),
+                          ),
+                          matching: find.byType(Container),
+                        ),
+                      )
+                      .decoration!
+                  as BoxDecoration)
+              .color!;
+
+      // A chosen color is shown as chosen...
+      expect(dotOf('Produce'), headerColor);
+      expect(dotOf('Produce'), const Color(0xFFE53935));
+      // ...and an automatic one is the same color the header would get.
+      expect(
+        dotOf('Bakery'),
+        automaticCategoryColor(
+          'Bakery',
+          Theme.of(tester.element(find.byType(Scaffold).first)).brightness,
+        ),
+      );
     });
 
     testWidgets('deleting asks first and explains what happens', (

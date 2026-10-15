@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/category_order.dart';
 import '../../data/database.dart';
 import '../../data/providers.dart';
+import '../../ui/category_color.dart';
 import '../../ui/dialogs.dart';
 import '../../ui/keyline/keyline_icon.dart';
 import '../../ui/tip.dart';
@@ -87,7 +88,7 @@ class _ManageCategoriesDialogState
           children: [
             Text(
               'Drag a category by its handle to reorder it on '
-              '"${widget.listName}". Tap a colour dot to change its color on '
+              '"${widget.listName}". Tap a color dot to change its color on '
               'every list.',
               style: theme.textTheme.bodySmall,
             ),
@@ -179,7 +180,7 @@ class _ManageCategoriesDialogState
   ) {
     final c = category;
     final dot = c?.color == null
-        ? Theme.of(context).colorScheme.outline
+        ? automaticCategoryColor(name, Theme.of(context).brightness)
         : Color(c!.color!);
     return ListTile(
       key: ValueKey(name),

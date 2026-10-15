@@ -17,6 +17,7 @@ import '../lists/manage_lists_dialog.dart';
 import '../settings/settings_dialog.dart';
 import 'tax_rates_dialog.dart';
 import '../../ui/keyline/keyline_icon.dart';
+import '../../ui/category_color.dart';
 import '../../ui/dialogs.dart';
 import '../../ui/tip.dart';
 import '../../ui/undo_snack_bar.dart';
@@ -558,19 +559,6 @@ List<Widget> _grouped(
   ];
 }
 
-/// A stable accent colour per category name, for the header's colour bar.
-Color _accentFor(String name, Brightness brightness) {
-  final hue =
-      (name.codeUnits.fold<int>(7, (h, c) => (h * 31 + c) & 0xFFFF) % 360)
-          .toDouble();
-  return HSLColor.fromAHSL(
-    1,
-    hue,
-    0.5,
-    brightness == Brightness.dark ? 0.62 : 0.42,
-  ).toColor();
-}
-
 class _Header extends StatelessWidget {
   const _Header(this.text, {this.color, this.onTap});
 
@@ -583,7 +571,7 @@ class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final accent = color ?? _accentFor(text, theme.brightness);
+    final accent = color ?? automaticCategoryColor(text, theme.brightness);
     final row = Padding(
       padding: const EdgeInsets.fromLTRB(0, 14, 16, 4),
       child: Row(
