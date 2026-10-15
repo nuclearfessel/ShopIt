@@ -1,0 +1,160 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: release
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      name: ${{ steps.bump.outputs.name }}
+      code: ${{ steps.bump.outputs.code }}
+      tag: ${{ steps.bump.outputs.tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Next version
+        id: bump
+        run: |
+          git fetch --tags --force
+          latest=$(git tag -l 'v0.0.*' --sort=-v:refname | head -n 1)
+          if [ -z "$latest" ]; then
+            code=1
+          else
+            patch="${latest##*.}"
+            code=$((patch + 1))
+          fi
+          name="0.0.${code}"
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          echo "tag=v$name" >> "$GITHUB_OUTPUT"
+          echo "Publishing $name"
+
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze and test
+        run: |
+          flutter analyze
+          flutter test
+
+  android:
+    needs: [version, check]
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: 17
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build Android APK
+        run: |
+          flutter build apk --release \
+            --build-name=${{ needs.version.outputs.name }} \
+            --build-number=${{ needs.version.outputs.code }}
+          cp build/app/outputs/flutter-apk/app-release.apk "Shop-it-${{ needs.version.outputs.name }}.apk"
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: Shop-it-${{ needs.version.outputs.name }}.apk
+
+  windows:
+    needs: [version, check]
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install Inno Setup
+        run: choco install innosetup --yes --no-progress
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build Windows app
+        run: |
+          flutter config --enable-windows-desktop
+          flutter build windows --release `
+            --build-name=${{ needs.version.outputs.name }} `
+            --build-number=${{ needs.version.outputs.code }}
+
+      - name: Build installer
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          & $iscc "/DAppVersion=${{ needs.version.outputs.name }}" "installer/shop_it.iss"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          path: build/installer/Shop-it-Setup-${{ needs.version.outputs.name }}.exe
+
+  publish:
+    needs: [version, android, windows]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download packages
+        uses: actions/download-artifact@v4
+        with:
+          path: packages
+          merge-multiple: true
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.version.outputs.name }}
+          TAG: ${{ needs.version.outputs.tag }}
+        run: |
+          gh release create "$TAG" \
+            "packages/Shop-it-${VERSION}.apk" \
+            "packages/Shop-it-Setup-${VERSION}.exe" \
+            --title "$VERSION" \
+            --notes "Shop-it ${VERSION}. Install Shop-it-Setup-${VERSION}.exe on Windows, or Shop-it-${VERSION}.apk on Android."
