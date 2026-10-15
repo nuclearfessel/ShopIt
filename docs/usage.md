@@ -33,11 +33,21 @@ Open Settings from a shopping list to choose which rate that list uses. Tax rule
 
 ## Share a list between the phone and the computer
 
-On both devices, open **Settings**, then **Share lists**, and turn on **Share on this Wi-Fi**.
+On both devices, open **Settings**, then **Share lists**.
 
-Both apps need to be open, on the same Wi-Fi. A list you add on one shows up on the other. There is no address to type and no code.
+### On this Wi-Fi
 
-If Windows asks whether to allow Shop-it on private networks, choose allow. The phone cannot reach the computer until you do.
+Turn on **Share on this Wi-Fi** on both devices. Both apps need to be open on the same network. A list you add on one shows up on the other. There is no address to type.
+
+If Windows asks whether to allow Shop-it on private networks, choose allow. The phone cannot reach the computer on Wi-Fi until you do.
+
+### Over the internet
+
+When the phone is on mobile data, or the two are not on the same Wi-Fi, use cloud sync. On one device tap **Create cloud code**, then on the other enter that eight-character code and tap **Join with code**. Both apps need an internet connection while they are open. Lists still sync even when the devices are not near each other.
+
+### Same list name
+
+If both devices already have a shopping or pantry list with the same name, sync appends the items into that list. It does not create a second list that repeats the same items.
 
 ## Appearance and About
 
@@ -47,6 +57,6 @@ If Windows asks whether to allow Shop-it on private networks, choose allow. The 
 
 ## Versions and releases
 
-Each update of the app that is merged to `main` raises the version in `pubspec.yaml` by 0.0.1, for example 0.0.3 then 0.0.4. That merge builds a Windows installer and an Android APK and publishes them together under that version.
+Each update of the app that is merged to `main` raises the version in `pubspec.yaml` by 0.0.1, for example 0.0.4 then 0.0.5. That merge builds a Windows installer and an Android APK and publishes them together under that version.
 
 The release section keeps only the three newest releases. Older releases are removed when a new one is published.
