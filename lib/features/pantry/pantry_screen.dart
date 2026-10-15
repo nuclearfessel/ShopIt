@@ -61,28 +61,50 @@ class _PantryTile extends StatelessWidget {
       key: ValueKey(item.id),
       background: Container(color: Colors.red.shade300),
       onDismissed: (_) => db.deletePantryItem(item.id),
-      child: ListTile(
-        title: Text(item.name),
-        subtitle: Text([
+      child: LayoutBuilder(builder: (context, box) {
+        final theme = Theme.of(context);
+        final details = [
           if (item.location.isNotEmpty) item.location,
           if (expiry != null) 'Expires ${_date(expiry)}',
-        ].join(' · ')),
-        textColor: color,
-        trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+        ].join(' · ');
+        final text = Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(item.name,
+                  style: theme.textTheme.bodyLarge?.copyWith(color: color)),
+              if (details.isNotEmpty)
+                Text(details,
+                    style: theme.textTheme.bodySmall?.copyWith(color: color)),
+            ]);
+        final stepper = Row(mainAxisSize: MainAxisSize.min, children: [
           IconButton(
               tooltip: 'Decrease',
+              visualDensity: VisualDensity.compact,
               icon: const Icon(Icons.remove_circle_outline),
               onPressed: item.quantity <= 0
                   ? null
                   : () => db.updatePantryQuantity(item.id, item.quantity - 1)),
-          Text('${_fmt(item.quantity)} ${item.unit}'.trim()),
+          Flexible(
+              child: Text('${_fmt(item.quantity)} ${item.unit}'.trim(),
+                  overflow: TextOverflow.ellipsis)),
           IconButton(
               tooltip: 'Increase',
+              visualDensity: VisualDensity.compact,
               icon: const Icon(Icons.add_circle_outline),
               onPressed: () =>
                   db.updatePantryQuantity(item.id, item.quantity + 1)),
-        ]),
-      ),
+        ]);
+        // Narrow windows: put the stepper under the text instead of beside it.
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: box.maxWidth < 380
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [text, stepper])
+              : Row(children: [Expanded(child: text), stepper]),
+        );
+      }),
     );
   }
 }

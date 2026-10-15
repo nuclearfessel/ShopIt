@@ -72,36 +72,47 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
         };
         return Scaffold(
           appBar: AppBar(
-            title: DropdownButtonHideUnderline(
+            title: const Text('Shopping'),
+            actions: [
+              PopupMenuButton<String>(
+                tooltip: 'List options',
+                icon: const Icon(Icons.more_vert),
+                onSelected: (v) async {
+                  if (v == 'clear') {
+                    await db.clearChecked(current.id);
+                  } else if (v == 'new') {
+                    await _newList();
+                  } else if (v == 'delete') {
+                    await db.deleteList(current.id);
+                    setState(() => _listId = null);
+                  }
+                },
+                itemBuilder: (_) => [
+                  const PopupMenuItem(
+                      value: 'clear', child: Text('Clear checked items')),
+                  const PopupMenuItem(value: 'new', child: Text('New list')),
+                  if (all.length > 1)
+                    const PopupMenuItem(
+                        value: 'delete', child: Text('Delete this list')),
+                ],
+              ),
+            ],
+          ),
+          body: Column(children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
               child: DropdownButton<String>(
+                isExpanded: true,
                 value: current.id,
                 items: [
                   for (final l in all)
-                    DropdownMenuItem(value: l.id, child: Text(l.name)),
+                    DropdownMenuItem(
+                        value: l.id,
+                        child: Text(l.name, overflow: TextOverflow.ellipsis)),
                 ],
                 onChanged: (v) => setState(() => _listId = v),
               ),
             ),
-            actions: [
-              IconButton(
-                  tooltip: 'Clear checked',
-                  icon: const Icon(Icons.done_all),
-                  onPressed: () => db.clearChecked(current.id)),
-              IconButton(
-                  tooltip: 'New list',
-                  icon: const Icon(Icons.playlist_add),
-                  onPressed: _newList),
-              if (all.length > 1)
-                IconButton(
-                    tooltip: 'Delete list',
-                    icon: const Icon(Icons.delete_outline),
-                    onPressed: () async {
-                      await db.deleteList(current.id);
-                      setState(() => _listId = null);
-                    }),
-            ],
-          ),
-          body: Column(children: [
             Padding(
               padding: const EdgeInsets.all(12),
               child: TextField(

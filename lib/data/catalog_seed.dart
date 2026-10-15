@@ -1,128 +1,286 @@
-/// Built-in catalog of common supermarket items, grouped by category.
+/// Built-in catalog of common supermarket items.
 ///
-/// Categories are listed in a typical store walking order (the order is used
-/// to group the shopping list). Written for Shop-it; it is not copied from any
-/// other app. The seed is inserted when the database is created or migrated to
-/// schema v2, so changing it later needs a new migration to reach existing
+/// Structure: category -> item -> variants (types, cuts, flavours). Items with
+/// variants are searchable as a group: searching "onion" lists "Onions" and all
+/// of its types. Categories are in typical store walking order, which is how
+/// the shopping list is grouped. Written for Shop-it, not copied from any other
+/// app. The seed is inserted on database creation and by the migrations to
+/// schema v2/v3, so changing it later needs a new migration to reach existing
 /// installs.
-const Map<String, List<String>> catalogSeed = {
-  'Produce': [
-    'Apples', 'Avocados', 'Bananas', 'Basil', 'Bell peppers', 'Blueberries',
-    'Broccoli', 'Cabbage', 'Carrots', 'Cauliflower', 'Celery', 'Cherries',
-    'Cilantro', 'Corn on the cob', 'Cucumbers', 'Garlic', 'Ginger', 'Grapes',
-    'Green beans', 'Green onions', 'Jalapenos', 'Kale', 'Lemons', 'Lettuce',
-    'Limes', 'Mangoes', 'Mushrooms', 'Onions', 'Oranges', 'Parsley', 'Peaches',
-    'Pears', 'Pineapple', 'Potatoes', 'Raspberries', 'Red onions', 'Romaine',
-    'Spinach', 'Squash', 'Strawberries', 'Sweet potatoes', 'Tomatoes',
-    'Watermelon', 'Zucchini',
-  ],
-  'Bakery': [
-    'Bagels', 'Baguette', 'Bread', 'Brioche buns', 'Burger buns', 'Cake',
-    'Cookies', 'Croissants', 'Dinner rolls', 'English muffins', 'Hot dog buns',
-    'Muffins', 'Pita bread', 'Sourdough', 'Tortillas', 'Whole wheat bread',
-  ],
-  'Meat & Poultry': [
-    'Bacon', 'Beef mince', 'Bratwurst', 'Chicken breasts', 'Chicken drumsticks',
-    'Chicken thighs', 'Chicken wings', 'Ground beef', 'Ground turkey', 'Ham',
-    'Hot dogs', 'Lamb chops', 'Pork chops', 'Pork loin', 'Ribs', 'Roast beef',
-    'Sausages', 'Steak', 'Turkey breast', 'Whole chicken',
-  ],
-  'Seafood': [
-    'Cod', 'Crab', 'Fish fillets', 'Haddock', 'Lobster', 'Mussels', 'Prawns',
-    'Salmon', 'Sardines', 'Scallops', 'Shrimp', 'Tilapia', 'Tuna steaks',
-  ],
-  'Deli': [
-    'Cooked chicken', 'Deli ham', 'Deli turkey', 'Hummus', 'Olives', 'Pastrami',
-    'Prepared salad', 'Rotisserie chicken', 'Salami', 'Sliced cheese',
-  ],
-  'Dairy & Eggs': [
-    'Butter', 'Buttermilk', 'Cheddar cheese', 'Cheese slices', 'Cottage cheese',
-    'Cream', 'Cream cheese', 'Eggs', 'Feta', 'Greek yogurt', 'Half and half',
-    'Margarine', 'Milk', 'Mozzarella', 'Oat milk', 'Parmesan', 'Almond milk',
-    'Sour cream', 'Soy milk', 'Whipped cream', 'Yogurt',
-  ],
-  'Frozen': [
-    'Fish fingers', 'Frozen berries', 'Frozen broccoli', 'Frozen chicken nuggets',
-    'Frozen fries', 'Frozen peas', 'Frozen pizza', 'Frozen corn',
-    'Frozen vegetables', 'Frozen waffles', 'Ice cream', 'Ice cubes',
-    'Popsicles', 'Frozen meals',
-  ],
-  'Canned & Jarred': [
-    'Baked beans', 'Black beans', 'Canned corn', 'Canned fruit', 'Canned tomatoes',
-    'Canned tuna', 'Chickpeas', 'Chicken broth', 'Coconut milk', 'Kidney beans',
-    'Pasta sauce', 'Peanut butter', 'Jam', 'Pickles', 'Soup', 'Tomato paste',
-    'Vegetable broth', 'Honey', 'Maple syrup',
-  ],
-  'Pasta, Rice & Grains': [
-    'Basmati rice', 'Brown rice', 'Couscous', 'Egg noodles', 'Lasagna sheets',
-    'Macaroni', 'Noodles', 'Oats', 'Pasta', 'Quinoa', 'Rice', 'Spaghetti',
-    'White rice', 'Instant noodles',
-  ],
-  'Baking': [
-    'Baking powder', 'Baking soda', 'Brown sugar', 'Cake mix', 'Chocolate chips',
-    'Cocoa powder', 'Cornstarch', 'Flour', 'Icing sugar', 'Self-raising flour',
-    'Sugar', 'Vanilla extract', 'Yeast',
-  ],
-  'Spices & Seasonings': [
-    'Black pepper', 'Cinnamon', 'Chili powder', 'Cumin', 'Curry powder',
-    'Garlic powder', 'Italian seasoning', 'Oregano', 'Paprika', 'Salt',
-    'Taco seasoning', 'Turmeric',
-  ],
-  'Condiments & Sauces': [
-    'BBQ sauce', 'Hot sauce', 'Ketchup', 'Mayonnaise', 'Mustard', 'Pesto',
-    'Relish', 'Salad dressing', 'Salsa', 'Soy sauce', 'Sriracha',
-    'Teriyaki sauce', 'Worcestershire sauce',
-  ],
-  'Oils & Vinegars': [
-    'Apple cider vinegar', 'Balsamic vinegar', 'Cooking spray', 'Olive oil',
-    'Sesame oil', 'Vegetable oil', 'White vinegar', 'Coconut oil',
-  ],
-  'Breakfast & Cereal': [
-    'Cereal', 'Cornflakes', 'Granola', 'Granola bars', 'Muesli', 'Pancake mix',
-    'Porridge', 'Pop-tarts',
-  ],
-  'Snacks': [
-    'Almonds', 'Cashews', 'Chocolate', 'Crackers', 'Crisps', 'Dried fruit',
-    'Gum', 'Popcorn', 'Pretzels', 'Protein bars', 'Raisins', 'Rice cakes',
-    'Tortilla chips', 'Trail mix', 'Walnuts', 'Sweets',
-  ],
-  'Beverages': [
-    'Apple juice', 'Bottled water', 'Cola', 'Energy drinks', 'Ginger ale',
-    'Lemonade', 'Orange juice', 'Sparkling water', 'Sports drinks', 'Squash',
-    'Tonic water',
-  ],
-  'Coffee & Tea': [
-    'Black tea', 'Coffee beans', 'Coffee filters', 'Creamer', 'Green tea',
-    'Ground coffee', 'Herbal tea', 'Hot chocolate', 'Instant coffee', 'Tea bags',
-  ],
-  'Alcohol': [
-    'Beer', 'Cider', 'Gin', 'Red wine', 'Rum', 'Vodka', 'Whisky', 'White wine',
-    'Prosecco',
-  ],
-  'Baby': [
-    'Baby food', 'Baby formula', 'Baby wipes', 'Diapers', 'Nappies',
-  ],
-  'Pet': [
-    'Cat food', 'Cat litter', 'Dog food', 'Dog treats', 'Pet treats',
-  ],
-  'Household & Cleaning': [
-    'Air freshener', 'Batteries', 'Bin bags', 'Bleach', 'Dish soap',
-    'Dishwasher tablets', 'Fabric softener', 'Glass cleaner', 'Laundry detergent',
-    'Light bulbs', 'Sponges', 'Surface cleaner', 'Toilet cleaner',
-    'Washing-up liquid',
-  ],
-  'Paper & Wrap': [
-    'Aluminum foil', 'Baking paper', 'Cling film', 'Freezer bags',
-    'Napkins', 'Paper towels', 'Sandwich bags', 'Tissues', 'Toilet paper',
-  ],
-  'Personal Care': [
-    'Body wash', 'Conditioner', 'Cotton buds', 'Deodorant', 'Floss',
-    'Hand soap', 'Lotion', 'Mouthwash', 'Razors', 'Shampoo', 'Shaving cream',
-    'Sunscreen', 'Toothbrush', 'Toothpaste',
-  ],
-  'Health & Pharmacy': [
-    'Allergy tablets', 'Band-aids', 'Cough syrup', 'Hand sanitizer',
-    'Ibuprofen', 'Paracetamol', 'Vitamins',
-  ],
-  'Other': [],
+const Map<String, Map<String, List<String>>> catalogSeed = {
+  'Produce': {
+    'Onions': [
+      'Yellow onions', 'White onions', 'Red onions', 'Sweet onions', 'Spring onions',
+      'Green onions', 'Shallots', 'Pearl onions', 'Leeks', 'Chives',
+    ],
+    'Potatoes': [
+      'Russet potatoes', 'Red potatoes', 'Yukon Gold potatoes', 'New potatoes',
+      'Baby potatoes', 'Sweet potatoes', 'Maris Piper potatoes', 'Fingerling potatoes',
+    ],
+    'Tomatoes': [
+      'Cherry tomatoes', 'Roma tomatoes', 'Beefsteak tomatoes', 'Vine tomatoes',
+      'Plum tomatoes', 'Grape tomatoes', 'Heirloom tomatoes', 'Sun-dried tomatoes',
+    ],
+    'Apples': [
+      'Gala apples', 'Granny Smith apples', 'Fuji apples', 'Braeburn apples',
+      'Honeycrisp apples', 'Pink Lady apples', 'Red Delicious apples', 'Cooking apples',
+    ],
+    'Bananas': ['Plantains', 'Baby bananas'],
+    'Oranges': ['Navel oranges', 'Blood oranges', 'Mandarins', 'Clementines', 'Satsumas', 'Tangerines'],
+    'Citrus': ['Lemons', 'Limes', 'Grapefruit', 'Key limes'],
+    'Berries': [
+      'Strawberries', 'Blueberries', 'Raspberries', 'Blackberries', 'Cranberries',
+      'Gooseberries',
+    ],
+    'Grapes': ['Red grapes', 'Green grapes', 'Seedless grapes'],
+    'Melons': ['Watermelon', 'Cantaloupe', 'Honeydew melon'],
+    'Stone fruit': ['Peaches', 'Nectarines', 'Plums', 'Cherries', 'Apricots'],
+    'Pears': ['Conference pears', 'Bartlett pears', 'Asian pears'],
+    'Tropical fruit': ['Mangoes', 'Pineapple', 'Papaya', 'Kiwi', 'Pomegranate', 'Passion fruit', 'Coconut'],
+    'Avocados': ['Hass avocados', 'Ripe avocados'],
+    'Peppers': [
+      'Red bell peppers', 'Green bell peppers', 'Yellow bell peppers', 'Jalapenos',
+      'Habanero peppers', 'Red chillies', 'Green chillies', 'Poblano peppers',
+    ],
+    'Lettuce': [
+      'Iceberg lettuce', 'Romaine lettuce', 'Butter lettuce', 'Little gem lettuce',
+      'Mixed salad leaves', 'Rocket', 'Arugula', 'Watercress',
+    ],
+    'Leafy greens': ['Spinach', 'Kale', 'Chard', 'Bok choy', 'Collard greens', 'Cabbage', 'Red cabbage'],
+    'Mushrooms': [
+      'Button mushrooms', 'Chestnut mushrooms', 'Portobello mushrooms',
+      'Shiitake mushrooms', 'Oyster mushrooms', 'Cremini mushrooms',
+    ],
+    'Squash': ['Butternut squash', 'Acorn squash', 'Zucchini', 'Courgettes', 'Pumpkin', 'Spaghetti squash'],
+    'Carrots': ['Baby carrots', 'Rainbow carrots'],
+    'Cucumbers': ['English cucumber', 'Pickling cucumbers'],
+    'Brassicas': ['Broccoli', 'Cauliflower', 'Brussels sprouts', 'Broccolini'],
+    'Root vegetables': ['Beetroot', 'Turnips', 'Parsnips', 'Radishes', 'Swede', 'Celeriac'],
+    'Fresh herbs': ['Basil', 'Cilantro', 'Coriander', 'Parsley', 'Mint', 'Rosemary', 'Thyme', 'Dill', 'Sage'],
+    'Garlic': ['Garlic bulbs', 'Garlic cloves'],
+    'Ginger': [],
+    'Celery': [],
+    'Corn on the cob': [],
+    'Green beans': ['Runner beans', 'Snap peas', 'Mangetout'],
+    'Asparagus': [],
+  },
+  'Bakery': {
+    'Bread': [
+      'White bread', 'Whole wheat bread', 'Wholemeal bread', 'Multigrain bread',
+      'Rye bread', 'Sourdough', 'Baguette', 'Ciabatta', 'Focaccia', 'Brioche',
+      'Seeded bread', 'Gluten-free bread', 'Sliced bread', 'Pumpernickel',
+      'Naan bread', 'Pita bread', 'Flatbread', 'Soda bread',
+    ],
+    'Rolls & buns': [
+      'Burger buns', 'Hot dog buns', 'Dinner rolls', 'Brioche buns', 'Bread rolls',
+      'Bagels', 'English muffins', 'Crumpets',
+    ],
+    'Tortillas & wraps': ['Flour tortillas', 'Corn tortillas', 'Wraps', 'Taco shells'],
+    'Pastries': ['Croissants', 'Pain au chocolat', 'Danish pastries', 'Cinnamon rolls', 'Donuts', 'Scones'],
+    'Cakes': ['Birthday cake', 'Cupcakes', 'Muffins', 'Brownies', 'Cheesecake', 'Pie'],
+    'Cookies': ['Chocolate chip cookies', 'Oatmeal cookies', 'Shortbread'],
+  },
+  'Meat & Poultry': {
+    'Beef': [
+      'Ribeye steak', 'Sirloin steak', 'Fillet steak', 'T-bone steak', 'Rump steak',
+      'Flank steak', 'Skirt steak', 'Brisket', 'Chuck roast', 'Short ribs',
+      'Beef mince', 'Ground beef', 'Stewing beef', 'Beef burgers', 'Oxtail',
+      'Roast beef joint',
+    ],
+    'Pork': [
+      'Pork chops', 'Pork loin', 'Pork belly', 'Pork shoulder', 'Pork tenderloin',
+      'Pork ribs', 'Pork mince', 'Gammon', 'Pork sausages',
+    ],
+    'Chicken': [
+      'Chicken breasts', 'Chicken thighs', 'Chicken drumsticks', 'Chicken wings',
+      'Whole chicken', 'Chicken mince', 'Chicken tenders', 'Chicken legs',
+      'Rotisserie chicken',
+    ],
+    'Turkey': ['Turkey breast', 'Ground turkey', 'Turkey mince', 'Whole turkey', 'Turkey legs'],
+    'Lamb': ['Lamb chops', 'Leg of lamb', 'Lamb shoulder', 'Lamb mince', 'Lamb shanks', 'Rack of lamb'],
+    'Sausages': ['Bratwurst', 'Chorizo', 'Italian sausage', 'Breakfast sausages', 'Hot dogs', 'Pork sausages'],
+    'Bacon': ['Streaky bacon', 'Back bacon', 'Smoked bacon', 'Turkey bacon', 'Pancetta'],
+    'Ham': ['Sliced ham', 'Honey roast ham', 'Gammon joint', 'Prosciutto'],
+    'Duck': ['Duck breast', 'Whole duck'],
+    'Ribs': ['Baby back ribs', 'Spare ribs'],
+  },
+  'Seafood': {
+    'Fish': [
+      'Salmon', 'Cod', 'Haddock', 'Tilapia', 'Sea bass', 'Trout', 'Mackerel',
+      'Halibut', 'Tuna steaks', 'Fish fillets', 'Sardines', 'Smoked salmon',
+      'Smoked haddock',
+    ],
+    'Shrimp': ['Raw shrimp', 'Cooked shrimp', 'King prawns', 'Prawns'],
+    'Shellfish': ['Crab', 'Lobster', 'Mussels', 'Clams', 'Oysters', 'Scallops'],
+    'Squid': ['Calamari'],
+  },
+  'Deli': {
+    'Deli meats': ['Deli ham', 'Deli turkey', 'Roast beef slices', 'Salami', 'Pastrami', 'Cooked chicken'],
+    'Deli salads': ['Coleslaw', 'Potato salad', 'Prepared salad', 'Pasta salad'],
+    'Dips': ['Hummus', 'Guacamole', 'Tzatziki', 'Salsa dip'],
+    'Olives': ['Black olives', 'Green olives', 'Kalamata olives'],
+    'Sliced cheese': [],
+  },
+  'Dairy & Eggs': {
+    'Milk': [
+      'Whole milk', 'Semi-skimmed milk', 'Skim milk', '2% milk', 'Lactose-free milk',
+      'Oat milk', 'Almond milk', 'Soy milk', 'Coconut milk drink', 'Rice milk',
+      'Buttermilk', 'Condensed milk', 'Evaporated milk',
+    ],
+    'Cheese': [
+      'Cheddar cheese', 'Mozzarella', 'Parmesan', 'Feta', 'Brie', 'Camembert',
+      'Swiss cheese', 'Gouda', 'Edam', 'Blue cheese', 'Goat cheese', 'Halloumi',
+      'Cream cheese', 'Cottage cheese', 'Ricotta', 'Mascarpone', 'Cheese slices',
+      'Grated cheese', 'String cheese', 'Provolone',
+    ],
+    'Yogurt': [
+      'Greek yogurt', 'Natural yogurt', 'Vanilla yogurt', 'Fruit yogurt',
+      'Skyr', 'Drinking yogurt', 'Coconut yogurt', 'Kefir',
+    ],
+    'Eggs': ['Large eggs', 'Medium eggs', 'Free-range eggs', 'Organic eggs', 'Egg whites', 'Quail eggs'],
+    'Butter': ['Salted butter', 'Unsalted butter', 'Spreadable butter', 'Margarine', 'Ghee'],
+    'Cream': ['Single cream', 'Double cream', 'Heavy cream', 'Whipping cream', 'Sour cream', 'Half and half', 'Creme fraiche'],
+    'Desserts': ['Custard', 'Pudding', 'Whipped cream'],
+  },
+  'Frozen': {
+    'Frozen vegetables': ['Frozen peas', 'Frozen corn', 'Frozen broccoli', 'Frozen spinach', 'Mixed vegetables', 'Stir-fry vegetables'],
+    'Frozen fruit': ['Frozen berries', 'Frozen mango', 'Frozen strawberries'],
+    'Frozen potatoes': ['Frozen fries', 'Hash browns', 'Potato wedges', 'Roast potatoes'],
+    'Frozen meals': ['Frozen pizza', 'Frozen lasagne', 'Ready meals', 'Frozen burritos'],
+    'Frozen meat & fish': ['Frozen chicken nuggets', 'Fish fingers', 'Frozen fish fillets', 'Frozen shrimp', 'Frozen burgers'],
+    'Ice cream': ['Vanilla ice cream', 'Chocolate ice cream', 'Strawberry ice cream', 'Ice lollies', 'Popsicles', 'Sorbet'],
+    'Frozen breakfast': ['Frozen waffles', 'Frozen pancakes'],
+    'Ice': ['Ice cubes'],
+  },
+  'Canned & Jarred': {
+    'Canned beans': ['Black beans', 'Kidney beans', 'Baked beans', 'Chickpeas', 'Cannellini beans', 'Pinto beans', 'Lentils'],
+    'Canned tomatoes': ['Chopped tomatoes', 'Whole peeled tomatoes', 'Tomato paste', 'Passata'],
+    'Canned fish': ['Canned tuna', 'Canned salmon', 'Sardines in oil', 'Anchovies'],
+    'Canned vegetables': ['Canned corn', 'Canned peas', 'Canned mushrooms', 'Canned beetroot'],
+    'Canned fruit': ['Canned peaches', 'Canned pineapple', 'Fruit cocktail'],
+    'Soup': ['Tomato soup', 'Chicken soup', 'Mushroom soup', 'Vegetable soup', 'Chicken broth', 'Vegetable broth', 'Beef broth'],
+    'Pasta sauce': ['Tomato pasta sauce', 'Alfredo sauce', 'Pesto', 'Bolognese sauce'],
+    'Spreads': ['Peanut butter', 'Almond butter', 'Jam', 'Marmalade', 'Honey', 'Nutella', 'Maple syrup'],
+    'Pickles': ['Gherkins', 'Pickled onions', 'Sauerkraut', 'Capers'],
+    'Coconut milk': [],
+  },
+  'Pasta, Rice & Grains': {
+    'Pasta': [
+      'Spaghetti', 'Penne', 'Fusilli', 'Macaroni', 'Linguine', 'Fettuccine',
+      'Tagliatelle', 'Farfalle', 'Rigatoni', 'Lasagna sheets', 'Orzo', 'Tortellini',
+      'Ravioli', 'Whole wheat pasta', 'Gluten-free pasta',
+    ],
+    'Rice': [
+      'White rice', 'Brown rice', 'Basmati rice', 'Jasmine rice', 'Arborio rice',
+      'Long grain rice', 'Wild rice', 'Sushi rice', 'Microwave rice',
+    ],
+    'Noodles': ['Egg noodles', 'Rice noodles', 'Udon noodles', 'Soba noodles', 'Instant noodles'],
+    'Grains': ['Couscous', 'Quinoa', 'Bulgur wheat', 'Pearl barley', 'Polenta', 'Oats'],
+  },
+  'Baking': {
+    'Flour': ['Plain flour', 'Self-raising flour', 'Bread flour', 'Whole wheat flour', 'Cornflour', 'Almond flour', 'Gluten-free flour'],
+    'Sugar': ['White sugar', 'Brown sugar', 'Caster sugar', 'Icing sugar', 'Demerara sugar', 'Coconut sugar'],
+    'Raising agents': ['Baking powder', 'Baking soda', 'Yeast', 'Cornstarch'],
+    'Chocolate & cocoa': ['Chocolate chips', 'Cocoa powder', 'Dark chocolate', 'Baking chocolate'],
+    'Flavourings': ['Vanilla extract', 'Almond extract', 'Food colouring', 'Sprinkles'],
+    'Cake mix': ['Chocolate cake mix', 'Vanilla cake mix', 'Pancake mix', 'Brownie mix'],
+  },
+  'Spices & Seasonings': {
+    'Salt': ['Table salt', 'Sea salt', 'Rock salt', 'Garlic salt'],
+    'Pepper': ['Black pepper', 'White pepper', 'Peppercorns', 'Cayenne pepper'],
+    'Spices': [
+      'Cinnamon', 'Cumin', 'Paprika', 'Smoked paprika', 'Turmeric', 'Nutmeg',
+      'Coriander seeds', 'Cloves', 'Ginger powder', 'Chilli flakes', 'Chili powder',
+      'Curry powder', 'Garam masala', 'Cardamom',
+    ],
+    'Dried herbs': ['Oregano', 'Mixed herbs', 'Italian seasoning', 'Thyme (dried)', 'Bay leaves', 'Basil (dried)', 'Parsley (dried)'],
+    'Seasoning mixes': ['Taco seasoning', 'Fajita seasoning', 'Chicken seasoning', 'BBQ rub', 'Stock cubes'],
+    'Garlic powder': [],
+  },
+  'Condiments & Sauces': {
+    'Ketchup': ['Tomato ketchup', 'Curry ketchup'],
+    'Mustard': ['Dijon mustard', 'Wholegrain mustard', 'English mustard', 'American mustard'],
+    'Mayonnaise': ['Light mayonnaise', 'Garlic mayonnaise', 'Vegan mayonnaise'],
+    'Hot sauce': ['Tabasco', 'Sriracha', 'Chilli sauce', 'Sweet chilli sauce', 'Peri-peri sauce'],
+    'BBQ sauce': ['Smoky BBQ sauce', 'Honey BBQ sauce'],
+    'Asian sauces': ['Soy sauce', 'Teriyaki sauce', 'Oyster sauce', 'Hoisin sauce', 'Fish sauce', 'Miso paste'],
+    'Salad dressing': ['Caesar dressing', 'Ranch dressing', 'Vinaigrette', 'Italian dressing'],
+    'Other sauces': ['Worcestershire sauce', 'Salsa', 'Relish', 'Tartare sauce', 'Gravy granules', 'Horseradish'],
+  },
+  'Oils & Vinegars': {
+    'Cooking oil': ['Olive oil', 'Extra virgin olive oil', 'Vegetable oil', 'Sunflower oil', 'Rapeseed oil', 'Coconut oil', 'Sesame oil', 'Avocado oil', 'Cooking spray'],
+    'Vinegar': ['White vinegar', 'Balsamic vinegar', 'Apple cider vinegar', 'Red wine vinegar', 'Malt vinegar', 'Rice vinegar'],
+  },
+  'Breakfast & Cereal': {
+    'Cereal': ['Cornflakes', 'Bran flakes', 'Muesli', 'Granola', 'Chocolate cereal', 'Cheerios', 'Shredded wheat', 'Rice crispies'],
+    'Porridge': ['Porridge oats', 'Instant oatmeal', 'Steel-cut oats'],
+    'Breakfast bars': ['Granola bars', 'Cereal bars', 'Pop-tarts'],
+    'Pancakes & waffles': ['Pancake mix', 'Maple syrup'],
+  },
+  'Snacks': {
+    'Chips & crisps': ['Potato crisps', 'Tortilla chips', 'Salt and vinegar crisps', 'Cheese puffs', 'Pretzels', 'Popcorn'],
+    'Nuts': ['Almonds', 'Cashews', 'Peanuts', 'Walnuts', 'Pistachios', 'Pecans', 'Hazelnuts', 'Mixed nuts', 'Trail mix'],
+    'Dried fruit': ['Raisins', 'Dried apricots', 'Dates', 'Dried cranberries', 'Prunes'],
+    'Chocolate': ['Milk chocolate', 'Dark chocolate bar', 'White chocolate', 'Chocolate bars', 'Chocolate buttons'],
+    'Sweets': ['Gummy bears', 'Mints', 'Chewing gum', 'Lollipops', 'Jelly beans'],
+    'Crackers': ['Cream crackers', 'Rice cakes', 'Crispbreads', 'Cheese crackers'],
+    'Biscuits': ['Digestive biscuits', 'Chocolate biscuits', 'Oreos'],
+    'Protein snacks': ['Protein bars', 'Beef jerky'],
+  },
+  'Beverages': {
+    'Juice': ['Orange juice', 'Apple juice', 'Cranberry juice', 'Grape juice', 'Pineapple juice', 'Tomato juice', 'Smoothies'],
+    'Soft drinks': ['Cola', 'Diet cola', 'Lemonade', 'Lemon-lime soda', 'Ginger ale', 'Ginger beer', 'Root beer', 'Orange soda', 'Tonic water'],
+    'Water': ['Bottled water', 'Sparkling water', 'Flavoured water', 'Coconut water'],
+    'Energy & sports': ['Energy drinks', 'Sports drinks'],
+    'Squash': ['Orange squash', 'Blackcurrant squash'],
+  },
+  'Coffee & Tea': {
+    'Coffee': ['Ground coffee', 'Coffee beans', 'Instant coffee', 'Coffee pods', 'Decaf coffee', 'Cold brew', 'Coffee filters'],
+    'Tea': ['Tea bags', 'Black tea', 'Green tea', 'Herbal tea', 'Peppermint tea', 'Chamomile tea', 'Earl Grey', 'Chai'],
+    'Hot drinks': ['Hot chocolate', 'Malted drink'],
+    'Creamer': ['Coffee creamer', 'Oat creamer'],
+  },
+  'Alcohol': {
+    'Wine': ['Red wine', 'White wine', 'Rose wine', 'Sparkling wine', 'Prosecco', 'Champagne'],
+    'Beer': ['Lager', 'Ale', 'IPA', 'Stout', 'Cider', 'Craft beer'],
+    'Spirits': ['Vodka', 'Gin', 'Rum', 'Whisky', 'Tequila', 'Brandy'],
+    'Mixers': ['Tonic water', 'Soda water', 'Cocktail mixers'],
+  },
+  'Baby': {
+    'Baby food': ['Baby cereal', 'Baby purees', 'Baby snacks'],
+    'Formula': ['Baby formula', 'Follow-on milk'],
+    'Diapers': ['Newborn diapers', 'Diapers', 'Nappies', 'Baby wipes'],
+  },
+  'Pet': {
+    'Dog': ['Dog food', 'Dog treats', 'Dog chews'],
+    'Cat': ['Cat food', 'Cat litter', 'Cat treats'],
+    'Other pets': ['Bird seed', 'Fish food', 'Rabbit food'],
+  },
+  'Household & Cleaning': {
+    'Laundry': ['Laundry detergent', 'Fabric softener', 'Stain remover', 'Laundry pods'],
+    'Dishes': ['Dish soap', 'Washing-up liquid', 'Dishwasher tablets', 'Sponges', 'Rinse aid'],
+    'Cleaning': ['Bleach', 'Surface cleaner', 'Glass cleaner', 'Toilet cleaner', 'Disinfectant wipes', 'Floor cleaner'],
+    'Bags': ['Bin bags', 'Trash bags', 'Recycling bags'],
+    'Home': ['Light bulbs', 'Batteries', 'Air freshener', 'Candles', 'Matches'],
+  },
+  'Paper & Wrap': {
+    'Toilet paper': ['Toilet roll', 'Flushable wipes'],
+    'Kitchen paper': ['Paper towels', 'Napkins'],
+    'Tissues': ['Facial tissues', 'Pocket tissues'],
+    'Food wrap': ['Aluminum foil', 'Cling film', 'Baking paper', 'Freezer bags', 'Sandwich bags'],
+  },
+  'Personal Care': {
+    'Hair': ['Shampoo', 'Conditioner', 'Hair spray', 'Hair gel'],
+    'Body': ['Body wash', 'Soap', 'Hand soap', 'Lotion', 'Deodorant', 'Sunscreen'],
+    'Dental': ['Toothpaste', 'Toothbrush', 'Mouthwash', 'Floss'],
+    'Shaving': ['Razors', 'Shaving cream', 'Aftershave'],
+    'Other': ['Cotton buds', 'Cotton pads', 'Tampons', 'Sanitary pads'],
+  },
+  'Health & Pharmacy': {
+    'Pain relief': ['Paracetamol', 'Ibuprofen', 'Aspirin'],
+    'Cold & allergy': ['Allergy tablets', 'Cough syrup', 'Nasal spray', 'Throat lozenges'],
+    'First aid': ['Band-aids', 'Antiseptic cream', 'Hand sanitizer'],
+    'Vitamins': ['Multivitamins', 'Vitamin C', 'Vitamin D', 'Fish oil'],
+  },
+  'Other': {},
 };

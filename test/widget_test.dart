@@ -61,6 +61,22 @@ void main() {
     expect(await db.searchCatalog('   '), isEmpty);
   });
 
+  test('searching a group lists its types and cuts', () async {
+    final onion = (await db.searchCatalog('onion')).map((i) => i.name).toList();
+    expect(onion.first, 'Onions');
+    expect(onion, containsAll(['Red onions', 'Shallots', 'Spring onions']));
+
+    final bread = (await db.searchCatalog('bread')).map((i) => i.name);
+    expect(bread, containsAll(['Bread', 'Sourdough', 'Baguette', 'Rye bread']));
+
+    final beef = (await db.searchCatalog('beef')).map((i) => i.name);
+    expect(beef, containsAll(['Beef', 'Ribeye steak', 'Brisket']));
+
+    // No duplicate names in one result list.
+    final names = (await db.searchCatalog('sausage')).map((i) => i.name.toLowerCase());
+    expect(names.toSet().length, names.length);
+  });
+
   test('typed items are remembered once, with their category', () async {
     final list = (await db.watchLists().first).single;
     await db.addShoppingItem(list.id, 'Kombucha', category: 'Beverages');

@@ -1701,6 +1701,18 @@ class $CatalogItemsTable extends CatalogItems
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _parentNameMeta = const VerificationMeta(
+    'parentName',
+  );
+  @override
+  late final GeneratedColumn<String> parentName = GeneratedColumn<String>(
+    'parent_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1710,6 +1722,7 @@ class $CatalogItemsTable extends CatalogItems
     category,
     defaultUnit,
     isCustom,
+    parentName,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1769,6 +1782,12 @@ class $CatalogItemsTable extends CatalogItems
         isCustom.isAcceptableOrUnknown(data['is_custom']!, _isCustomMeta),
       );
     }
+    if (data.containsKey('parent_name')) {
+      context.handle(
+        _parentNameMeta,
+        parentName.isAcceptableOrUnknown(data['parent_name']!, _parentNameMeta),
+      );
+    }
     return context;
   }
 
@@ -1806,6 +1825,10 @@ class $CatalogItemsTable extends CatalogItems
         DriftSqlType.bool,
         data['${effectivePrefix}is_custom'],
       )!,
+      parentName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}parent_name'],
+      )!,
     );
   }
 
@@ -1823,6 +1846,10 @@ class CatalogItem extends DataClass implements Insertable<CatalogItem> {
   final String category;
   final String defaultUnit;
   final bool isCustom;
+
+  /// For a variant (a type, cut or flavour) the group it belongs to, e.g.
+  /// "Onions" for "Red onions". Empty for top-level items.
+  final String parentName;
   const CatalogItem({
     required this.id,
     required this.updatedAt,
@@ -1831,6 +1858,7 @@ class CatalogItem extends DataClass implements Insertable<CatalogItem> {
     required this.category,
     required this.defaultUnit,
     required this.isCustom,
+    required this.parentName,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1844,6 +1872,7 @@ class CatalogItem extends DataClass implements Insertable<CatalogItem> {
     map['category'] = Variable<String>(category);
     map['default_unit'] = Variable<String>(defaultUnit);
     map['is_custom'] = Variable<bool>(isCustom);
+    map['parent_name'] = Variable<String>(parentName);
     return map;
   }
 
@@ -1858,6 +1887,7 @@ class CatalogItem extends DataClass implements Insertable<CatalogItem> {
       category: Value(category),
       defaultUnit: Value(defaultUnit),
       isCustom: Value(isCustom),
+      parentName: Value(parentName),
     );
   }
 
@@ -1874,6 +1904,7 @@ class CatalogItem extends DataClass implements Insertable<CatalogItem> {
       category: serializer.fromJson<String>(json['category']),
       defaultUnit: serializer.fromJson<String>(json['defaultUnit']),
       isCustom: serializer.fromJson<bool>(json['isCustom']),
+      parentName: serializer.fromJson<String>(json['parentName']),
     );
   }
   @override
@@ -1887,6 +1918,7 @@ class CatalogItem extends DataClass implements Insertable<CatalogItem> {
       'category': serializer.toJson<String>(category),
       'defaultUnit': serializer.toJson<String>(defaultUnit),
       'isCustom': serializer.toJson<bool>(isCustom),
+      'parentName': serializer.toJson<String>(parentName),
     };
   }
 
@@ -1898,6 +1930,7 @@ class CatalogItem extends DataClass implements Insertable<CatalogItem> {
     String? category,
     String? defaultUnit,
     bool? isCustom,
+    String? parentName,
   }) => CatalogItem(
     id: id ?? this.id,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -1906,6 +1939,7 @@ class CatalogItem extends DataClass implements Insertable<CatalogItem> {
     category: category ?? this.category,
     defaultUnit: defaultUnit ?? this.defaultUnit,
     isCustom: isCustom ?? this.isCustom,
+    parentName: parentName ?? this.parentName,
   );
   CatalogItem copyWithCompanion(CatalogItemsCompanion data) {
     return CatalogItem(
@@ -1918,6 +1952,9 @@ class CatalogItem extends DataClass implements Insertable<CatalogItem> {
           ? data.defaultUnit.value
           : this.defaultUnit,
       isCustom: data.isCustom.present ? data.isCustom.value : this.isCustom,
+      parentName: data.parentName.present
+          ? data.parentName.value
+          : this.parentName,
     );
   }
 
@@ -1930,7 +1967,8 @@ class CatalogItem extends DataClass implements Insertable<CatalogItem> {
           ..write('name: $name, ')
           ..write('category: $category, ')
           ..write('defaultUnit: $defaultUnit, ')
-          ..write('isCustom: $isCustom')
+          ..write('isCustom: $isCustom, ')
+          ..write('parentName: $parentName')
           ..write(')'))
         .toString();
   }
@@ -1944,6 +1982,7 @@ class CatalogItem extends DataClass implements Insertable<CatalogItem> {
     category,
     defaultUnit,
     isCustom,
+    parentName,
   );
   @override
   bool operator ==(Object other) =>
@@ -1955,7 +1994,8 @@ class CatalogItem extends DataClass implements Insertable<CatalogItem> {
           other.name == this.name &&
           other.category == this.category &&
           other.defaultUnit == this.defaultUnit &&
-          other.isCustom == this.isCustom);
+          other.isCustom == this.isCustom &&
+          other.parentName == this.parentName);
 }
 
 class CatalogItemsCompanion extends UpdateCompanion<CatalogItem> {
@@ -1966,6 +2006,7 @@ class CatalogItemsCompanion extends UpdateCompanion<CatalogItem> {
   final Value<String> category;
   final Value<String> defaultUnit;
   final Value<bool> isCustom;
+  final Value<String> parentName;
   final Value<int> rowid;
   const CatalogItemsCompanion({
     this.id = const Value.absent(),
@@ -1975,6 +2016,7 @@ class CatalogItemsCompanion extends UpdateCompanion<CatalogItem> {
     this.category = const Value.absent(),
     this.defaultUnit = const Value.absent(),
     this.isCustom = const Value.absent(),
+    this.parentName = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   CatalogItemsCompanion.insert({
@@ -1985,6 +2027,7 @@ class CatalogItemsCompanion extends UpdateCompanion<CatalogItem> {
     required String category,
     this.defaultUnit = const Value.absent(),
     this.isCustom = const Value.absent(),
+    this.parentName = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : name = Value(name),
        category = Value(category);
@@ -1996,6 +2039,7 @@ class CatalogItemsCompanion extends UpdateCompanion<CatalogItem> {
     Expression<String>? category,
     Expression<String>? defaultUnit,
     Expression<bool>? isCustom,
+    Expression<String>? parentName,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -2006,6 +2050,7 @@ class CatalogItemsCompanion extends UpdateCompanion<CatalogItem> {
       if (category != null) 'category': category,
       if (defaultUnit != null) 'default_unit': defaultUnit,
       if (isCustom != null) 'is_custom': isCustom,
+      if (parentName != null) 'parent_name': parentName,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -2018,6 +2063,7 @@ class CatalogItemsCompanion extends UpdateCompanion<CatalogItem> {
     Value<String>? category,
     Value<String>? defaultUnit,
     Value<bool>? isCustom,
+    Value<String>? parentName,
     Value<int>? rowid,
   }) {
     return CatalogItemsCompanion(
@@ -2028,6 +2074,7 @@ class CatalogItemsCompanion extends UpdateCompanion<CatalogItem> {
       category: category ?? this.category,
       defaultUnit: defaultUnit ?? this.defaultUnit,
       isCustom: isCustom ?? this.isCustom,
+      parentName: parentName ?? this.parentName,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -2056,6 +2103,9 @@ class CatalogItemsCompanion extends UpdateCompanion<CatalogItem> {
     if (isCustom.present) {
       map['is_custom'] = Variable<bool>(isCustom.value);
     }
+    if (parentName.present) {
+      map['parent_name'] = Variable<String>(parentName.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -2072,6 +2122,7 @@ class CatalogItemsCompanion extends UpdateCompanion<CatalogItem> {
           ..write('category: $category, ')
           ..write('defaultUnit: $defaultUnit, ')
           ..write('isCustom: $isCustom, ')
+          ..write('parentName: $parentName, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -3222,6 +3273,7 @@ typedef $$CatalogItemsTableCreateCompanionBuilder =
       required String category,
       Value<String> defaultUnit,
       Value<bool> isCustom,
+      Value<String> parentName,
       Value<int> rowid,
     });
 typedef $$CatalogItemsTableUpdateCompanionBuilder =
@@ -3233,6 +3285,7 @@ typedef $$CatalogItemsTableUpdateCompanionBuilder =
       Value<String> category,
       Value<String> defaultUnit,
       Value<bool> isCustom,
+      Value<String> parentName,
       Value<int> rowid,
     });
 
@@ -3277,6 +3330,11 @@ class $$CatalogItemsTableFilterComposer
 
   ColumnFilters<bool> get isCustom => $composableBuilder(
     column: $table.isCustom,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get parentName => $composableBuilder(
+    column: $table.parentName,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -3324,6 +3382,11 @@ class $$CatalogItemsTableOrderingComposer
     column: $table.isCustom,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get parentName => $composableBuilder(
+    column: $table.parentName,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$CatalogItemsTableAnnotationComposer
@@ -3357,6 +3420,11 @@ class $$CatalogItemsTableAnnotationComposer
 
   GeneratedColumn<bool> get isCustom =>
       $composableBuilder(column: $table.isCustom, builder: (column) => column);
+
+  GeneratedColumn<String> get parentName => $composableBuilder(
+    column: $table.parentName,
+    builder: (column) => column,
+  );
 }
 
 class $$CatalogItemsTableTableManager
@@ -3397,6 +3465,7 @@ class $$CatalogItemsTableTableManager
                 Value<String> category = const Value.absent(),
                 Value<String> defaultUnit = const Value.absent(),
                 Value<bool> isCustom = const Value.absent(),
+                Value<String> parentName = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => CatalogItemsCompanion(
                 id: id,
@@ -3406,6 +3475,7 @@ class $$CatalogItemsTableTableManager
                 category: category,
                 defaultUnit: defaultUnit,
                 isCustom: isCustom,
+                parentName: parentName,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -3417,6 +3487,7 @@ class $$CatalogItemsTableTableManager
                 required String category,
                 Value<String> defaultUnit = const Value.absent(),
                 Value<bool> isCustom = const Value.absent(),
+                Value<String> parentName = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => CatalogItemsCompanion.insert(
                 id: id,
@@ -3426,6 +3497,7 @@ class $$CatalogItemsTableTableManager
                 category: category,
                 defaultUnit: defaultUnit,
                 isCustom: isCustom,
+                parentName: parentName,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

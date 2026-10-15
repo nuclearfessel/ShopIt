@@ -41,6 +41,7 @@ dependencies:
   path_provider: ^2.1.6
   path: ^1.9.1
   uuid: ^4.6.0
+  window_manager: ^0.5.2
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -64,6 +65,17 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  # Roboto (Apache 2.0, copied from the Flutter SDK) so the typeface is the same
+  # on Windows and Android instead of Windows' Segoe UI.
+  fonts:
+    - family: Roboto
+      fonts:
+        - asset: assets/fonts/roboto-regular.ttf
+        - asset: assets/fonts/roboto-medium.ttf
+          weight: 500
+        - asset: assets/fonts/roboto-bold.ttf
+          weight: 700
 
   # To add assets to your application, add an assets section, like this:
   # assets:

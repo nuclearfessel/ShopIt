@@ -62,6 +62,10 @@ class CatalogItems extends Table with SyncColumns {
   TextColumn get category => text()();
   TextColumn get defaultUnit => text().withDefault(const Constant(''))();
   BoolColumn get isCustom => boolean().withDefault(const Constant(false))();
+
+  /// For a variant (a type, cut or flavour) the group it belongs to, e.g.
+  /// "Onions" for "Red onions". Empty for top-level items.
+  TextColumn get parentName => text().withDefault(const Constant(''))();
 }
 
 @DriftDatabase(
@@ -73,7 +77,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.memory() : super(NativeDatabase.memory());
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -89,19 +93,37 @@ class AppDatabase extends _$AppDatabase {
             await m.createTable(catalogItems);
             await m.addColumn(pantryItems, pantryItems.category);
             await _seedCatalog();
+          } else if (from < 3) {
+            // v3 adds variants: replace the built-in catalog, keep the user's
+            // own remembered items.
+            await m.addColumn(catalogItems, catalogItems.parentName);
+            await (delete(catalogItems)
+                  ..where((t) => t.isCustom.equals(false)))
+                .go();
+            await delete(categories).go();
+            await _seedCatalog();
           }
         },
       );
 
   Future<void> _seedCatalog() => batch((b) {
         var order = 0;
-        for (final entry in catalogSeed.entries) {
+        for (final cat in catalogSeed.entries) {
           b.insert(categories,
-              CategoriesCompanion.insert(name: entry.key, sortOrder: order++));
-          b.insertAll(catalogItems, [
-            for (final item in entry.value)
-              CatalogItemsCompanion.insert(name: item, category: entry.key),
-          ]);
+              CategoriesCompanion.insert(name: cat.key, sortOrder: order++));
+          for (final item in cat.value.entries) {
+            b.insert(
+                catalogItems,
+                CatalogItemsCompanion.insert(
+                    name: item.key, category: cat.key));
+            b.insertAll(catalogItems, [
+              for (final variant in item.value)
+                CatalogItemsCompanion.insert(
+                    name: variant,
+                    category: cat.key,
+                    parentName: Value(item.key)),
+            ]);
+          }
         }
       });
 
@@ -110,20 +132,43 @@ class AppDatabase extends _$AppDatabase {
         ..orderBy([(t) => OrderingTerm.asc(t.sortOrder)]))
       .watch();
 
-  /// Case-insensitive search; names starting with [query] rank first, then
-  /// names containing it as a word, then anywhere.
-  Future<List<CatalogItem>> searchCatalog(String query, {int limit = 8}) {
+  /// Case-insensitive search over item names and their group names.
+  ///
+  /// Results come back grouped: each matching top-level item (e.g. "Onions")
+  /// is followed by its variants (types, cuts, flavours), then any variants
+  /// that matched on their own name. Duplicate names are dropped.
+  Future<List<CatalogItem>> searchCatalog(String query, {int limit = 40}) async {
     final q = query.trim().toLowerCase().replaceAll(RegExp(r'[%_\\]'), '');
-    if (q.isEmpty) return Future.value(const []);
-    return (select(catalogItems)
-          ..where((t) => t.deletedAt.isNull() & t.name.lower().like('%$q%'))
+    if (q.isEmpty) return const [];
+    final rows = await (select(catalogItems)
+          ..where((t) =>
+              t.deletedAt.isNull() &
+              (t.name.lower().like('%$q%') | t.parentName.lower().like('%$q%')))
           ..orderBy([
             (t) => OrderingTerm.desc(t.name.lower().like('$q%')),
             (t) => OrderingTerm.desc(t.name.lower().like('% $q%')),
             (t) => OrderingTerm.asc(t.name),
           ])
-          ..limit(limit))
+          ..limit(300))
         .get();
+
+    final out = <CatalogItem>[];
+    final seen = <String>{};
+    void add(CatalogItem i) {
+      if (out.length < limit && seen.add(i.name.toLowerCase())) out.add(i);
+    }
+
+    final variants = rows.where((i) => i.parentName.isNotEmpty).toList();
+    for (final parent in rows.where((i) => i.parentName.isEmpty)) {
+      add(parent);
+      for (final v in variants.where((v) => v.parentName == parent.name)) {
+        add(v);
+      }
+    }
+    for (final v in variants) {
+      add(v);
+    }
+    return out;
   }
 
   /// Remembers an item typed by the user so it is suggested next time.

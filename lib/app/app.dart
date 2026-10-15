@@ -4,9 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../features/pantry/pantry_screen.dart';
+import 'title_bar.dart';
 import '../features/shopping/shopping_screen.dart';
 
-final _router = GoRouter(
+GoRouter _createRouter() => GoRouter(
   initialLocation: '/shopping',
   routes: [
     StatefulShellRoute.indexedStack(
@@ -56,9 +57,8 @@ ThemeData _buildTheme(Brightness brightness) {
     colorScheme: scheme,
     scaffoldBackgroundColor: scheme.surface,
     useMaterial3: true,
-    // Each platform's own clean sans-serif: Segoe UI on Windows, Roboto on
-    // Android (the default there).
-    fontFamily: Platform.isWindows ? 'Segoe UI' : null,
+    // Bundled Roboto: the same clean sans-serif everywhere, not Windows' font.
+    fontFamily: 'Roboto',
   );
   return base.copyWith(
     appBarTheme: AppBarTheme(
@@ -83,8 +83,25 @@ ThemeData _buildTheme(Brightness brightness) {
   );
 }
 
-class ShopItApp extends StatelessWidget {
-  const ShopItApp({super.key});
+class ShopItApp extends StatefulWidget {
+  const ShopItApp({super.key, this.windowChrome = true});
+
+  /// Draw the custom title bar (Windows only). Tests turn this off because it
+  /// needs the window_manager plugin.
+  final bool windowChrome;
+
+  @override
+  State<ShopItApp> createState() => _ShopItAppState();
+}
+
+class _ShopItAppState extends State<ShopItApp> {
+  final _router = _createRouter();
+
+  @override
+  void dispose() {
+    _router.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) => MaterialApp.router(
@@ -92,6 +109,13 @@ class ShopItApp extends StatelessWidget {
         theme: _buildTheme(Brightness.light),
         darkTheme: _buildTheme(Brightness.dark),
         routerConfig: _router,
+        // On Windows the native title bar is hidden; draw our own.
+        builder: (context, child) => widget.windowChrome && Platform.isWindows
+            ? Column(children: [
+                const AppTitleBar(),
+                Expanded(child: child ?? const SizedBox.shrink()),
+              ])
+            : child ?? const SizedBox.shrink(),
       );
 }
 
