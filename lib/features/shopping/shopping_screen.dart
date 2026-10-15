@@ -605,7 +605,10 @@ class _TotalBar extends StatelessWidget {
         : '${ctx.rules.title} rules';
     final bold = theme.textTheme.titleSmall;
     return Material(
-      color: theme.colorScheme.surfaceContainer,
+      // The palette's deepest tone: distinct from the navigation
+      // (surfaceContainer) and the cart panel (surfaceContainerHigh).
+      color: theme.colorScheme.surfaceContainerHighest,
+      shape: Border(top: BorderSide(color: theme.colorScheme.outlineVariant)),
       child: SafeArea(
         top: false,
         child: Padding(

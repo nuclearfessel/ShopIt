@@ -60,6 +60,11 @@ ThemeData _buildTheme(Brightness brightness) {
         surfaceContainerHigh: dark
             ? const Color(0xFF2C3026)
             : const Color(0xFFEBE4CF),
+        // Deepest tone of the palette: used for the totals bar so it differs
+        // from the navigation (surfaceContainer) and the cart panel.
+        surfaceContainerHighest: dark
+            ? const Color(0xFF363B2D)
+            : const Color(0xFFE2D9BD),
       );
   final base = ThemeData(
     colorScheme: scheme,
