@@ -1,30 +1,65 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:shop_it/main.dart';
+import 'package:shop_it/data/database.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  late AppDatabase db;
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+  setUp(() => db = AppDatabase.memory());
+  tearDown(() => db.close());
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+  test('seeds a default list', () async {
+    final lists = await db.watchLists().first;
+    expect(lists.map((l) => l.name), ['Groceries']);
+  });
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+  test('shopping items: add, check, sort, soft-delete, clear checked',
+      () async {
+    final list = (await db.watchLists().first).single;
+    await db.addShoppingItem(list.id, 'Milk');
+    await db.addShoppingItem(list.id, 'Apples');
+
+    var items = await db.watchShoppingItems(list.id).first;
+    expect(items.map((i) => i.name), ['Apples', 'Milk']);
+
+    await db.setChecked(items.first.id, true);
+    items = await db.watchShoppingItems(list.id).first;
+    expect(items.map((i) => i.name), ['Milk', 'Apples']); // checked sinks
+
+    await db.clearChecked(list.id);
+    items = await db.watchShoppingItems(list.id).first;
+    expect(items.map((i) => i.name), ['Milk']);
+
+    await db.deleteShoppingItem(items.single.id);
+    expect(await db.watchShoppingItems(list.id).first, isEmpty);
+    // soft delete: the rows still exist for future sync
+    expect(await db.select(db.shoppingItems).get(), hasLength(2));
+  });
+
+  test('deleting a list hides its items', () async {
+    await db.addList('Party');
+    final party =
+        (await db.watchLists().first).firstWhere((l) => l.name == 'Party');
+    await db.addShoppingItem(party.id, 'Chips');
+    await db.deleteList(party.id);
+    expect((await db.watchLists().first).map((l) => l.name), ['Groceries']);
+    expect(await db.watchShoppingItems(party.id).first, isEmpty);
+  });
+
+  test('pantry sorts by soonest expiry, undated last', () async {
+    final now = DateTime.now();
+    await db.addPantryItem('Rice');
+    await db.addPantryItem('Yogurt',
+        expiryDate: now.add(const Duration(days: 2)));
+    await db.addPantryItem('Milk',
+        expiryDate: now.add(const Duration(days: 1)));
+    final items = await db.watchPantry().first;
+    expect(items.map((i) => i.name), ['Milk', 'Yogurt', 'Rice']);
+
+    await db.updatePantryQuantity(items.first.id, 3);
+    expect((await db.watchPantry().first).first.quantity, 3);
+
+    await db.deletePantryItem(items.first.id);
+    expect(
+        (await db.watchPantry().first).map((i) => i.name), ['Yogurt', 'Rice']);
   });
 }
