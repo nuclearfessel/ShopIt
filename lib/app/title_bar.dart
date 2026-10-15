@@ -42,42 +42,49 @@ class _AppTitleBarState extends State<AppTitleBar> with WindowListener {
       color: scheme.surfaceContainer,
       child: SizedBox(
         height: 44,
-        child: Row(children: [
-          Expanded(
-            child: DragToMoveArea(
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onDoubleTap: _toggleMaximize,
-                child: Padding(
-                  padding: const EdgeInsets.only(left: 16),
-                  child: Row(children: [
-                    Icon(Icons.shopping_basket, size: 20, color: lime),
-                    const SizedBox(width: 10),
-                    Text('Shop-it',
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleSmall
-                            ?.copyWith(fontWeight: FontWeight.w700)),
-                  ]),
+        child: Row(
+          children: [
+            Expanded(
+              child: DragToMoveArea(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onDoubleTap: _toggleMaximize,
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: 16),
+                    child: Row(
+                      children: [
+                        Icon(Icons.shopping_basket, size: 20, color: lime),
+                        const SizedBox(width: 10),
+                        Text(
+                          'Shop-it',
+                          style: Theme.of(context).textTheme.titleSmall
+                              ?.copyWith(fontWeight: FontWeight.w700),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),
-          ),
-          _Dot(
+            _Dot(
               icon: Icons.remove,
               color: lime,
-              onTap: () => windowManager.minimize()),
-          _Dot(
+              onTap: () => windowManager.minimize(),
+            ),
+            _Dot(
               icon: _maximized ? Icons.filter_none : Icons.crop_square,
               color: lime,
-              onTap: _toggleMaximize),
-          _Dot(
+              onTap: _toggleMaximize,
+            ),
+            _Dot(
               icon: Icons.close,
               color: lime,
               hover: scheme.error,
-              onTap: () => windowManager.close()),
-          const SizedBox(width: 8),
-        ]),
+              onTap: () => windowManager.close(),
+            ),
+            const SizedBox(width: 8),
+          ],
+        ),
       ),
     );
   }
@@ -93,11 +100,12 @@ class _AppTitleBarState extends State<AppTitleBar> with WindowListener {
 
 /// Round window button.
 class _Dot extends StatefulWidget {
-  const _Dot(
-      {required this.icon,
-      required this.color,
-      required this.onTap,
-      this.hover});
+  const _Dot({
+    required this.icon,
+    required this.color,
+    required this.onTap,
+    this.hover,
+  });
   final IconData icon;
   final Color color;
   final Color? hover;
@@ -125,11 +133,11 @@ class _DotState extends State<_Dot> {
           height: 32,
           margin: const EdgeInsets.symmetric(horizontal: 2),
           decoration: BoxDecoration(color: bg, shape: BoxShape.circle),
-          child: Icon(widget.icon,
-              size: 16,
-              color: _over && widget.hover != null
-                  ? widget.hover
-                  : widget.color),
+          child: Icon(
+            widget.icon,
+            size: 16,
+            color: _over && widget.hover != null ? widget.hover : widget.color,
+          ),
         ),
       ),
     );

@@ -94,6 +94,7 @@ Future<ItemEditorResult?> showItemEditor(
   bool showPantryFields = false,
   List<ListChoice> lists = const [],
   String? currentListId,
+  String? taxHint,
 }) {
   Widget sheet(BuildContext _) => _ItemEditorSheet(
     title: title,
@@ -102,6 +103,7 @@ Future<ItemEditorResult?> showItemEditor(
     showPantryFields: showPantryFields,
     lists: lists,
     currentListId: currentListId,
+    taxHint: taxHint,
   );
   // Wide windows (side navigation visible): a dialog centered in the window.
   // Narrow windows (bottom navigation): a bottom sheet.
@@ -134,6 +136,7 @@ class _ItemEditorSheet extends StatefulWidget {
     required this.showPantryFields,
     required this.lists,
     required this.currentListId,
+    required this.taxHint,
   });
 
   final String title;
@@ -142,6 +145,9 @@ class _ItemEditorSheet extends StatefulWidget {
   final bool showPantryFields;
   final List<ListChoice> lists;
   final String? currentListId;
+
+  /// Why the item is or is not taxed, shown under the tax checkbox.
+  final String? taxHint;
 
   @override
   State<_ItemEditorSheet> createState() => _ItemEditorSheetState();
@@ -485,6 +491,9 @@ class _ItemEditorSheetState extends State<_ItemEditorSheet> {
                         dense: true,
                         controlAffinity: ListTileControlAffinity.trailing,
                         title: const Text('Item has sales tax'),
+                        subtitle: widget.taxHint == null
+                            ? null
+                            : Text(widget.taxHint!),
                         value: _taxable,
                         onChanged: (v) => setState(() => _taxable = v ?? false),
                       ),

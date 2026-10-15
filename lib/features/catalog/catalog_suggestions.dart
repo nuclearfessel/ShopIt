@@ -8,8 +8,11 @@ import '../../data/providers.dart';
 /// "Onions" is followed by its indented types/cuts. Renders nothing for an
 /// empty query or no matches.
 class CatalogSuggestions extends ConsumerWidget {
-  const CatalogSuggestions(
-      {super.key, required this.query, required this.onPick});
+  const CatalogSuggestions({
+    super.key,
+    required this.query,
+    required this.onPick,
+  });
 
   final String query;
   final ValueChanged<CatalogItem> onPick;
@@ -25,7 +28,11 @@ class CatalogSuggestions extends ConsumerWidget {
       // Scale with the window so the suggestions never squeeze the rest of the
       // screen into an overflow on short windows.
       constraints: BoxConstraints(
-          maxHeight: (MediaQuery.sizeOf(context).height * 0.3).clamp(120.0, 320.0)),
+        maxHeight: (MediaQuery.sizeOf(context).height * 0.3).clamp(
+          120.0,
+          320.0,
+        ),
+      ),
       child: Card(
         margin: const EdgeInsets.symmetric(horizontal: 12),
         child: ListView(
@@ -36,14 +43,19 @@ class CatalogSuggestions extends ConsumerWidget {
                 dense: true,
                 visualDensity: VisualDensity.compact,
                 contentPadding: EdgeInsets.only(
-                    left: i.parentName.isEmpty ? 16 : 36, right: 16),
-                title: Text(i.name,
-                    style: i.parentName.isEmpty
-                        ? const TextStyle(fontWeight: FontWeight.w600)
-                        : null),
+                  left: i.parentName.isEmpty ? 16 : 36,
+                  right: 16,
+                ),
+                title: Text(
+                  i.name,
+                  style: i.parentName.isEmpty
+                      ? const TextStyle(fontWeight: FontWeight.w600)
+                      : null,
+                ),
                 trailing: Text(
-                    i.parentName.isEmpty ? i.category : i.parentName,
-                    style: small),
+                  i.parentName.isEmpty ? i.category : i.parentName,
+                  style: small,
+                ),
                 onTap: () => onPick(i),
               ),
           ],

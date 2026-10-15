@@ -1,4 +1,5 @@
 import 'database.dart';
+import 'tax_rules.dart';
 
 /// Money totals for a shopping list.
 class ListTotals {
@@ -7,12 +8,13 @@ class ListTotals {
     required this.tax,
     required this.remaining,
     required this.hasPrices,
+    required this.anyTaxed,
   });
 
   /// Sum of price * quantity over every priced item.
   final double subtotal;
 
-  /// Tax on the items flagged "has sales tax", at the list's rate.
+  /// Tax on the items the rules say are taxed.
   final double tax;
 
   /// Subtotal plus tax for items not yet checked off.
@@ -20,19 +22,27 @@ class ListTotals {
 
   final bool hasPrices;
 
+  /// At least one priced item is taxed (false when tax would be 0 because of
+  /// the rules rather than the rate).
+  final bool anyTaxed;
+
   double get total => subtotal + tax;
 }
 
 double _round2(double v) => (v * 100).round() / 100;
 
-/// Computes totals for [items]. [taxPercent] is the list's tax rate, e.g. 8.25;
-/// pass 0 (or null) for no tax. Only items flagged taxable are taxed.
-ListTotals computeTotals(List<ShoppingItem> items, double? taxPercent) {
-  final rate = (taxPercent ?? 0) / 100;
+/// Computes totals for [items]. [tax] holds the list's rate and rules; pass
+/// null for no tax. Each item is taxed at the rate its rules give it, or the
+/// full rate if the user ticked "has sales tax" by hand.
+ListTotals computeTotals(List<ShoppingItem> items, TaxContext? tax) {
   final priced = items.where((i) => i.price != null).toList();
   double line(ShoppingItem i) => i.price! * i.quantity;
-  double taxOn(Iterable<ShoppingItem> r) =>
-      _round2(r.where((i) => i.taxable).fold(0.0, (a, i) => a + line(i)) * rate);
+  double taxOn(Iterable<ShoppingItem> r) {
+    if (tax == null) return 0;
+    final raw = r.fold(0.0, (a, i) => a + line(i) * tax.rateFor(i) / 100);
+    return _round2(raw);
+  }
+
   double sum(Iterable<ShoppingItem> r) => r.fold(0.0, (a, i) => a + line(i));
 
   final open = priced.where((i) => !i.checked).toList();
@@ -41,5 +51,6 @@ ListTotals computeTotals(List<ShoppingItem> items, double? taxPercent) {
     tax: taxOn(priced),
     remaining: _round2(sum(open) + taxOn(open)),
     hasPrices: priced.isNotEmpty,
+    anyTaxed: tax != null && priced.any(tax.isTaxed),
   );
 }

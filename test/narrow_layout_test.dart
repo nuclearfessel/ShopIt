@@ -13,7 +13,8 @@ final _list =
     ShoppingList(id: 'l1', updatedAt: _t, name: 'Groceries', taxRateId: 'r1');
 
 final _rate = TaxRate(
-    id: 'r1', updatedAt: _t, name: 'Home, a long region name', percent: 8.25);
+    id: 'r1', updatedAt: _t, name: 'Home, a long region name', percent: 8.25,
+    ruleSet: 'US-WA', groceryPercent: null);
 
 ShoppingItem _item(String id, String name, {bool checked = false}) =>
     ShoppingItem(
@@ -28,6 +29,7 @@ ShoppingItem _item(String id, String name, {bool checked = false}) =>
         price: 3.5,
         taxable: true,
         hasCoupon: true,
+        taxManual: false,
         note: 'Brand X, the blue one, check for a coupon first');
 
 CatalogItem _cat(String name, {String parent = ''}) => CatalogItem(

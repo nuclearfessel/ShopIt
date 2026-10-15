@@ -14,13 +14,16 @@ class LookupException implements Exception {
 
 /// Where the device is, as a place name and country.
 class PlaceInfo {
-  const PlaceInfo({required this.label, this.countryCode});
+  const PlaceInfo({required this.label, this.countryCode, this.region});
 
   /// e.g. "Irvine, California".
   final String label;
 
   /// Lower-case ISO 3166-1 alpha-2 code ("us"), when known.
   final String? countryCode;
+
+  /// State or province name ("Washington"), when known.
+  final String? region;
 
   bool get isUs => countryCode == 'us';
 }
@@ -32,8 +35,9 @@ class PlaceInfo {
 Future<Position> currentPosition() async {
   if (!await Geolocator.isLocationServiceEnabled()) {
     throw LookupException(
-        'Location services are turned off. Turn them on in your system '
-        'settings and try again.');
+      'Location services are turned off. Turn them on in your system '
+      'settings and try again.',
+    );
   }
   var permission = await Geolocator.checkPermission();
   if (permission == LocationPermission.denied) {
@@ -42,8 +46,9 @@ Future<Position> currentPosition() async {
   if (permission == LocationPermission.denied ||
       permission == LocationPermission.deniedForever) {
     throw LookupException(
-        'Location permission was not granted. You can allow it in your '
-        'system settings, or enter the tax rate by hand.');
+      'Location permission was not granted. You can allow it in your '
+      'system settings, or enter the tax rate by hand.',
+    );
   }
   try {
     return await Geolocator.getCurrentPosition(
@@ -53,8 +58,10 @@ Future<Position> currentPosition() async {
       ),
     );
   } on Exception {
-    throw LookupException('Could not get your location. Try again, or enter '
-        'the tax rate by hand.');
+    throw LookupException(
+      'Could not get your location. Try again, or enter '
+      'the tax rate by hand.',
+    );
   }
 }
 
@@ -74,26 +81,38 @@ PlaceInfo? parseNominatim(Map<String, dynamic> json) {
     return null;
   }
 
-  final town = pick(
-      ['city', 'town', 'village', 'municipality', 'hamlet', 'suburb', 'county']);
+  final town = pick([
+    'city',
+    'town',
+    'village',
+    'municipality',
+    'hamlet',
+    'suburb',
+    'county',
+  ]);
   final region = pick(['state', 'province', 'region', 'state_district']);
   final country = pick(['country']);
-  final parts = [town, region ?? (town == null ? null : country)]
-      .whereType<String>()
-      .toList();
+  final parts = [
+    town,
+    region ?? (town == null ? null : country),
+  ].whereType<String>().toList();
   if (parts.isEmpty && country != null) parts.add(country);
   if (parts.isEmpty) return null;
   final code = a['country_code'];
   return PlaceInfo(
     label: parts.join(', '),
     countryCode: code is String ? code.toLowerCase() : null,
+    region: region,
   );
 }
 
 /// Names the place at [lat],[lng]. Sends the coordinates to OpenStreetMap's
 /// Nominatim service (no account needed).
-Future<PlaceInfo?> reversePlace(double lat, double lng,
-    {http.Client? client}) async {
+Future<PlaceInfo?> reversePlace(
+  double lat,
+  double lng, {
+  http.Client? client,
+}) async {
   final c = client ?? http.Client();
   try {
     final uri = Uri.https('nominatim.openstreetmap.org', '/reverse', {
@@ -105,7 +124,10 @@ Future<PlaceInfo?> reversePlace(double lat, double lng,
     });
     // Nominatim's usage policy requires an identifying User-Agent.
     final res = await c
-        .get(uri, headers: {'User-Agent': 'Shop-it/1.0 (personal shopping list)'})
+        .get(
+          uri,
+          headers: {'User-Agent': 'Shop-it/1.0 (personal shopping list)'},
+        )
         .timeout(const Duration(seconds: 15));
     if (res.statusCode != 200) return null;
     return parseNominatim(jsonDecode(res.body) as Map<String, dynamic>);
@@ -150,8 +172,12 @@ double parseZiptaxPercent(Map<String, dynamic> json) {
 /// Looks up the combined US sales tax percent at [lat],[lng]. Sends the
 /// coordinates and the user's own API key to Ziptax. The free plan allows 100
 /// lookups a month.
-Future<double> ziptaxPercent(double lat, double lng, String apiKey,
-    {http.Client? client}) async {
+Future<double> ziptaxPercent(
+  double lat,
+  double lng,
+  String apiKey, {
+  http.Client? client,
+}) async {
   final c = client ?? http.Client();
   try {
     final uri = Uri.https('api.zip-tax.com', '/request/v60', {
@@ -170,7 +196,8 @@ Future<double> ziptaxPercent(double lat, double lng, String apiKey,
     rethrow;
   } on Exception {
     throw LookupException(
-        'Could not reach Ziptax. Check your connection and try again.');
+      'Could not reach Ziptax. Check your connection and try again.',
+    );
   } finally {
     if (client == null) c.close();
   }

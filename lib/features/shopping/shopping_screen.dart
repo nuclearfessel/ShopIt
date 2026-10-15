@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/database.dart';
 import '../../data/providers.dart';
 import '../catalog/catalog_suggestions.dart';
+import '../../data/tax_rules.dart';
 import '../../data/totals.dart';
 import '../catalog/item_editor.dart';
 import 'tax_rates_dialog.dart';
@@ -86,6 +87,12 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
         );
         final db = ref.read(databaseProvider);
         final items = ref.watch(shoppingItemsProvider(current.id));
+        final rate = ref
+            .watch(taxRatesProvider)
+            .value
+            ?.where((r) => r.id == current.taxRateId)
+            .firstOrNull;
+        final taxCtx = rate == null ? null : TaxContext.fromRate(rate);
         final categoryOrder = {
           for (final c
               in ref.watch(categoriesProvider).value ?? const <Category>[])
@@ -114,6 +121,8 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
                     }
                   } else if (v == 'taxAll' || v == 'taxNone') {
                     await db.setAllTaxable(current.id, v == 'taxAll');
+                  } else if (v == 'taxAuto') {
+                    await db.resetTaxToAutomatic(current.id);
                   } else if (v == 'tax') {
                     await showDialog<void>(
                       context: context,
@@ -141,6 +150,10 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
                   const PopupMenuItem(
                     value: 'tax',
                     child: Text('Sales tax rate...'),
+                  ),
+                  const PopupMenuItem(
+                    value: 'taxAuto',
+                    child: Text('Use automatic tax rules'),
                   ),
                   const PopupMenuItem(
                     value: 'taxAll',
@@ -214,19 +227,13 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
                               db,
                               all,
                               current.id,
+                              taxCtx,
                             ),
                           ],
                         ),
                 ),
               ),
-              _TotalBar(
-                rows: items.value ?? const [],
-                rate: ref
-                    .watch(taxRatesProvider)
-                    .value
-                    ?.where((r) => r.id == current.taxRateId)
-                    .firstOrNull,
-              ),
+              _TotalBar(rows: items.value ?? const [], tax: taxCtx),
             ],
           ),
         );
@@ -243,6 +250,7 @@ List<Widget> _grouped(
   AppDatabase db,
   List<ShoppingList> lists,
   String listId,
+  TaxContext? tax,
 ) {
   final open = rows.where((i) => !i.checked);
   final done = rows.where((i) => i.checked);
@@ -258,12 +266,12 @@ List<Widget> _grouped(
     for (final n in names) ...[
       _Header(n),
       for (final i in byCategory[n]!)
-        _ItemTile(item: i, db: db, lists: lists, listId: listId),
+        _ItemTile(item: i, db: db, lists: lists, listId: listId, tax: tax),
     ],
     if (done.isNotEmpty) ...[
       const _Header('Checked'),
       for (final i in done)
-        _ItemTile(item: i, db: db, lists: lists, listId: listId),
+        _ItemTile(item: i, db: db, lists: lists, listId: listId, tax: tax),
     ],
   ];
 }
@@ -289,11 +297,24 @@ class _ItemTile extends StatelessWidget {
     required this.db,
     required this.lists,
     required this.listId,
+    required this.tax,
   });
   final ShoppingItem item;
   final AppDatabase db;
   final List<ShoppingList> lists;
   final String listId;
+
+  /// The list's tax rate and rules, or null when the list has no tax rate.
+  final TaxContext? tax;
+
+  /// The checkbox only becomes a manual override when it differs from what the
+  /// tax rules would say, so items keep following the rules otherwise.
+  bool _manual(ItemEdit edit) {
+    final t = tax;
+    if (t == null) return item.taxManual || edit.taxable != item.taxable;
+    final c = classifyItem(edit.name, edit.category);
+    return edit.taxable != (t.rateForClass(c) > 0);
+  }
 
   Future<void> _edit(BuildContext context) async {
     final result = await showItemEditor(
@@ -307,9 +328,12 @@ class _ItemTile extends StatelessWidget {
         category: item.category,
         price: item.price,
         note: item.note,
-        taxable: item.taxable,
+        taxable: tax?.isTaxed(item) ?? item.taxable,
         hasCoupon: item.hasCoupon,
       ),
+      taxHint: tax == null
+          ? 'No sales tax rate is set for this list.'
+          : describeTax(item.name, item.category, tax!, manual: item.taxManual),
       lists: [for (final l in lists) (id: l.id, name: l.name)],
       currentListId: listId,
     );
@@ -323,6 +347,7 @@ class _ItemTile extends StatelessWidget {
       note: edit.note,
       taxable: edit.taxable,
       hasCoupon: edit.hasCoupon,
+      taxManual: _manual(edit),
     );
     switch (result) {
       case ItemSaved(:final edit):
@@ -344,6 +369,7 @@ class _ItemTile extends StatelessWidget {
             note: edit.note,
             taxable: edit.taxable,
             hasCoupon: edit.hasCoupon,
+            taxManual: _manual(edit),
           ),
           listId,
         );
@@ -359,7 +385,7 @@ class _ItemTile extends StatelessWidget {
         '${formatQuantity(item.quantity)} ${item.unit}'.trim(),
       if (item.price != null) formatMoney(item.price! * item.quantity),
       if (item.hasCoupon) 'coupon',
-      if (item.taxable) 'tax',
+      if (tax?.isTaxed(item) ?? false) 'tax',
     ].join(' · ');
     return Dismissible(
       key: ValueKey(item.id),
@@ -401,58 +427,73 @@ class _ItemTile extends StatelessWidget {
   }
 }
 
-/// Subtotal, tax (at the list's chosen rate) and total, plus what is still to
-/// buy. Hidden when nothing has a price.
+/// Subtotal, tax (at the list's chosen rate and rules) and total, plus what is
+/// still to buy. Hidden when nothing has a price.
 class _TotalBar extends StatelessWidget {
-  const _TotalBar({required this.rows, required this.rate});
+  const _TotalBar({required this.rows, required this.tax});
   final List<ShoppingItem> rows;
-  final TaxRate? rate;
+  final TaxContext? tax;
 
   @override
   Widget build(BuildContext context) {
-    final t = computeTotals(rows, rate?.percent);
+    final t = computeTotals(rows, tax);
     if (!t.hasPrices) return const SizedBox.shrink();
     final theme = Theme.of(context);
-    // A rate is chosen but nothing is flagged taxable: say why tax is 0.
-    final noneTaxable =
-        rate != null && !rows.any((i) => i.price != null && i.taxable);
+    final ctx = tax;
+    // A rate is chosen but nothing priced is taxed: say why tax is 0.
+    final noneTaxed = ctx != null && !t.anyTaxed;
+    final rulesName = ctx == null || ctx.rules.id == 'everything'
+        ? 'this rate'
+        : '${ctx.rules.title} rules';
     return Material(
       color: theme.colorScheme.surfaceContainer,
       child: SafeArea(
         top: false,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (noneTaxable)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
-                  child: Text(
-                    'No priced items are marked "has sales tax", so no tax is '
-                    'added. Use the menu: Mark all items taxable.',
-                    style: theme.textTheme.bodySmall,
-                  ),
-                ),
-              Wrap(
-                alignment: WrapAlignment.spaceBetween,
-                spacing: 16,
-                runSpacing: 4,
+          // Never take more than a fifth of the window; scroll if it must.
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: (MediaQuery.sizeOf(context).height * 0.2).clamp(
+                72.0,
+                160.0,
+              ),
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (rate != null) Text('Subtotal ${formatMoney(t.subtotal)}'),
-                  if (rate != null)
-                    Text(
-                      'Tax ${formatPercent(rate!.percent)}% '
-                      '${formatMoney(t.tax)}',
+                  if (noneTaxed)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Text(
+                        'None of the priced items are taxed under $rulesName, so '
+                        'no tax is added. Tap an item to see why or change it.',
+                        style: theme.textTheme.bodySmall,
+                      ),
                     ),
-                  Text(
-                    'Total ${formatMoney(t.total)}',
-                    style: theme.textTheme.titleSmall,
+                  Wrap(
+                    alignment: WrapAlignment.spaceBetween,
+                    spacing: 16,
+                    runSpacing: 4,
+                    children: [
+                      if (ctx != null)
+                        Text('Subtotal ${formatMoney(t.subtotal)}'),
+                      if (ctx != null)
+                        Text(
+                          'Tax ${formatPercent(ctx.percent)}% '
+                          '${formatMoney(t.tax)}',
+                        ),
+                      Text(
+                        'Total ${formatMoney(t.total)}',
+                        style: theme.textTheme.titleSmall,
+                      ),
+                      Text('Still to buy ${formatMoney(t.remaining)}'),
+                    ],
                   ),
-                  Text('Still to buy ${formatMoney(t.remaining)}'),
                 ],
               ),
-            ],
+            ),
           ),
         ),
       ),

@@ -521,6 +521,21 @@ class $ShoppingItemsTable extends ShoppingItems
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _taxManualMeta = const VerificationMeta(
+    'taxManual',
+  );
+  @override
+  late final GeneratedColumn<bool> taxManual = GeneratedColumn<bool>(
+    'tax_manual',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("tax_manual" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -536,6 +551,7 @@ class $ShoppingItemsTable extends ShoppingItems
     note,
     taxable,
     hasCoupon,
+    taxManual,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -628,6 +644,12 @@ class $ShoppingItemsTable extends ShoppingItems
         hasCoupon.isAcceptableOrUnknown(data['has_coupon']!, _hasCouponMeta),
       );
     }
+    if (data.containsKey('tax_manual')) {
+      context.handle(
+        _taxManualMeta,
+        taxManual.isAcceptableOrUnknown(data['tax_manual']!, _taxManualMeta),
+      );
+    }
     return context;
   }
 
@@ -689,6 +711,10 @@ class $ShoppingItemsTable extends ShoppingItems
         DriftSqlType.bool,
         data['${effectivePrefix}has_coupon'],
       )!,
+      taxManual: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}tax_manual'],
+      )!,
     );
   }
 
@@ -716,6 +742,10 @@ class ShoppingItem extends DataClass implements Insertable<ShoppingItem> {
   /// "Item has sales tax" and "I have a coupon" flags from the item editor.
   final bool taxable;
   final bool hasCoupon;
+
+  /// True when the user ticked or unticked "has sales tax" themselves; otherwise
+  /// taxability comes from the list's tax rules and [taxable] is ignored.
+  final bool taxManual;
   const ShoppingItem({
     required this.id,
     required this.updatedAt,
@@ -730,6 +760,7 @@ class ShoppingItem extends DataClass implements Insertable<ShoppingItem> {
     required this.note,
     required this.taxable,
     required this.hasCoupon,
+    required this.taxManual,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -751,6 +782,7 @@ class ShoppingItem extends DataClass implements Insertable<ShoppingItem> {
     map['note'] = Variable<String>(note);
     map['taxable'] = Variable<bool>(taxable);
     map['has_coupon'] = Variable<bool>(hasCoupon);
+    map['tax_manual'] = Variable<bool>(taxManual);
     return map;
   }
 
@@ -773,6 +805,7 @@ class ShoppingItem extends DataClass implements Insertable<ShoppingItem> {
       note: Value(note),
       taxable: Value(taxable),
       hasCoupon: Value(hasCoupon),
+      taxManual: Value(taxManual),
     );
   }
 
@@ -795,6 +828,7 @@ class ShoppingItem extends DataClass implements Insertable<ShoppingItem> {
       note: serializer.fromJson<String>(json['note']),
       taxable: serializer.fromJson<bool>(json['taxable']),
       hasCoupon: serializer.fromJson<bool>(json['hasCoupon']),
+      taxManual: serializer.fromJson<bool>(json['taxManual']),
     );
   }
   @override
@@ -814,6 +848,7 @@ class ShoppingItem extends DataClass implements Insertable<ShoppingItem> {
       'note': serializer.toJson<String>(note),
       'taxable': serializer.toJson<bool>(taxable),
       'hasCoupon': serializer.toJson<bool>(hasCoupon),
+      'taxManual': serializer.toJson<bool>(taxManual),
     };
   }
 
@@ -831,6 +866,7 @@ class ShoppingItem extends DataClass implements Insertable<ShoppingItem> {
     String? note,
     bool? taxable,
     bool? hasCoupon,
+    bool? taxManual,
   }) => ShoppingItem(
     id: id ?? this.id,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -845,6 +881,7 @@ class ShoppingItem extends DataClass implements Insertable<ShoppingItem> {
     note: note ?? this.note,
     taxable: taxable ?? this.taxable,
     hasCoupon: hasCoupon ?? this.hasCoupon,
+    taxManual: taxManual ?? this.taxManual,
   );
   ShoppingItem copyWithCompanion(ShoppingItemsCompanion data) {
     return ShoppingItem(
@@ -861,6 +898,7 @@ class ShoppingItem extends DataClass implements Insertable<ShoppingItem> {
       note: data.note.present ? data.note.value : this.note,
       taxable: data.taxable.present ? data.taxable.value : this.taxable,
       hasCoupon: data.hasCoupon.present ? data.hasCoupon.value : this.hasCoupon,
+      taxManual: data.taxManual.present ? data.taxManual.value : this.taxManual,
     );
   }
 
@@ -879,7 +917,8 @@ class ShoppingItem extends DataClass implements Insertable<ShoppingItem> {
           ..write('price: $price, ')
           ..write('note: $note, ')
           ..write('taxable: $taxable, ')
-          ..write('hasCoupon: $hasCoupon')
+          ..write('hasCoupon: $hasCoupon, ')
+          ..write('taxManual: $taxManual')
           ..write(')'))
         .toString();
   }
@@ -899,6 +938,7 @@ class ShoppingItem extends DataClass implements Insertable<ShoppingItem> {
     note,
     taxable,
     hasCoupon,
+    taxManual,
   );
   @override
   bool operator ==(Object other) =>
@@ -916,7 +956,8 @@ class ShoppingItem extends DataClass implements Insertable<ShoppingItem> {
           other.price == this.price &&
           other.note == this.note &&
           other.taxable == this.taxable &&
-          other.hasCoupon == this.hasCoupon);
+          other.hasCoupon == this.hasCoupon &&
+          other.taxManual == this.taxManual);
 }
 
 class ShoppingItemsCompanion extends UpdateCompanion<ShoppingItem> {
@@ -933,6 +974,7 @@ class ShoppingItemsCompanion extends UpdateCompanion<ShoppingItem> {
   final Value<String> note;
   final Value<bool> taxable;
   final Value<bool> hasCoupon;
+  final Value<bool> taxManual;
   final Value<int> rowid;
   const ShoppingItemsCompanion({
     this.id = const Value.absent(),
@@ -948,6 +990,7 @@ class ShoppingItemsCompanion extends UpdateCompanion<ShoppingItem> {
     this.note = const Value.absent(),
     this.taxable = const Value.absent(),
     this.hasCoupon = const Value.absent(),
+    this.taxManual = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   ShoppingItemsCompanion.insert({
@@ -964,6 +1007,7 @@ class ShoppingItemsCompanion extends UpdateCompanion<ShoppingItem> {
     this.note = const Value.absent(),
     this.taxable = const Value.absent(),
     this.hasCoupon = const Value.absent(),
+    this.taxManual = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : listId = Value(listId),
        name = Value(name);
@@ -981,6 +1025,7 @@ class ShoppingItemsCompanion extends UpdateCompanion<ShoppingItem> {
     Expression<String>? note,
     Expression<bool>? taxable,
     Expression<bool>? hasCoupon,
+    Expression<bool>? taxManual,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -997,6 +1042,7 @@ class ShoppingItemsCompanion extends UpdateCompanion<ShoppingItem> {
       if (note != null) 'note': note,
       if (taxable != null) 'taxable': taxable,
       if (hasCoupon != null) 'has_coupon': hasCoupon,
+      if (taxManual != null) 'tax_manual': taxManual,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -1015,6 +1061,7 @@ class ShoppingItemsCompanion extends UpdateCompanion<ShoppingItem> {
     Value<String>? note,
     Value<bool>? taxable,
     Value<bool>? hasCoupon,
+    Value<bool>? taxManual,
     Value<int>? rowid,
   }) {
     return ShoppingItemsCompanion(
@@ -1031,6 +1078,7 @@ class ShoppingItemsCompanion extends UpdateCompanion<ShoppingItem> {
       note: note ?? this.note,
       taxable: taxable ?? this.taxable,
       hasCoupon: hasCoupon ?? this.hasCoupon,
+      taxManual: taxManual ?? this.taxManual,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1077,6 +1125,9 @@ class ShoppingItemsCompanion extends UpdateCompanion<ShoppingItem> {
     if (hasCoupon.present) {
       map['has_coupon'] = Variable<bool>(hasCoupon.value);
     }
+    if (taxManual.present) {
+      map['tax_manual'] = Variable<bool>(taxManual.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1099,6 +1150,7 @@ class ShoppingItemsCompanion extends UpdateCompanion<ShoppingItem> {
           ..write('note: $note, ')
           ..write('taxable: $taxable, ')
           ..write('hasCoupon: $hasCoupon, ')
+          ..write('taxManual: $taxManual, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -2479,6 +2531,29 @@ class $TaxRatesTable extends TaxRates with TableInfo<$TaxRatesTable, TaxRate> {
     type: DriftSqlType.double,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _ruleSetMeta = const VerificationMeta(
+    'ruleSet',
+  );
+  @override
+  late final GeneratedColumn<String> ruleSet = GeneratedColumn<String>(
+    'rule_set',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('everything'),
+  );
+  static const VerificationMeta _groceryPercentMeta = const VerificationMeta(
+    'groceryPercent',
+  );
+  @override
+  late final GeneratedColumn<double> groceryPercent = GeneratedColumn<double>(
+    'grocery_percent',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -2486,6 +2561,8 @@ class $TaxRatesTable extends TaxRates with TableInfo<$TaxRatesTable, TaxRate> {
     deletedAt,
     name,
     percent,
+    ruleSet,
+    groceryPercent,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -2530,6 +2607,21 @@ class $TaxRatesTable extends TaxRates with TableInfo<$TaxRatesTable, TaxRate> {
     } else if (isInserting) {
       context.missing(_percentMeta);
     }
+    if (data.containsKey('rule_set')) {
+      context.handle(
+        _ruleSetMeta,
+        ruleSet.isAcceptableOrUnknown(data['rule_set']!, _ruleSetMeta),
+      );
+    }
+    if (data.containsKey('grocery_percent')) {
+      context.handle(
+        _groceryPercentMeta,
+        groceryPercent.isAcceptableOrUnknown(
+          data['grocery_percent']!,
+          _groceryPercentMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -2559,6 +2651,14 @@ class $TaxRatesTable extends TaxRates with TableInfo<$TaxRatesTable, TaxRate> {
         DriftSqlType.double,
         data['${effectivePrefix}percent'],
       )!,
+      ruleSet: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}rule_set'],
+      )!,
+      groceryPercent: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}grocery_percent'],
+      ),
     );
   }
 
@@ -2574,12 +2674,22 @@ class TaxRate extends DataClass implements Insertable<TaxRate> {
   final DateTime? deletedAt;
   final String name;
   final double percent;
+
+  /// Which rules say what is taxed: 'everything' or a state like 'US-WA'
+  /// (see tax_rules.dart).
+  final String ruleSet;
+
+  /// Rate for groceries where it differs from [percent]: reduced or local
+  /// grocery taxes, or a city that taxes food in a state that exempts it.
+  final double? groceryPercent;
   const TaxRate({
     required this.id,
     required this.updatedAt,
     this.deletedAt,
     required this.name,
     required this.percent,
+    required this.ruleSet,
+    this.groceryPercent,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -2591,6 +2701,10 @@ class TaxRate extends DataClass implements Insertable<TaxRate> {
     }
     map['name'] = Variable<String>(name);
     map['percent'] = Variable<double>(percent);
+    map['rule_set'] = Variable<String>(ruleSet);
+    if (!nullToAbsent || groceryPercent != null) {
+      map['grocery_percent'] = Variable<double>(groceryPercent);
+    }
     return map;
   }
 
@@ -2603,6 +2717,10 @@ class TaxRate extends DataClass implements Insertable<TaxRate> {
           : Value(deletedAt),
       name: Value(name),
       percent: Value(percent),
+      ruleSet: Value(ruleSet),
+      groceryPercent: groceryPercent == null && nullToAbsent
+          ? const Value.absent()
+          : Value(groceryPercent),
     );
   }
 
@@ -2617,6 +2735,8 @@ class TaxRate extends DataClass implements Insertable<TaxRate> {
       deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
       name: serializer.fromJson<String>(json['name']),
       percent: serializer.fromJson<double>(json['percent']),
+      ruleSet: serializer.fromJson<String>(json['ruleSet']),
+      groceryPercent: serializer.fromJson<double?>(json['groceryPercent']),
     );
   }
   @override
@@ -2628,6 +2748,8 @@ class TaxRate extends DataClass implements Insertable<TaxRate> {
       'deletedAt': serializer.toJson<DateTime?>(deletedAt),
       'name': serializer.toJson<String>(name),
       'percent': serializer.toJson<double>(percent),
+      'ruleSet': serializer.toJson<String>(ruleSet),
+      'groceryPercent': serializer.toJson<double?>(groceryPercent),
     };
   }
 
@@ -2637,12 +2759,18 @@ class TaxRate extends DataClass implements Insertable<TaxRate> {
     Value<DateTime?> deletedAt = const Value.absent(),
     String? name,
     double? percent,
+    String? ruleSet,
+    Value<double?> groceryPercent = const Value.absent(),
   }) => TaxRate(
     id: id ?? this.id,
     updatedAt: updatedAt ?? this.updatedAt,
     deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
     name: name ?? this.name,
     percent: percent ?? this.percent,
+    ruleSet: ruleSet ?? this.ruleSet,
+    groceryPercent: groceryPercent.present
+        ? groceryPercent.value
+        : this.groceryPercent,
   );
   TaxRate copyWithCompanion(TaxRatesCompanion data) {
     return TaxRate(
@@ -2651,6 +2779,10 @@ class TaxRate extends DataClass implements Insertable<TaxRate> {
       deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
       name: data.name.present ? data.name.value : this.name,
       percent: data.percent.present ? data.percent.value : this.percent,
+      ruleSet: data.ruleSet.present ? data.ruleSet.value : this.ruleSet,
+      groceryPercent: data.groceryPercent.present
+          ? data.groceryPercent.value
+          : this.groceryPercent,
     );
   }
 
@@ -2661,13 +2793,23 @@ class TaxRate extends DataClass implements Insertable<TaxRate> {
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt, ')
           ..write('name: $name, ')
-          ..write('percent: $percent')
+          ..write('percent: $percent, ')
+          ..write('ruleSet: $ruleSet, ')
+          ..write('groceryPercent: $groceryPercent')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, updatedAt, deletedAt, name, percent);
+  int get hashCode => Object.hash(
+    id,
+    updatedAt,
+    deletedAt,
+    name,
+    percent,
+    ruleSet,
+    groceryPercent,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -2676,7 +2818,9 @@ class TaxRate extends DataClass implements Insertable<TaxRate> {
           other.updatedAt == this.updatedAt &&
           other.deletedAt == this.deletedAt &&
           other.name == this.name &&
-          other.percent == this.percent);
+          other.percent == this.percent &&
+          other.ruleSet == this.ruleSet &&
+          other.groceryPercent == this.groceryPercent);
 }
 
 class TaxRatesCompanion extends UpdateCompanion<TaxRate> {
@@ -2685,6 +2829,8 @@ class TaxRatesCompanion extends UpdateCompanion<TaxRate> {
   final Value<DateTime?> deletedAt;
   final Value<String> name;
   final Value<double> percent;
+  final Value<String> ruleSet;
+  final Value<double?> groceryPercent;
   final Value<int> rowid;
   const TaxRatesCompanion({
     this.id = const Value.absent(),
@@ -2692,6 +2838,8 @@ class TaxRatesCompanion extends UpdateCompanion<TaxRate> {
     this.deletedAt = const Value.absent(),
     this.name = const Value.absent(),
     this.percent = const Value.absent(),
+    this.ruleSet = const Value.absent(),
+    this.groceryPercent = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   TaxRatesCompanion.insert({
@@ -2700,6 +2848,8 @@ class TaxRatesCompanion extends UpdateCompanion<TaxRate> {
     this.deletedAt = const Value.absent(),
     required String name,
     required double percent,
+    this.ruleSet = const Value.absent(),
+    this.groceryPercent = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : name = Value(name),
        percent = Value(percent);
@@ -2709,6 +2859,8 @@ class TaxRatesCompanion extends UpdateCompanion<TaxRate> {
     Expression<DateTime>? deletedAt,
     Expression<String>? name,
     Expression<double>? percent,
+    Expression<String>? ruleSet,
+    Expression<double>? groceryPercent,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -2717,6 +2869,8 @@ class TaxRatesCompanion extends UpdateCompanion<TaxRate> {
       if (deletedAt != null) 'deleted_at': deletedAt,
       if (name != null) 'name': name,
       if (percent != null) 'percent': percent,
+      if (ruleSet != null) 'rule_set': ruleSet,
+      if (groceryPercent != null) 'grocery_percent': groceryPercent,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -2727,6 +2881,8 @@ class TaxRatesCompanion extends UpdateCompanion<TaxRate> {
     Value<DateTime?>? deletedAt,
     Value<String>? name,
     Value<double>? percent,
+    Value<String>? ruleSet,
+    Value<double?>? groceryPercent,
     Value<int>? rowid,
   }) {
     return TaxRatesCompanion(
@@ -2735,6 +2891,8 @@ class TaxRatesCompanion extends UpdateCompanion<TaxRate> {
       deletedAt: deletedAt ?? this.deletedAt,
       name: name ?? this.name,
       percent: percent ?? this.percent,
+      ruleSet: ruleSet ?? this.ruleSet,
+      groceryPercent: groceryPercent ?? this.groceryPercent,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -2757,6 +2915,12 @@ class TaxRatesCompanion extends UpdateCompanion<TaxRate> {
     if (percent.present) {
       map['percent'] = Variable<double>(percent.value);
     }
+    if (ruleSet.present) {
+      map['rule_set'] = Variable<String>(ruleSet.value);
+    }
+    if (groceryPercent.present) {
+      map['grocery_percent'] = Variable<double>(groceryPercent.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -2771,6 +2935,8 @@ class TaxRatesCompanion extends UpdateCompanion<TaxRate> {
           ..write('deletedAt: $deletedAt, ')
           ..write('name: $name, ')
           ..write('percent: $percent, ')
+          ..write('ruleSet: $ruleSet, ')
+          ..write('groceryPercent: $groceryPercent, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -3122,6 +3288,7 @@ typedef $$ShoppingItemsTableCreateCompanionBuilder =
       Value<String> note,
       Value<bool> taxable,
       Value<bool> hasCoupon,
+      Value<bool> taxManual,
       Value<int> rowid,
     });
 typedef $$ShoppingItemsTableUpdateCompanionBuilder =
@@ -3139,6 +3306,7 @@ typedef $$ShoppingItemsTableUpdateCompanionBuilder =
       Value<String> note,
       Value<bool> taxable,
       Value<bool> hasCoupon,
+      Value<bool> taxManual,
       Value<int> rowid,
     });
 
@@ -3237,6 +3405,11 @@ class $$ShoppingItemsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<bool> get taxManual => $composableBuilder(
+    column: $table.taxManual,
+    builder: (column) => ColumnFilters(column),
+  );
+
   $$ShoppingListsTableFilterComposer get listId {
     final $$ShoppingListsTableFilterComposer composer = $composerBuilder(
       composer: this,
@@ -3330,6 +3503,11 @@ class $$ShoppingItemsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get taxManual => $composableBuilder(
+    column: $table.taxManual,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$ShoppingListsTableOrderingComposer get listId {
     final $$ShoppingListsTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -3399,6 +3577,9 @@ class $$ShoppingItemsTableAnnotationComposer
   GeneratedColumn<bool> get hasCoupon =>
       $composableBuilder(column: $table.hasCoupon, builder: (column) => column);
 
+  GeneratedColumn<bool> get taxManual =>
+      $composableBuilder(column: $table.taxManual, builder: (column) => column);
+
   $$ShoppingListsTableAnnotationComposer get listId {
     final $$ShoppingListsTableAnnotationComposer composer = $composerBuilder(
       composer: this,
@@ -3464,6 +3645,7 @@ class $$ShoppingItemsTableTableManager
                 Value<String> note = const Value.absent(),
                 Value<bool> taxable = const Value.absent(),
                 Value<bool> hasCoupon = const Value.absent(),
+                Value<bool> taxManual = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ShoppingItemsCompanion(
                 id: id,
@@ -3479,6 +3661,7 @@ class $$ShoppingItemsTableTableManager
                 note: note,
                 taxable: taxable,
                 hasCoupon: hasCoupon,
+                taxManual: taxManual,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -3496,6 +3679,7 @@ class $$ShoppingItemsTableTableManager
                 Value<String> note = const Value.absent(),
                 Value<bool> taxable = const Value.absent(),
                 Value<bool> hasCoupon = const Value.absent(),
+                Value<bool> taxManual = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ShoppingItemsCompanion.insert(
                 id: id,
@@ -3511,6 +3695,7 @@ class $$ShoppingItemsTableTableManager
                 note: note,
                 taxable: taxable,
                 hasCoupon: hasCoupon,
+                taxManual: taxManual,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -4304,6 +4489,8 @@ typedef $$TaxRatesTableCreateCompanionBuilder = TaxRatesCompanion Function({
   Value<DateTime?> deletedAt,
   required String name,
   required double percent,
+  Value<String> ruleSet,
+  Value<double?> groceryPercent,
   Value<int> rowid,
 });
 typedef $$TaxRatesTableUpdateCompanionBuilder = TaxRatesCompanion Function({
@@ -4312,6 +4499,8 @@ typedef $$TaxRatesTableUpdateCompanionBuilder = TaxRatesCompanion Function({
   Value<DateTime?> deletedAt,
   Value<String> name,
   Value<double> percent,
+  Value<String> ruleSet,
+  Value<double?> groceryPercent,
   Value<int> rowid,
 });
 
@@ -4346,6 +4535,16 @@ class $$TaxRatesTableFilterComposer
 
   ColumnFilters<double> get percent => $composableBuilder(
     column: $table.percent,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get ruleSet => $composableBuilder(
+    column: $table.ruleSet,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get groceryPercent => $composableBuilder(
+    column: $table.groceryPercent,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -4383,6 +4582,16 @@ class $$TaxRatesTableOrderingComposer
     column: $table.percent,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get ruleSet => $composableBuilder(
+    column: $table.ruleSet,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get groceryPercent => $composableBuilder(
+    column: $table.groceryPercent,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$TaxRatesTableAnnotationComposer
@@ -4408,6 +4617,14 @@ class $$TaxRatesTableAnnotationComposer
 
   GeneratedColumn<double> get percent =>
       $composableBuilder(column: $table.percent, builder: (column) => column);
+
+  GeneratedColumn<String> get ruleSet =>
+      $composableBuilder(column: $table.ruleSet, builder: (column) => column);
+
+  GeneratedColumn<double> get groceryPercent => $composableBuilder(
+    column: $table.groceryPercent,
+    builder: (column) => column,
+  );
 }
 
 class $$TaxRatesTableTableManager
@@ -4443,6 +4660,8 @@ class $$TaxRatesTableTableManager
                 Value<DateTime?> deletedAt = const Value.absent(),
                 Value<String> name = const Value.absent(),
                 Value<double> percent = const Value.absent(),
+                Value<String> ruleSet = const Value.absent(),
+                Value<double?> groceryPercent = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TaxRatesCompanion(
                 id: id,
@@ -4450,6 +4669,8 @@ class $$TaxRatesTableTableManager
                 deletedAt: deletedAt,
                 name: name,
                 percent: percent,
+                ruleSet: ruleSet,
+                groceryPercent: groceryPercent,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -4459,6 +4680,8 @@ class $$TaxRatesTableTableManager
                 Value<DateTime?> deletedAt = const Value.absent(),
                 required String name,
                 required double percent,
+                Value<String> ruleSet = const Value.absent(),
+                Value<double?> groceryPercent = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TaxRatesCompanion.insert(
                 id: id,
@@ -4466,6 +4689,8 @@ class $$TaxRatesTableTableManager
                 deletedAt: deletedAt,
                 name: name,
                 percent: percent,
+                ruleSet: ruleSet,
+                groceryPercent: groceryPercent,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

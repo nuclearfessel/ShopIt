@@ -21,9 +21,9 @@ class PantryScreen extends ConsumerWidget {
         error: (e, _) => Center(child: Text('Error: $e')),
         data: (rows) => rows.isEmpty
             ? const Center(child: Text('Pantry is empty'))
-            : ListView(children: [
-                for (final i in rows) _PantryTile(item: i, db: db),
-              ]),
+            : ListView(
+                children: [for (final i in rows) _PantryTile(item: i, db: db)],
+              ),
       ),
       floatingActionButton: FloatingActionButton(
         tooltip: 'Add pantry item',
@@ -50,70 +50,94 @@ class _PantryTile extends StatelessWidget {
     final today = DateTime.now();
     final startOfToday = DateTime(today.year, today.month, today.day);
     final expired = expiry != null && expiry.isBefore(startOfToday);
-    final soon = expiry != null &&
+    final soon =
+        expiry != null &&
         !expired &&
         expiry.difference(startOfToday).inDays <= 3;
     final color = expired
         ? Colors.red
         : soon
-            ? Colors.orange
-            : null;
+        ? Colors.orange
+        : null;
     return Dismissible(
       key: ValueKey(item.id),
       background: Container(color: Colors.red.shade300),
       onDismissed: (_) => db.deletePantryItem(item.id),
-      child: LayoutBuilder(builder: (context, box) {
-        final theme = Theme.of(context);
-        final details = [
-          if (item.location.isNotEmpty) item.location,
-          if (expiry != null) 'Expires ${_date(expiry)}',
-        ].join(' · ');
-        final text = Column(
+      child: LayoutBuilder(
+        builder: (context, box) {
+          final theme = Theme.of(context);
+          final details = [
+            if (item.location.isNotEmpty) item.location,
+            if (expiry != null) 'Expires ${_date(expiry)}',
+          ].join(' · ');
+          final text = Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(item.name,
-                  style: theme.textTheme.bodyLarge?.copyWith(color: color)),
+              Text(
+                item.name,
+                style: theme.textTheme.bodyLarge?.copyWith(color: color),
+              ),
               if (details.isNotEmpty)
-                Text(details,
-                    style: theme.textTheme.bodySmall?.copyWith(color: color)),
+                Text(
+                  details,
+                  style: theme.textTheme.bodySmall?.copyWith(color: color),
+                ),
               if (item.note.isNotEmpty)
-                Text(item.note,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodySmall),
-            ]);
-        final stepper = Row(mainAxisSize: MainAxisSize.min, children: [
-          IconButton(
-              tooltip: 'Decrease',
-              visualDensity: VisualDensity.compact,
-              icon: const Icon(Icons.remove_circle_outline),
-              onPressed: item.quantity <= 0
-                  ? null
-                  : () => db.updatePantryQuantity(item.id, item.quantity - 1)),
-          Flexible(
-              child: Text('${_fmt(item.quantity)} ${item.unit}'.trim(),
-                  overflow: TextOverflow.ellipsis)),
-          IconButton(
-              tooltip: 'Increase',
-              visualDensity: VisualDensity.compact,
-              icon: const Icon(Icons.add_circle_outline),
-              onPressed: () =>
-                  db.updatePantryQuantity(item.id, item.quantity + 1)),
-        ]);
-        // Narrow windows: put the stepper under the text instead of beside it.
-        return InkWell(
-          onTap: () => _edit(context),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: box.maxWidth < 380
-                ? Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [text, stepper])
-                : Row(children: [Expanded(child: text), stepper]),
-          ),
-        );
-      }),
+                Text(
+                  item.note,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall,
+                ),
+            ],
+          );
+          final stepper = Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                tooltip: 'Decrease',
+                visualDensity: VisualDensity.compact,
+                icon: const Icon(Icons.remove_circle_outline),
+                onPressed: item.quantity <= 0
+                    ? null
+                    : () => db.updatePantryQuantity(item.id, item.quantity - 1),
+              ),
+              Flexible(
+                child: Text(
+                  '${_fmt(item.quantity)} ${item.unit}'.trim(),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              IconButton(
+                tooltip: 'Increase',
+                visualDensity: VisualDensity.compact,
+                icon: const Icon(Icons.add_circle_outline),
+                onPressed: () =>
+                    db.updatePantryQuantity(item.id, item.quantity + 1),
+              ),
+            ],
+          );
+          // Narrow windows: put the stepper under the text instead of beside it.
+          return InkWell(
+            onTap: () => _edit(context),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: box.maxWidth < 380
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [text, stepper],
+                    )
+                  : Row(
+                      children: [
+                        Expanded(child: text),
+                        stepper,
+                      ],
+                    ),
+            ),
+          );
+        },
+      ),
     );
   }
 
@@ -134,14 +158,16 @@ class _PantryTile extends StatelessWidget {
     );
     switch (result) {
       case ItemSaved(:final edit):
-        await db.updatePantryItem(item.id,
-            name: edit.name,
-            quantity: edit.quantity,
-            unit: edit.unit,
-            category: edit.category,
-            location: edit.location,
-            expiryDate: edit.expiry,
-            note: edit.note);
+        await db.updatePantryItem(
+          item.id,
+          name: edit.name,
+          quantity: edit.quantity,
+          unit: edit.unit,
+          category: edit.category,
+          location: edit.location,
+          expiryDate: edit.expiry,
+          note: edit.note,
+        );
       case ItemDeleted():
         await db.deletePantryItem(item.id);
       case ItemMoved() || ItemCopied() || null:
@@ -164,86 +190,106 @@ Future<void> _showAddDialog(BuildContext context, AppDatabase db) {
       builder: (ctx, setState) => AlertDialog(
         title: const Text('Add pantry item'),
         content: SingleChildScrollView(
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            TextField(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
                 controller: name,
                 autofocus: true,
                 onChanged: (_) => setState(() {}),
                 decoration: const InputDecoration(
-                    labelText: 'Search or add an item',
-                    prefixIcon: Icon(Icons.search))),
-            CatalogSuggestions(
-              query: pickedName == name.text ? '' : name.text,
-              onPick: (i) => setState(() {
-                name.text = i.name;
-                pickedName = i.name;
-                category = i.category;
-                if (unit.text.isEmpty) unit.text = i.defaultUnit;
-              }),
-            ),
-            DropdownButtonFormField<String>(
-              initialValue: category.isEmpty ? null : category,
-              key: ValueKey(category),
-              decoration: const InputDecoration(labelText: 'Category'),
-              items: [
-                for (final c in catalogSeed.keys)
-                  DropdownMenuItem(value: c, child: Text(c)),
-              ],
-              onChanged: (v) => setState(() => category = v ?? ''),
-            ),
-            Row(children: [
-              Expanded(
-                  child: TextField(
+                  labelText: 'Search or add an item',
+                  prefixIcon: Icon(Icons.search),
+                ),
+              ),
+              CatalogSuggestions(
+                query: pickedName == name.text ? '' : name.text,
+                onPick: (i) => setState(() {
+                  name.text = i.name;
+                  pickedName = i.name;
+                  category = i.category;
+                  if (unit.text.isEmpty) unit.text = i.defaultUnit;
+                }),
+              ),
+              DropdownButtonFormField<String>(
+                initialValue: category.isEmpty ? null : category,
+                key: ValueKey(category),
+                decoration: const InputDecoration(labelText: 'Category'),
+                items: [
+                  for (final c in catalogSeed.keys)
+                    DropdownMenuItem(value: c, child: Text(c)),
+                ],
+                onChanged: (v) => setState(() => category = v ?? ''),
+              ),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
                       controller: qty,
                       keyboardType: TextInputType.number,
-                      decoration:
-                          const InputDecoration(labelText: 'Quantity'))),
-              const SizedBox(width: 12),
-              Expanded(
-                  child: TextField(
+                      decoration: const InputDecoration(labelText: 'Quantity'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextField(
                       controller: unit,
-                      decoration: const InputDecoration(labelText: 'Unit'))),
-            ]),
-            TextField(
+                      decoration: const InputDecoration(labelText: 'Unit'),
+                    ),
+                  ),
+                ],
+              ),
+              TextField(
                 controller: location,
                 decoration: const InputDecoration(
-                    labelText: 'Location (fridge, shelf, ...)')),
-            const SizedBox(height: 8),
-            Row(children: [
-              Expanded(
-                  child: Text(expiry == null
-                      ? 'No expiry date'
-                      : 'Expires ${_date(expiry!)}')),
-              TextButton(
-                onPressed: () async {
-                  final now = DateTime.now();
-                  final d = await showDatePicker(
-                    context: ctx,
-                    initialDate: expiry ?? now,
-                    firstDate: now.subtract(const Duration(days: 365)),
-                    lastDate: now.add(const Duration(days: 365 * 10)),
-                  );
-                  if (d != null) setState(() => expiry = d);
-                },
-                child: const Text('Set date'),
+                  labelText: 'Location (fridge, shelf, ...)',
+                ),
               ),
-            ]),
-          ]),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      expiry == null
+                          ? 'No expiry date'
+                          : 'Expires ${_date(expiry!)}',
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () async {
+                      final now = DateTime.now();
+                      final d = await showDatePicker(
+                        context: ctx,
+                        initialDate: expiry ?? now,
+                        firstDate: now.subtract(const Duration(days: 365)),
+                        lastDate: now.add(const Duration(days: 365 * 10)),
+                      );
+                      if (d != null) setState(() => expiry = d);
+                    },
+                    child: const Text('Set date'),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel')),
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
           FilledButton(
             onPressed: () {
               final n = name.text.trim();
               if (n.isEmpty) return;
-              db.addPantryItem(n,
-                  quantity: double.tryParse(qty.text.trim()) ?? 1,
-                  unit: unit.text.trim(),
-                  expiryDate: expiry,
-                  location: location.text.trim(),
-                  category: category.isEmpty ? 'Other' : category);
+              db.addPantryItem(
+                n,
+                quantity: double.tryParse(qty.text.trim()) ?? 1,
+                unit: unit.text.trim(),
+                expiryDate: expiry,
+                location: location.text.trim(),
+                category: category.isEmpty ? 'Other' : category,
+              );
               Navigator.pop(ctx);
             },
             child: const Text('Add'),

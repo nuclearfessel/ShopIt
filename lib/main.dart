@@ -27,8 +27,10 @@ Future<void> main() async {
     );
   }
   final db = await openAppDatabase();
-  runApp(ProviderScope(
-    overrides: [databaseProvider.overrideWithValue(db)],
-    child: const ShopItApp(),
-  ));
+  runApp(
+    ProviderScope(
+      overrides: [databaseProvider.overrideWithValue(db)],
+      child: const ShopItApp(),
+    ),
+  );
 }
