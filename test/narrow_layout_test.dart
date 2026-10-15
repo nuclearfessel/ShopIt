@@ -14,6 +14,10 @@ final _list = ShoppingList(
   updatedAt: _t,
   name: 'Groceries',
   taxRateId: 'r1',
+  useCategories: true,
+  autoCategorize: true,
+  showEmptyCategories: false,
+  sortOrder: 0,
 );
 
 final _rate = TaxRate(
@@ -229,6 +233,10 @@ void main() {
       await tester.tap(find.byType(FloatingActionButton));
       await tester.pump(const Duration(milliseconds: 500));
       expect(tester.takeException(), isNull, reason: 'add pantry dialog');
+
+      // Let any tooltip timers finish before the test ends.
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump(const Duration(seconds: 2));
     });
   }
 }

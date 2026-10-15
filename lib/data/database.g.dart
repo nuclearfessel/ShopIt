@@ -62,6 +62,62 @@ class $ShoppingListsTable extends ShoppingLists
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _useCategoriesMeta = const VerificationMeta(
+    'useCategories',
+  );
+  @override
+  late final GeneratedColumn<bool> useCategories = GeneratedColumn<bool>(
+    'use_categories',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("use_categories" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _autoCategorizeMeta = const VerificationMeta(
+    'autoCategorize',
+  );
+  @override
+  late final GeneratedColumn<bool> autoCategorize = GeneratedColumn<bool>(
+    'auto_categorize',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("auto_categorize" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _showEmptyCategoriesMeta =
+      const VerificationMeta('showEmptyCategories');
+  @override
+  late final GeneratedColumn<bool> showEmptyCategories = GeneratedColumn<bool>(
+    'show_empty_categories',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("show_empty_categories" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _sortOrderMeta = const VerificationMeta(
+    'sortOrder',
+  );
+  @override
+  late final GeneratedColumn<int> sortOrder = GeneratedColumn<int>(
+    'sort_order',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -69,6 +125,10 @@ class $ShoppingListsTable extends ShoppingLists
     deletedAt,
     name,
     taxRateId,
+    useCategories,
+    autoCategorize,
+    showEmptyCategories,
+    sortOrder,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -111,6 +171,39 @@ class $ShoppingListsTable extends ShoppingLists
         taxRateId.isAcceptableOrUnknown(data['tax_rate_id']!, _taxRateIdMeta),
       );
     }
+    if (data.containsKey('use_categories')) {
+      context.handle(
+        _useCategoriesMeta,
+        useCategories.isAcceptableOrUnknown(
+          data['use_categories']!,
+          _useCategoriesMeta,
+        ),
+      );
+    }
+    if (data.containsKey('auto_categorize')) {
+      context.handle(
+        _autoCategorizeMeta,
+        autoCategorize.isAcceptableOrUnknown(
+          data['auto_categorize']!,
+          _autoCategorizeMeta,
+        ),
+      );
+    }
+    if (data.containsKey('show_empty_categories')) {
+      context.handle(
+        _showEmptyCategoriesMeta,
+        showEmptyCategories.isAcceptableOrUnknown(
+          data['show_empty_categories']!,
+          _showEmptyCategoriesMeta,
+        ),
+      );
+    }
+    if (data.containsKey('sort_order')) {
+      context.handle(
+        _sortOrderMeta,
+        sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta),
+      );
+    }
     return context;
   }
 
@@ -140,6 +233,22 @@ class $ShoppingListsTable extends ShoppingLists
         DriftSqlType.string,
         data['${effectivePrefix}tax_rate_id'],
       ),
+      useCategories: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}use_categories'],
+      )!,
+      autoCategorize: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}auto_categorize'],
+      )!,
+      showEmptyCategories: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}show_empty_categories'],
+      )!,
+      sortOrder: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sort_order'],
+      )!,
     );
   }
 
@@ -157,12 +266,26 @@ class ShoppingList extends DataClass implements Insertable<ShoppingList> {
 
   /// Which saved tax rate applies to this list; null means no tax.
   final String? taxRateId;
+
+  /// List settings (Out of Milk's "List settings"): group items by category,
+  /// file new items into a category automatically, and show category headers
+  /// that have no items.
+  final bool useCategories;
+  final bool autoCategorize;
+  final bool showEmptyCategories;
+
+  /// Position among the lists (Manage lists lets the user reorder them).
+  final int sortOrder;
   const ShoppingList({
     required this.id,
     required this.updatedAt,
     this.deletedAt,
     required this.name,
     this.taxRateId,
+    required this.useCategories,
+    required this.autoCategorize,
+    required this.showEmptyCategories,
+    required this.sortOrder,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -176,6 +299,10 @@ class ShoppingList extends DataClass implements Insertable<ShoppingList> {
     if (!nullToAbsent || taxRateId != null) {
       map['tax_rate_id'] = Variable<String>(taxRateId);
     }
+    map['use_categories'] = Variable<bool>(useCategories);
+    map['auto_categorize'] = Variable<bool>(autoCategorize);
+    map['show_empty_categories'] = Variable<bool>(showEmptyCategories);
+    map['sort_order'] = Variable<int>(sortOrder);
     return map;
   }
 
@@ -190,6 +317,10 @@ class ShoppingList extends DataClass implements Insertable<ShoppingList> {
       taxRateId: taxRateId == null && nullToAbsent
           ? const Value.absent()
           : Value(taxRateId),
+      useCategories: Value(useCategories),
+      autoCategorize: Value(autoCategorize),
+      showEmptyCategories: Value(showEmptyCategories),
+      sortOrder: Value(sortOrder),
     );
   }
 
@@ -204,6 +335,12 @@ class ShoppingList extends DataClass implements Insertable<ShoppingList> {
       deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
       name: serializer.fromJson<String>(json['name']),
       taxRateId: serializer.fromJson<String?>(json['taxRateId']),
+      useCategories: serializer.fromJson<bool>(json['useCategories']),
+      autoCategorize: serializer.fromJson<bool>(json['autoCategorize']),
+      showEmptyCategories: serializer.fromJson<bool>(
+        json['showEmptyCategories'],
+      ),
+      sortOrder: serializer.fromJson<int>(json['sortOrder']),
     );
   }
   @override
@@ -215,6 +352,10 @@ class ShoppingList extends DataClass implements Insertable<ShoppingList> {
       'deletedAt': serializer.toJson<DateTime?>(deletedAt),
       'name': serializer.toJson<String>(name),
       'taxRateId': serializer.toJson<String?>(taxRateId),
+      'useCategories': serializer.toJson<bool>(useCategories),
+      'autoCategorize': serializer.toJson<bool>(autoCategorize),
+      'showEmptyCategories': serializer.toJson<bool>(showEmptyCategories),
+      'sortOrder': serializer.toJson<int>(sortOrder),
     };
   }
 
@@ -224,12 +365,20 @@ class ShoppingList extends DataClass implements Insertable<ShoppingList> {
     Value<DateTime?> deletedAt = const Value.absent(),
     String? name,
     Value<String?> taxRateId = const Value.absent(),
+    bool? useCategories,
+    bool? autoCategorize,
+    bool? showEmptyCategories,
+    int? sortOrder,
   }) => ShoppingList(
     id: id ?? this.id,
     updatedAt: updatedAt ?? this.updatedAt,
     deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
     name: name ?? this.name,
     taxRateId: taxRateId.present ? taxRateId.value : this.taxRateId,
+    useCategories: useCategories ?? this.useCategories,
+    autoCategorize: autoCategorize ?? this.autoCategorize,
+    showEmptyCategories: showEmptyCategories ?? this.showEmptyCategories,
+    sortOrder: sortOrder ?? this.sortOrder,
   );
   ShoppingList copyWithCompanion(ShoppingListsCompanion data) {
     return ShoppingList(
@@ -238,6 +387,16 @@ class ShoppingList extends DataClass implements Insertable<ShoppingList> {
       deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
       name: data.name.present ? data.name.value : this.name,
       taxRateId: data.taxRateId.present ? data.taxRateId.value : this.taxRateId,
+      useCategories: data.useCategories.present
+          ? data.useCategories.value
+          : this.useCategories,
+      autoCategorize: data.autoCategorize.present
+          ? data.autoCategorize.value
+          : this.autoCategorize,
+      showEmptyCategories: data.showEmptyCategories.present
+          ? data.showEmptyCategories.value
+          : this.showEmptyCategories,
+      sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
     );
   }
 
@@ -248,13 +407,27 @@ class ShoppingList extends DataClass implements Insertable<ShoppingList> {
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt, ')
           ..write('name: $name, ')
-          ..write('taxRateId: $taxRateId')
+          ..write('taxRateId: $taxRateId, ')
+          ..write('useCategories: $useCategories, ')
+          ..write('autoCategorize: $autoCategorize, ')
+          ..write('showEmptyCategories: $showEmptyCategories, ')
+          ..write('sortOrder: $sortOrder')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, updatedAt, deletedAt, name, taxRateId);
+  int get hashCode => Object.hash(
+    id,
+    updatedAt,
+    deletedAt,
+    name,
+    taxRateId,
+    useCategories,
+    autoCategorize,
+    showEmptyCategories,
+    sortOrder,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -263,7 +436,11 @@ class ShoppingList extends DataClass implements Insertable<ShoppingList> {
           other.updatedAt == this.updatedAt &&
           other.deletedAt == this.deletedAt &&
           other.name == this.name &&
-          other.taxRateId == this.taxRateId);
+          other.taxRateId == this.taxRateId &&
+          other.useCategories == this.useCategories &&
+          other.autoCategorize == this.autoCategorize &&
+          other.showEmptyCategories == this.showEmptyCategories &&
+          other.sortOrder == this.sortOrder);
 }
 
 class ShoppingListsCompanion extends UpdateCompanion<ShoppingList> {
@@ -272,6 +449,10 @@ class ShoppingListsCompanion extends UpdateCompanion<ShoppingList> {
   final Value<DateTime?> deletedAt;
   final Value<String> name;
   final Value<String?> taxRateId;
+  final Value<bool> useCategories;
+  final Value<bool> autoCategorize;
+  final Value<bool> showEmptyCategories;
+  final Value<int> sortOrder;
   final Value<int> rowid;
   const ShoppingListsCompanion({
     this.id = const Value.absent(),
@@ -279,6 +460,10 @@ class ShoppingListsCompanion extends UpdateCompanion<ShoppingList> {
     this.deletedAt = const Value.absent(),
     this.name = const Value.absent(),
     this.taxRateId = const Value.absent(),
+    this.useCategories = const Value.absent(),
+    this.autoCategorize = const Value.absent(),
+    this.showEmptyCategories = const Value.absent(),
+    this.sortOrder = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   ShoppingListsCompanion.insert({
@@ -287,6 +472,10 @@ class ShoppingListsCompanion extends UpdateCompanion<ShoppingList> {
     this.deletedAt = const Value.absent(),
     required String name,
     this.taxRateId = const Value.absent(),
+    this.useCategories = const Value.absent(),
+    this.autoCategorize = const Value.absent(),
+    this.showEmptyCategories = const Value.absent(),
+    this.sortOrder = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : name = Value(name);
   static Insertable<ShoppingList> custom({
@@ -295,6 +484,10 @@ class ShoppingListsCompanion extends UpdateCompanion<ShoppingList> {
     Expression<DateTime>? deletedAt,
     Expression<String>? name,
     Expression<String>? taxRateId,
+    Expression<bool>? useCategories,
+    Expression<bool>? autoCategorize,
+    Expression<bool>? showEmptyCategories,
+    Expression<int>? sortOrder,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -303,6 +496,11 @@ class ShoppingListsCompanion extends UpdateCompanion<ShoppingList> {
       if (deletedAt != null) 'deleted_at': deletedAt,
       if (name != null) 'name': name,
       if (taxRateId != null) 'tax_rate_id': taxRateId,
+      if (useCategories != null) 'use_categories': useCategories,
+      if (autoCategorize != null) 'auto_categorize': autoCategorize,
+      if (showEmptyCategories != null)
+        'show_empty_categories': showEmptyCategories,
+      if (sortOrder != null) 'sort_order': sortOrder,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -313,6 +511,10 @@ class ShoppingListsCompanion extends UpdateCompanion<ShoppingList> {
     Value<DateTime?>? deletedAt,
     Value<String>? name,
     Value<String?>? taxRateId,
+    Value<bool>? useCategories,
+    Value<bool>? autoCategorize,
+    Value<bool>? showEmptyCategories,
+    Value<int>? sortOrder,
     Value<int>? rowid,
   }) {
     return ShoppingListsCompanion(
@@ -321,6 +523,10 @@ class ShoppingListsCompanion extends UpdateCompanion<ShoppingList> {
       deletedAt: deletedAt ?? this.deletedAt,
       name: name ?? this.name,
       taxRateId: taxRateId ?? this.taxRateId,
+      useCategories: useCategories ?? this.useCategories,
+      autoCategorize: autoCategorize ?? this.autoCategorize,
+      showEmptyCategories: showEmptyCategories ?? this.showEmptyCategories,
+      sortOrder: sortOrder ?? this.sortOrder,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -343,6 +549,18 @@ class ShoppingListsCompanion extends UpdateCompanion<ShoppingList> {
     if (taxRateId.present) {
       map['tax_rate_id'] = Variable<String>(taxRateId.value);
     }
+    if (useCategories.present) {
+      map['use_categories'] = Variable<bool>(useCategories.value);
+    }
+    if (autoCategorize.present) {
+      map['auto_categorize'] = Variable<bool>(autoCategorize.value);
+    }
+    if (showEmptyCategories.present) {
+      map['show_empty_categories'] = Variable<bool>(showEmptyCategories.value);
+    }
+    if (sortOrder.present) {
+      map['sort_order'] = Variable<int>(sortOrder.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -357,6 +575,10 @@ class ShoppingListsCompanion extends UpdateCompanion<ShoppingList> {
           ..write('deletedAt: $deletedAt, ')
           ..write('name: $name, ')
           ..write('taxRateId: $taxRateId, ')
+          ..write('useCategories: $useCategories, ')
+          ..write('autoCategorize: $autoCategorize, ')
+          ..write('showEmptyCategories: $showEmptyCategories, ')
+          ..write('sortOrder: $sortOrder, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -1775,8 +1997,17 @@ class $CategoriesTable extends Categories
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _colorMeta = const VerificationMeta('color');
   @override
-  List<GeneratedColumn> get $columns => [name, sortOrder];
+  late final GeneratedColumn<int> color = GeneratedColumn<int>(
+    'color',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [name, sortOrder, color];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -1805,6 +2036,12 @@ class $CategoriesTable extends Categories
     } else if (isInserting) {
       context.missing(_sortOrderMeta);
     }
+    if (data.containsKey('color')) {
+      context.handle(
+        _colorMeta,
+        color.isAcceptableOrUnknown(data['color']!, _colorMeta),
+      );
+    }
     return context;
   }
 
@@ -1822,6 +2059,10 @@ class $CategoriesTable extends Categories
         DriftSqlType.int,
         data['${effectivePrefix}sort_order'],
       )!,
+      color: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}color'],
+      ),
     );
   }
 
@@ -1834,17 +2075,29 @@ class $CategoriesTable extends Categories
 class Category extends DataClass implements Insertable<Category> {
   final String name;
   final int sortOrder;
-  const Category({required this.name, required this.sortOrder});
+
+  /// The header colour as an ARGB value; null means the automatic colour.
+  final int? color;
+  const Category({required this.name, required this.sortOrder, this.color});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['name'] = Variable<String>(name);
     map['sort_order'] = Variable<int>(sortOrder);
+    if (!nullToAbsent || color != null) {
+      map['color'] = Variable<int>(color);
+    }
     return map;
   }
 
   CategoriesCompanion toCompanion(bool nullToAbsent) {
-    return CategoriesCompanion(name: Value(name), sortOrder: Value(sortOrder));
+    return CategoriesCompanion(
+      name: Value(name),
+      sortOrder: Value(sortOrder),
+      color: color == null && nullToAbsent
+          ? const Value.absent()
+          : Value(color),
+    );
   }
 
   factory Category.fromJson(
@@ -1855,6 +2108,7 @@ class Category extends DataClass implements Insertable<Category> {
     return Category(
       name: serializer.fromJson<String>(json['name']),
       sortOrder: serializer.fromJson<int>(json['sortOrder']),
+      color: serializer.fromJson<int?>(json['color']),
     );
   }
   @override
@@ -1863,15 +2117,24 @@ class Category extends DataClass implements Insertable<Category> {
     return <String, dynamic>{
       'name': serializer.toJson<String>(name),
       'sortOrder': serializer.toJson<int>(sortOrder),
+      'color': serializer.toJson<int?>(color),
     };
   }
 
-  Category copyWith({String? name, int? sortOrder}) =>
-      Category(name: name ?? this.name, sortOrder: sortOrder ?? this.sortOrder);
+  Category copyWith({
+    String? name,
+    int? sortOrder,
+    Value<int?> color = const Value.absent(),
+  }) => Category(
+    name: name ?? this.name,
+    sortOrder: sortOrder ?? this.sortOrder,
+    color: color.present ? color.value : this.color,
+  );
   Category copyWithCompanion(CategoriesCompanion data) {
     return Category(
       name: data.name.present ? data.name.value : this.name,
       sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
+      color: data.color.present ? data.color.value : this.color,
     );
   }
 
@@ -1879,44 +2142,51 @@ class Category extends DataClass implements Insertable<Category> {
   String toString() {
     return (StringBuffer('Category(')
           ..write('name: $name, ')
-          ..write('sortOrder: $sortOrder')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('color: $color')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(name, sortOrder);
+  int get hashCode => Object.hash(name, sortOrder, color);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is Category &&
           other.name == this.name &&
-          other.sortOrder == this.sortOrder);
+          other.sortOrder == this.sortOrder &&
+          other.color == this.color);
 }
 
 class CategoriesCompanion extends UpdateCompanion<Category> {
   final Value<String> name;
   final Value<int> sortOrder;
+  final Value<int?> color;
   final Value<int> rowid;
   const CategoriesCompanion({
     this.name = const Value.absent(),
     this.sortOrder = const Value.absent(),
+    this.color = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   CategoriesCompanion.insert({
     required String name,
     required int sortOrder,
+    this.color = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : name = Value(name),
        sortOrder = Value(sortOrder);
   static Insertable<Category> custom({
     Expression<String>? name,
     Expression<int>? sortOrder,
+    Expression<int>? color,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (name != null) 'name': name,
       if (sortOrder != null) 'sort_order': sortOrder,
+      if (color != null) 'color': color,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -1924,11 +2194,13 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
   CategoriesCompanion copyWith({
     Value<String>? name,
     Value<int>? sortOrder,
+    Value<int?>? color,
     Value<int>? rowid,
   }) {
     return CategoriesCompanion(
       name: name ?? this.name,
       sortOrder: sortOrder ?? this.sortOrder,
+      color: color ?? this.color,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1942,6 +2214,9 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
     if (sortOrder.present) {
       map['sort_order'] = Variable<int>(sortOrder.value);
     }
+    if (color.present) {
+      map['color'] = Variable<int>(color.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1953,6 +2228,7 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
     return (StringBuffer('CategoriesCompanion(')
           ..write('name: $name, ')
           ..write('sortOrder: $sortOrder, ')
+          ..write('color: $color, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -2943,6 +3219,771 @@ class TaxRatesCompanion extends UpdateCompanion<TaxRate> {
   }
 }
 
+class $ListCategoryOrdersTable extends ListCategoryOrders
+    with TableInfo<$ListCategoryOrdersTable, ListCategoryOrder> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ListCategoryOrdersTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _listIdMeta = const VerificationMeta('listId');
+  @override
+  late final GeneratedColumn<String> listId = GeneratedColumn<String>(
+    'list_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _categoryMeta = const VerificationMeta(
+    'category',
+  );
+  @override
+  late final GeneratedColumn<String> category = GeneratedColumn<String>(
+    'category',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _positionMeta = const VerificationMeta(
+    'position',
+  );
+  @override
+  late final GeneratedColumn<int> position = GeneratedColumn<int>(
+    'position',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [listId, category, position];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'list_category_orders';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ListCategoryOrder> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('list_id')) {
+      context.handle(
+        _listIdMeta,
+        listId.isAcceptableOrUnknown(data['list_id']!, _listIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_listIdMeta);
+    }
+    if (data.containsKey('category')) {
+      context.handle(
+        _categoryMeta,
+        category.isAcceptableOrUnknown(data['category']!, _categoryMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_categoryMeta);
+    }
+    if (data.containsKey('position')) {
+      context.handle(
+        _positionMeta,
+        position.isAcceptableOrUnknown(data['position']!, _positionMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_positionMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {listId, category};
+  @override
+  ListCategoryOrder map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ListCategoryOrder(
+      listId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}list_id'],
+      )!,
+      category: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}category'],
+      )!,
+      position: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}position'],
+      )!,
+    );
+  }
+
+  @override
+  $ListCategoryOrdersTable createAlias(String alias) {
+    return $ListCategoryOrdersTable(attachedDatabase, alias);
+  }
+}
+
+class ListCategoryOrder extends DataClass
+    implements Insertable<ListCategoryOrder> {
+  final String listId;
+  final String category;
+  final int position;
+  const ListCategoryOrder({
+    required this.listId,
+    required this.category,
+    required this.position,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['list_id'] = Variable<String>(listId);
+    map['category'] = Variable<String>(category);
+    map['position'] = Variable<int>(position);
+    return map;
+  }
+
+  ListCategoryOrdersCompanion toCompanion(bool nullToAbsent) {
+    return ListCategoryOrdersCompanion(
+      listId: Value(listId),
+      category: Value(category),
+      position: Value(position),
+    );
+  }
+
+  factory ListCategoryOrder.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ListCategoryOrder(
+      listId: serializer.fromJson<String>(json['listId']),
+      category: serializer.fromJson<String>(json['category']),
+      position: serializer.fromJson<int>(json['position']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'listId': serializer.toJson<String>(listId),
+      'category': serializer.toJson<String>(category),
+      'position': serializer.toJson<int>(position),
+    };
+  }
+
+  ListCategoryOrder copyWith({
+    String? listId,
+    String? category,
+    int? position,
+  }) => ListCategoryOrder(
+    listId: listId ?? this.listId,
+    category: category ?? this.category,
+    position: position ?? this.position,
+  );
+  ListCategoryOrder copyWithCompanion(ListCategoryOrdersCompanion data) {
+    return ListCategoryOrder(
+      listId: data.listId.present ? data.listId.value : this.listId,
+      category: data.category.present ? data.category.value : this.category,
+      position: data.position.present ? data.position.value : this.position,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ListCategoryOrder(')
+          ..write('listId: $listId, ')
+          ..write('category: $category, ')
+          ..write('position: $position')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(listId, category, position);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ListCategoryOrder &&
+          other.listId == this.listId &&
+          other.category == this.category &&
+          other.position == this.position);
+}
+
+class ListCategoryOrdersCompanion extends UpdateCompanion<ListCategoryOrder> {
+  final Value<String> listId;
+  final Value<String> category;
+  final Value<int> position;
+  final Value<int> rowid;
+  const ListCategoryOrdersCompanion({
+    this.listId = const Value.absent(),
+    this.category = const Value.absent(),
+    this.position = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ListCategoryOrdersCompanion.insert({
+    required String listId,
+    required String category,
+    required int position,
+    this.rowid = const Value.absent(),
+  }) : listId = Value(listId),
+       category = Value(category),
+       position = Value(position);
+  static Insertable<ListCategoryOrder> custom({
+    Expression<String>? listId,
+    Expression<String>? category,
+    Expression<int>? position,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (listId != null) 'list_id': listId,
+      if (category != null) 'category': category,
+      if (position != null) 'position': position,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ListCategoryOrdersCompanion copyWith({
+    Value<String>? listId,
+    Value<String>? category,
+    Value<int>? position,
+    Value<int>? rowid,
+  }) {
+    return ListCategoryOrdersCompanion(
+      listId: listId ?? this.listId,
+      category: category ?? this.category,
+      position: position ?? this.position,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (listId.present) {
+      map['list_id'] = Variable<String>(listId.value);
+    }
+    if (category.present) {
+      map['category'] = Variable<String>(category.value);
+    }
+    if (position.present) {
+      map['position'] = Variable<int>(position.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ListCategoryOrdersCompanion(')
+          ..write('listId: $listId, ')
+          ..write('category: $category, ')
+          ..write('position: $position, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $ItemHistoryTable extends ItemHistory
+    with TableInfo<$ItemHistoryTable, HistoryEntry> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ItemHistoryTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    clientDefault: newId,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    clientDefault: DateTime.now,
+  );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _categoryMeta = const VerificationMeta(
+    'category',
+  );
+  @override
+  late final GeneratedColumn<String> category = GeneratedColumn<String>(
+    'category',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _unitMeta = const VerificationMeta('unit');
+  @override
+  late final GeneratedColumn<String> unit = GeneratedColumn<String>(
+    'unit',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _lastUsedMeta = const VerificationMeta(
+    'lastUsed',
+  );
+  @override
+  late final GeneratedColumn<DateTime> lastUsed = GeneratedColumn<DateTime>(
+    'last_used',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    clientDefault: DateTime.now,
+  );
+  static const VerificationMeta _useCountMeta = const VerificationMeta(
+    'useCount',
+  );
+  @override
+  late final GeneratedColumn<int> useCount = GeneratedColumn<int>(
+    'use_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    updatedAt,
+    deletedAt,
+    name,
+    category,
+    unit,
+    lastUsed,
+    useCount,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'item_history';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<HistoryEntry> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('category')) {
+      context.handle(
+        _categoryMeta,
+        category.isAcceptableOrUnknown(data['category']!, _categoryMeta),
+      );
+    }
+    if (data.containsKey('unit')) {
+      context.handle(
+        _unitMeta,
+        unit.isAcceptableOrUnknown(data['unit']!, _unitMeta),
+      );
+    }
+    if (data.containsKey('last_used')) {
+      context.handle(
+        _lastUsedMeta,
+        lastUsed.isAcceptableOrUnknown(data['last_used']!, _lastUsedMeta),
+      );
+    }
+    if (data.containsKey('use_count')) {
+      context.handle(
+        _useCountMeta,
+        useCount.isAcceptableOrUnknown(data['use_count']!, _useCountMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  HistoryEntry map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return HistoryEntry(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}deleted_at'],
+      ),
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      category: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}category'],
+      )!,
+      unit: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}unit'],
+      )!,
+      lastUsed: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}last_used'],
+      )!,
+      useCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}use_count'],
+      )!,
+    );
+  }
+
+  @override
+  $ItemHistoryTable createAlias(String alias) {
+    return $ItemHistoryTable(attachedDatabase, alias);
+  }
+}
+
+class HistoryEntry extends DataClass implements Insertable<HistoryEntry> {
+  final String id;
+  final DateTime updatedAt;
+  final DateTime? deletedAt;
+  final String name;
+  final String category;
+  final String unit;
+  final DateTime lastUsed;
+  final int useCount;
+  const HistoryEntry({
+    required this.id,
+    required this.updatedAt,
+    this.deletedAt,
+    required this.name,
+    required this.category,
+    required this.unit,
+    required this.lastUsed,
+    required this.useCount,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
+    map['name'] = Variable<String>(name);
+    map['category'] = Variable<String>(category);
+    map['unit'] = Variable<String>(unit);
+    map['last_used'] = Variable<DateTime>(lastUsed);
+    map['use_count'] = Variable<int>(useCount);
+    return map;
+  }
+
+  ItemHistoryCompanion toCompanion(bool nullToAbsent) {
+    return ItemHistoryCompanion(
+      id: Value(id),
+      updatedAt: Value(updatedAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+      name: Value(name),
+      category: Value(category),
+      unit: Value(unit),
+      lastUsed: Value(lastUsed),
+      useCount: Value(useCount),
+    );
+  }
+
+  factory HistoryEntry.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return HistoryEntry(
+      id: serializer.fromJson<String>(json['id']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
+      name: serializer.fromJson<String>(json['name']),
+      category: serializer.fromJson<String>(json['category']),
+      unit: serializer.fromJson<String>(json['unit']),
+      lastUsed: serializer.fromJson<DateTime>(json['lastUsed']),
+      useCount: serializer.fromJson<int>(json['useCount']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
+      'name': serializer.toJson<String>(name),
+      'category': serializer.toJson<String>(category),
+      'unit': serializer.toJson<String>(unit),
+      'lastUsed': serializer.toJson<DateTime>(lastUsed),
+      'useCount': serializer.toJson<int>(useCount),
+    };
+  }
+
+  HistoryEntry copyWith({
+    String? id,
+    DateTime? updatedAt,
+    Value<DateTime?> deletedAt = const Value.absent(),
+    String? name,
+    String? category,
+    String? unit,
+    DateTime? lastUsed,
+    int? useCount,
+  }) => HistoryEntry(
+    id: id ?? this.id,
+    updatedAt: updatedAt ?? this.updatedAt,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+    name: name ?? this.name,
+    category: category ?? this.category,
+    unit: unit ?? this.unit,
+    lastUsed: lastUsed ?? this.lastUsed,
+    useCount: useCount ?? this.useCount,
+  );
+  HistoryEntry copyWithCompanion(ItemHistoryCompanion data) {
+    return HistoryEntry(
+      id: data.id.present ? data.id.value : this.id,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      name: data.name.present ? data.name.value : this.name,
+      category: data.category.present ? data.category.value : this.category,
+      unit: data.unit.present ? data.unit.value : this.unit,
+      lastUsed: data.lastUsed.present ? data.lastUsed.value : this.lastUsed,
+      useCount: data.useCount.present ? data.useCount.value : this.useCount,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('HistoryEntry(')
+          ..write('id: $id, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('name: $name, ')
+          ..write('category: $category, ')
+          ..write('unit: $unit, ')
+          ..write('lastUsed: $lastUsed, ')
+          ..write('useCount: $useCount')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    updatedAt,
+    deletedAt,
+    name,
+    category,
+    unit,
+    lastUsed,
+    useCount,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is HistoryEntry &&
+          other.id == this.id &&
+          other.updatedAt == this.updatedAt &&
+          other.deletedAt == this.deletedAt &&
+          other.name == this.name &&
+          other.category == this.category &&
+          other.unit == this.unit &&
+          other.lastUsed == this.lastUsed &&
+          other.useCount == this.useCount);
+}
+
+class ItemHistoryCompanion extends UpdateCompanion<HistoryEntry> {
+  final Value<String> id;
+  final Value<DateTime> updatedAt;
+  final Value<DateTime?> deletedAt;
+  final Value<String> name;
+  final Value<String> category;
+  final Value<String> unit;
+  final Value<DateTime> lastUsed;
+  final Value<int> useCount;
+  final Value<int> rowid;
+  const ItemHistoryCompanion({
+    this.id = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.name = const Value.absent(),
+    this.category = const Value.absent(),
+    this.unit = const Value.absent(),
+    this.lastUsed = const Value.absent(),
+    this.useCount = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ItemHistoryCompanion.insert({
+    this.id = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    required String name,
+    this.category = const Value.absent(),
+    this.unit = const Value.absent(),
+    this.lastUsed = const Value.absent(),
+    this.useCount = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : name = Value(name);
+  static Insertable<HistoryEntry> custom({
+    Expression<String>? id,
+    Expression<DateTime>? updatedAt,
+    Expression<DateTime>? deletedAt,
+    Expression<String>? name,
+    Expression<String>? category,
+    Expression<String>? unit,
+    Expression<DateTime>? lastUsed,
+    Expression<int>? useCount,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (name != null) 'name': name,
+      if (category != null) 'category': category,
+      if (unit != null) 'unit': unit,
+      if (lastUsed != null) 'last_used': lastUsed,
+      if (useCount != null) 'use_count': useCount,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ItemHistoryCompanion copyWith({
+    Value<String>? id,
+    Value<DateTime>? updatedAt,
+    Value<DateTime?>? deletedAt,
+    Value<String>? name,
+    Value<String>? category,
+    Value<String>? unit,
+    Value<DateTime>? lastUsed,
+    Value<int>? useCount,
+    Value<int>? rowid,
+  }) {
+    return ItemHistoryCompanion(
+      id: id ?? this.id,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      name: name ?? this.name,
+      category: category ?? this.category,
+      unit: unit ?? this.unit,
+      lastUsed: lastUsed ?? this.lastUsed,
+      useCount: useCount ?? this.useCount,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (category.present) {
+      map['category'] = Variable<String>(category.value);
+    }
+    if (unit.present) {
+      map['unit'] = Variable<String>(unit.value);
+    }
+    if (lastUsed.present) {
+      map['last_used'] = Variable<DateTime>(lastUsed.value);
+    }
+    if (useCount.present) {
+      map['use_count'] = Variable<int>(useCount.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ItemHistoryCompanion(')
+          ..write('id: $id, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('name: $name, ')
+          ..write('category: $category, ')
+          ..write('unit: $unit, ')
+          ..write('lastUsed: $lastUsed, ')
+          ..write('useCount: $useCount, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -2952,6 +3993,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $CategoriesTable categories = $CategoriesTable(this);
   late final $CatalogItemsTable catalogItems = $CatalogItemsTable(this);
   late final $TaxRatesTable taxRates = $TaxRatesTable(this);
+  late final $ListCategoryOrdersTable listCategoryOrders =
+      $ListCategoryOrdersTable(this);
+  late final $ItemHistoryTable itemHistory = $ItemHistoryTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -2963,6 +4007,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     categories,
     catalogItems,
     taxRates,
+    listCategoryOrders,
+    itemHistory,
   ];
 }
 
@@ -2973,6 +4019,10 @@ typedef $$ShoppingListsTableCreateCompanionBuilder =
       Value<DateTime?> deletedAt,
       required String name,
       Value<String?> taxRateId,
+      Value<bool> useCategories,
+      Value<bool> autoCategorize,
+      Value<bool> showEmptyCategories,
+      Value<int> sortOrder,
       Value<int> rowid,
     });
 typedef $$ShoppingListsTableUpdateCompanionBuilder =
@@ -2982,6 +4032,10 @@ typedef $$ShoppingListsTableUpdateCompanionBuilder =
       Value<DateTime?> deletedAt,
       Value<String> name,
       Value<String?> taxRateId,
+      Value<bool> useCategories,
+      Value<bool> autoCategorize,
+      Value<bool> showEmptyCategories,
+      Value<int> sortOrder,
       Value<int> rowid,
     });
 
@@ -3046,6 +4100,26 @@ class $$ShoppingListsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<bool> get useCategories => $composableBuilder(
+    column: $table.useCategories,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get autoCategorize => $composableBuilder(
+    column: $table.autoCategorize,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get showEmptyCategories => $composableBuilder(
+    column: $table.showEmptyCategories,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnFilters(column),
+  );
+
   Expression<bool> shoppingItemsRefs(
     Expression<bool> Function($$ShoppingItemsTableFilterComposer f) f,
   ) {
@@ -3105,6 +4179,26 @@ class $$ShoppingListsTableOrderingComposer
     column: $table.taxRateId,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<bool> get useCategories => $composableBuilder(
+    column: $table.useCategories,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get autoCategorize => $composableBuilder(
+    column: $table.autoCategorize,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get showEmptyCategories => $composableBuilder(
+    column: $table.showEmptyCategories,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$ShoppingListsTableAnnotationComposer
@@ -3130,6 +4224,24 @@ class $$ShoppingListsTableAnnotationComposer
 
   GeneratedColumn<String> get taxRateId =>
       $composableBuilder(column: $table.taxRateId, builder: (column) => column);
+
+  GeneratedColumn<bool> get useCategories => $composableBuilder(
+    column: $table.useCategories,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get autoCategorize => $composableBuilder(
+    column: $table.autoCategorize,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get showEmptyCategories => $composableBuilder(
+    column: $table.showEmptyCategories,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get sortOrder =>
+      $composableBuilder(column: $table.sortOrder, builder: (column) => column);
 
   Expression<T> shoppingItemsRefs<T extends Object>(
     Expression<T> Function($$ShoppingItemsTableAnnotationComposer a) f,
@@ -3190,6 +4302,10 @@ class $$ShoppingListsTableTableManager
                 Value<DateTime?> deletedAt = const Value.absent(),
                 Value<String> name = const Value.absent(),
                 Value<String?> taxRateId = const Value.absent(),
+                Value<bool> useCategories = const Value.absent(),
+                Value<bool> autoCategorize = const Value.absent(),
+                Value<bool> showEmptyCategories = const Value.absent(),
+                Value<int> sortOrder = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ShoppingListsCompanion(
                 id: id,
@@ -3197,6 +4313,10 @@ class $$ShoppingListsTableTableManager
                 deletedAt: deletedAt,
                 name: name,
                 taxRateId: taxRateId,
+                useCategories: useCategories,
+                autoCategorize: autoCategorize,
+                showEmptyCategories: showEmptyCategories,
+                sortOrder: sortOrder,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -3206,6 +4326,10 @@ class $$ShoppingListsTableTableManager
                 Value<DateTime?> deletedAt = const Value.absent(),
                 required String name,
                 Value<String?> taxRateId = const Value.absent(),
+                Value<bool> useCategories = const Value.absent(),
+                Value<bool> autoCategorize = const Value.absent(),
+                Value<bool> showEmptyCategories = const Value.absent(),
+                Value<int> sortOrder = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ShoppingListsCompanion.insert(
                 id: id,
@@ -3213,6 +4337,10 @@ class $$ShoppingListsTableTableManager
                 deletedAt: deletedAt,
                 name: name,
                 taxRateId: taxRateId,
+                useCategories: useCategories,
+                autoCategorize: autoCategorize,
+                showEmptyCategories: showEmptyCategories,
+                sortOrder: sortOrder,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -4072,11 +5200,13 @@ typedef $$PantryItemsTableProcessedTableManager =
 typedef $$CategoriesTableCreateCompanionBuilder = CategoriesCompanion Function({
   required String name,
   required int sortOrder,
+  Value<int?> color,
   Value<int> rowid,
 });
 typedef $$CategoriesTableUpdateCompanionBuilder = CategoriesCompanion Function({
   Value<String> name,
   Value<int> sortOrder,
+  Value<int?> color,
   Value<int> rowid,
 });
 
@@ -4096,6 +5226,11 @@ class $$CategoriesTableFilterComposer
 
   ColumnFilters<int> get sortOrder => $composableBuilder(
     column: $table.sortOrder,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get color => $composableBuilder(
+    column: $table.color,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -4118,6 +5253,11 @@ class $$CategoriesTableOrderingComposer
     column: $table.sortOrder,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<int> get color => $composableBuilder(
+    column: $table.color,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$CategoriesTableAnnotationComposer
@@ -4134,6 +5274,9 @@ class $$CategoriesTableAnnotationComposer
 
   GeneratedColumn<int> get sortOrder =>
       $composableBuilder(column: $table.sortOrder, builder: (column) => column);
+
+  GeneratedColumn<int> get color =>
+      $composableBuilder(column: $table.color, builder: (column) => column);
 }
 
 class $$CategoriesTableTableManager
@@ -4166,20 +5309,24 @@ class $$CategoriesTableTableManager
               ({
                 Value<String> name = const Value.absent(),
                 Value<int> sortOrder = const Value.absent(),
+                Value<int?> color = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => CategoriesCompanion(
                 name: name,
                 sortOrder: sortOrder,
+                color: color,
                 rowid: rowid,
               ),
           createCompanionCallback:
               ({
                 required String name,
                 required int sortOrder,
+                Value<int?> color = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => CategoriesCompanion.insert(
                 name: name,
                 sortOrder: sortOrder,
+                color: color,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -4724,6 +5871,458 @@ typedef $$TaxRatesTableProcessedTableManager =
       TaxRate,
       PrefetchHooks Function()
     >;
+typedef $$ListCategoryOrdersTableCreateCompanionBuilder =
+    ListCategoryOrdersCompanion Function({
+      required String listId,
+      required String category,
+      required int position,
+      Value<int> rowid,
+    });
+typedef $$ListCategoryOrdersTableUpdateCompanionBuilder =
+    ListCategoryOrdersCompanion Function({
+      Value<String> listId,
+      Value<String> category,
+      Value<int> position,
+      Value<int> rowid,
+    });
+
+class $$ListCategoryOrdersTableFilterComposer
+    extends Composer<_$AppDatabase, $ListCategoryOrdersTable> {
+  $$ListCategoryOrdersTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get listId => $composableBuilder(
+    column: $table.listId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get category => $composableBuilder(
+    column: $table.category,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get position => $composableBuilder(
+    column: $table.position,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$ListCategoryOrdersTableOrderingComposer
+    extends Composer<_$AppDatabase, $ListCategoryOrdersTable> {
+  $$ListCategoryOrdersTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get listId => $composableBuilder(
+    column: $table.listId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get category => $composableBuilder(
+    column: $table.category,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get position => $composableBuilder(
+    column: $table.position,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ListCategoryOrdersTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ListCategoryOrdersTable> {
+  $$ListCategoryOrdersTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get listId =>
+      $composableBuilder(column: $table.listId, builder: (column) => column);
+
+  GeneratedColumn<String> get category =>
+      $composableBuilder(column: $table.category, builder: (column) => column);
+
+  GeneratedColumn<int> get position =>
+      $composableBuilder(column: $table.position, builder: (column) => column);
+}
+
+class $$ListCategoryOrdersTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ListCategoryOrdersTable,
+          ListCategoryOrder,
+          $$ListCategoryOrdersTableFilterComposer,
+          $$ListCategoryOrdersTableOrderingComposer,
+          $$ListCategoryOrdersTableAnnotationComposer,
+          $$ListCategoryOrdersTableCreateCompanionBuilder,
+          $$ListCategoryOrdersTableUpdateCompanionBuilder,
+          (
+            ListCategoryOrder,
+            BaseReferences<
+              _$AppDatabase,
+              $ListCategoryOrdersTable,
+              ListCategoryOrder
+            >,
+          ),
+          ListCategoryOrder,
+          PrefetchHooks Function()
+        > {
+  $$ListCategoryOrdersTableTableManager(
+    _$AppDatabase db,
+    $ListCategoryOrdersTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ListCategoryOrdersTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ListCategoryOrdersTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ListCategoryOrdersTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> listId = const Value.absent(),
+                Value<String> category = const Value.absent(),
+                Value<int> position = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ListCategoryOrdersCompanion(
+                listId: listId,
+                category: category,
+                position: position,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String listId,
+                required String category,
+                required int position,
+                Value<int> rowid = const Value.absent(),
+              }) => ListCategoryOrdersCompanion.insert(
+                listId: listId,
+                category: category,
+                position: position,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$ListCategoryOrdersTable, ListCategoryOrder>(
+                    table,
+                  ),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $ListCategoryOrdersTable,
+                    ListCategoryOrder
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ListCategoryOrdersTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ListCategoryOrdersTable,
+      ListCategoryOrder,
+      $$ListCategoryOrdersTableFilterComposer,
+      $$ListCategoryOrdersTableOrderingComposer,
+      $$ListCategoryOrdersTableAnnotationComposer,
+      $$ListCategoryOrdersTableCreateCompanionBuilder,
+      $$ListCategoryOrdersTableUpdateCompanionBuilder,
+      (
+        ListCategoryOrder,
+        BaseReferences<
+          _$AppDatabase,
+          $ListCategoryOrdersTable,
+          ListCategoryOrder
+        >,
+      ),
+      ListCategoryOrder,
+      PrefetchHooks Function()
+    >;
+typedef $$ItemHistoryTableCreateCompanionBuilder =
+    ItemHistoryCompanion Function({
+      Value<String> id,
+      Value<DateTime> updatedAt,
+      Value<DateTime?> deletedAt,
+      required String name,
+      Value<String> category,
+      Value<String> unit,
+      Value<DateTime> lastUsed,
+      Value<int> useCount,
+      Value<int> rowid,
+    });
+typedef $$ItemHistoryTableUpdateCompanionBuilder =
+    ItemHistoryCompanion Function({
+      Value<String> id,
+      Value<DateTime> updatedAt,
+      Value<DateTime?> deletedAt,
+      Value<String> name,
+      Value<String> category,
+      Value<String> unit,
+      Value<DateTime> lastUsed,
+      Value<int> useCount,
+      Value<int> rowid,
+    });
+
+class $$ItemHistoryTableFilterComposer
+    extends Composer<_$AppDatabase, $ItemHistoryTable> {
+  $$ItemHistoryTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get category => $composableBuilder(
+    column: $table.category,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get unit => $composableBuilder(
+    column: $table.unit,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get lastUsed => $composableBuilder(
+    column: $table.lastUsed,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get useCount => $composableBuilder(
+    column: $table.useCount,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$ItemHistoryTableOrderingComposer
+    extends Composer<_$AppDatabase, $ItemHistoryTable> {
+  $$ItemHistoryTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get category => $composableBuilder(
+    column: $table.category,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get unit => $composableBuilder(
+    column: $table.unit,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get lastUsed => $composableBuilder(
+    column: $table.lastUsed,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get useCount => $composableBuilder(
+    column: $table.useCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ItemHistoryTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ItemHistoryTable> {
+  $$ItemHistoryTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get category =>
+      $composableBuilder(column: $table.category, builder: (column) => column);
+
+  GeneratedColumn<String> get unit =>
+      $composableBuilder(column: $table.unit, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get lastUsed =>
+      $composableBuilder(column: $table.lastUsed, builder: (column) => column);
+
+  GeneratedColumn<int> get useCount =>
+      $composableBuilder(column: $table.useCount, builder: (column) => column);
+}
+
+class $$ItemHistoryTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ItemHistoryTable,
+          HistoryEntry,
+          $$ItemHistoryTableFilterComposer,
+          $$ItemHistoryTableOrderingComposer,
+          $$ItemHistoryTableAnnotationComposer,
+          $$ItemHistoryTableCreateCompanionBuilder,
+          $$ItemHistoryTableUpdateCompanionBuilder,
+          (
+            HistoryEntry,
+            BaseReferences<_$AppDatabase, $ItemHistoryTable, HistoryEntry>,
+          ),
+          HistoryEntry,
+          PrefetchHooks Function()
+        > {
+  $$ItemHistoryTableTableManager(_$AppDatabase db, $ItemHistoryTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ItemHistoryTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ItemHistoryTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ItemHistoryTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String> category = const Value.absent(),
+                Value<String> unit = const Value.absent(),
+                Value<DateTime> lastUsed = const Value.absent(),
+                Value<int> useCount = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ItemHistoryCompanion(
+                id: id,
+                updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                name: name,
+                category: category,
+                unit: unit,
+                lastUsed: lastUsed,
+                useCount: useCount,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                required String name,
+                Value<String> category = const Value.absent(),
+                Value<String> unit = const Value.absent(),
+                Value<DateTime> lastUsed = const Value.absent(),
+                Value<int> useCount = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ItemHistoryCompanion.insert(
+                id: id,
+                updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                name: name,
+                category: category,
+                unit: unit,
+                lastUsed: lastUsed,
+                useCount: useCount,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$ItemHistoryTable, HistoryEntry>(table),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $ItemHistoryTable,
+                    HistoryEntry
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ItemHistoryTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ItemHistoryTable,
+      HistoryEntry,
+      $$ItemHistoryTableFilterComposer,
+      $$ItemHistoryTableOrderingComposer,
+      $$ItemHistoryTableAnnotationComposer,
+      $$ItemHistoryTableCreateCompanionBuilder,
+      $$ItemHistoryTableUpdateCompanionBuilder,
+      (
+        HistoryEntry,
+        BaseReferences<_$AppDatabase, $ItemHistoryTable, HistoryEntry>,
+      ),
+      HistoryEntry,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -4740,4 +6339,8 @@ class $AppDatabaseManager {
       $$CatalogItemsTableTableManager(_db, _db.catalogItems);
   $$TaxRatesTableTableManager get taxRates =>
       $$TaxRatesTableTableManager(_db, _db.taxRates);
+  $$ListCategoryOrdersTableTableManager get listCategoryOrders =>
+      $$ListCategoryOrdersTableTableManager(_db, _db.listCategoryOrders);
+  $$ItemHistoryTableTableManager get itemHistory =>
+      $$ItemHistoryTableTableManager(_db, _db.itemHistory);
 }

@@ -8,9 +8,12 @@ import '../catalog/catalog_suggestions.dart';
 import '../../data/tax_rules.dart';
 import '../../data/totals.dart';
 import '../catalog/item_editor.dart';
+import '../lists/list_settings_dialog.dart';
+import '../lists/manage_lists_dialog.dart';
 import '../settings/settings_dialog.dart';
 import 'tax_rates_dialog.dart';
 import '../../ui/keyline/keyline_icon.dart';
+import '../../ui/dialogs.dart';
 import '../../ui/tip.dart';
 import '../../ui/undo_snack_bar.dart';
 
@@ -37,10 +40,16 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
     await ref.read(databaseProvider).addList(name);
   }
 
-  void _add(String listId, String name, String category) {
+  /// Adds an item. With "Auto-categorize items" off the item goes in without a
+  /// category.
+  void _add(ShoppingList list, String name, String category) {
     ref
         .read(databaseProvider)
-        .addShoppingItem(listId, name, category: category);
+        .addShoppingItem(
+          list.id,
+          name,
+          category: list.autoCategorize ? category : '',
+        );
     setState(_controller.clear);
   }
 
@@ -60,14 +69,14 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
 
   /// Enter key: use the catalog entry with exactly this name if there is one,
   /// otherwise add the text as a new item under "Other".
-  Future<void> _submit(String listId) async {
+  Future<void> _submit(ShoppingList list) async {
     final name = _controller.text.trim();
     if (name.isEmpty) return;
     final match = (await ref.read(databaseProvider).searchCatalog(name))
         .where((i) => i.name.toLowerCase() == name.toLowerCase());
     if (!mounted) return;
     _add(
-      listId,
+      list,
       match.isEmpty ? name : match.first.name,
       match.isEmpty ? 'Other' : match.first.category,
     );
@@ -126,11 +135,22 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
             ?.where((r) => r.id == current.taxRateId)
             .firstOrNull;
         final taxCtx = rate == null ? null : TaxContext.fromRate(rate);
+        final allCategories =
+            ref.watch(categoriesProvider).value ?? const <Category>[];
+        final manualOrder =
+            ref.watch(listCategoryOrderProvider(current.id)).value ??
+            const <ListCategoryOrder>[];
+        // The user's own order for this list first, then the default order.
         final categoryOrder = {
-          for (final c
-              in ref.watch(categoriesProvider).value ?? const <Category>[])
-            c.name: c.sortOrder,
+          for (final c in allCategories) c.name: 1000 + c.sortOrder,
+          for (final o in manualOrder) o.category: o.position,
         };
+        final categoryNames = [for (final c in allCategories) c.name]
+          ..sort(
+            (a, b) => (categoryOrder[a] ?? 1 << 20).compareTo(
+              categoryOrder[b] ?? 1 << 20,
+            ),
+          );
         return Scaffold(
           appBar: AppBar(
             title: const Text('Shopping'),
@@ -161,6 +181,20 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
                       await db.deleteList(current.id);
                       setState(() => _listId = null);
                     }
+                  } else if (v == 'checkAll') {
+                    await db.checkAll(current.id);
+                  } else if (v == 'uncheckAll') {
+                    await db.uncheckAll(current.id);
+                  } else if (v == 'listSettings') {
+                    await showDialog<void>(
+                      context: context,
+                      builder: (_) => ListSettingsDialog(listId: current.id),
+                    );
+                  } else if (v == 'manageLists') {
+                    await showDialog<void>(
+                      context: context,
+                      builder: (_) => const ManageListsDialog(),
+                    );
                   } else if (v == 'taxAll' || v == 'taxNone') {
                     await db.setAllTaxable(current.id, v == 'taxAll');
                   } else if (v == 'taxAuto') {
@@ -184,6 +218,34 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
                     child: Tip(
                       'Start another shopping list',
                       child: const Text('New list'),
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: 'checkAll',
+                    child: Tip(
+                      'Put every item on this list in your cart',
+                      child: const Text('Check all'),
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: 'uncheckAll',
+                    child: Tip(
+                      'Put everything in your cart back on the list',
+                      child: const Text('Uncheck all'),
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: 'listSettings',
+                    child: Tip(
+                      'Categories and sorting for this list',
+                      child: const Text('List settings'),
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: 'manageLists',
+                    child: Tip(
+                      'Rename, reorder or delete your lists',
+                      child: const Text('Manage lists'),
                     ),
                   ),
                   PopupMenuItem(
@@ -274,21 +336,21 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
                     suffixIcon: IconButton(
                       tooltip: 'Add item',
                       icon: const KeylineIcon(KeylineIcons.plus),
-                      onPressed: () => _submit(current.id),
+                      onPressed: () => _submit(current),
                     ),
                   ),
-                  onSubmitted: (_) => _submit(current.id),
+                  onSubmitted: (_) => _submit(current),
                 ),
               ),
               CatalogSuggestions(
                 query: _controller.text,
-                onPick: (i) => _add(current.id, i.name, i.category),
+                onPick: (i) => _add(current, i.name, i.category),
               ),
               Expanded(
                 child: items.when(
                   loading: () => const SizedBox.shrink(),
                   error: (e, _) => Center(child: Text('Error: $e')),
-                  data: (rows) => rows.isEmpty
+                  data: (rows) => rows.isEmpty && !current.showEmptyCategories
                       ? const Center(child: Text('Nothing to buy'))
                       : ListView(
                           children: [
@@ -301,6 +363,9 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
                               taxCtx,
                               onUncheckAll: () => db.uncheckAll(current.id),
                               onDeleteAll: () => _deleteChecked(current.id),
+                              useCategories: current.useCategories,
+                              showEmpty: current.showEmptyCategories,
+                              categoryNames: categoryNames,
                             ),
                           ],
                         ),
@@ -315,8 +380,9 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
   }
 }
 
-/// Unchecked items under colour-barred category headers in store-walking
-/// order, followed by an "In your cart" section for checked items.
+/// Unchecked items under colour-barred category headers in the list's category
+/// order (or as one plain list when categories are off), followed by an
+/// "In your cart" section for checked items.
 List<Widget> _grouped(
   List<ShoppingItem> rows,
   Map<String, int> order,
@@ -326,33 +392,42 @@ List<Widget> _grouped(
   TaxContext? tax, {
   required VoidCallback onUncheckAll,
   required VoidCallback onDeleteAll,
+  bool useCategories = true,
+  bool showEmpty = false,
+  List<String> categoryNames = const [],
 }) {
-  final open = rows.where((i) => !i.checked);
+  final open = rows.where((i) => !i.checked).toList();
   final done = rows.where((i) => i.checked).toList();
+  Widget tile(ShoppingItem i) =>
+      _ItemTile(item: i, db: db, lists: lists, listId: listId, tax: tax);
+  final cart = done.isEmpty
+      ? null
+      : _CartSection(
+          count: done.length,
+          onUncheckAll: onUncheckAll,
+          onDeleteAll: onDeleteAll,
+          children: [for (final i in done) tile(i)],
+        );
+
+  if (!useCategories) {
+    open.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+    return [for (final i in open) tile(i), ?cart];
+  }
+
   final byCategory = <String, List<ShoppingItem>>{};
   for (final i in open) {
     byCategory
         .putIfAbsent(i.category.isEmpty ? 'Other' : i.category, () => [])
         .add(i);
   }
-  final names = byCategory.keys.toList()
+  final names = {...byCategory.keys, if (showEmpty) ...categoryNames}.toList()
     ..sort((a, b) => (order[a] ?? 1 << 20).compareTo(order[b] ?? 1 << 20));
   return [
     for (final n in names) ...[
       _Header(n),
-      for (final i in byCategory[n]!)
-        _ItemTile(item: i, db: db, lists: lists, listId: listId, tax: tax),
+      for (final i in byCategory[n] ?? const <ShoppingItem>[]) tile(i),
     ],
-    if (done.isNotEmpty)
-      _CartSection(
-        count: done.length,
-        onUncheckAll: onUncheckAll,
-        onDeleteAll: onDeleteAll,
-        children: [
-          for (final i in done)
-            _ItemTile(item: i, db: db, lists: lists, listId: listId, tax: tax),
-        ],
-      ),
+    ?cart,
   ];
 }
 
@@ -764,65 +839,8 @@ class _TotalBar extends StatelessWidget {
   }
 }
 
-Future<bool> _confirm(
-  BuildContext context,
-  String title,
-  String message,
-) async {
-  final ok = await showDialog<bool>(
-    context: context,
-    builder: (ctx) => AlertDialog(
-      title: Text(title),
-      content: Text(message),
-      actions: [
-        Tip(
-          'Close without changing anything',
-          child: TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-        ),
-        Tip(
-          'Delete it',
-          child: FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete'),
-          ),
-        ),
-      ],
-    ),
-  );
-  return ok ?? false;
-}
+Future<bool> _confirm(BuildContext context, String title, String message) =>
+    confirmDialog(context, title: title, message: message);
 
-Future<String?> _askName(BuildContext context, String title) {
-  final c = TextEditingController();
-  return showDialog<String>(
-    context: context,
-    builder: (ctx) => AlertDialog(
-      title: Text(title),
-      content: TextField(
-        controller: c,
-        autofocus: true,
-        decoration: const InputDecoration(labelText: 'Name'),
-        onSubmitted: (v) => Navigator.pop(ctx, v.trim()),
-      ),
-      actions: [
-        Tip(
-          'Close without changing anything',
-          child: TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
-          ),
-        ),
-        Tip(
-          'Create the list',
-          child: FilledButton(
-            onPressed: () => Navigator.pop(ctx, c.text.trim()),
-            child: const Text('Create'),
-          ),
-        ),
-      ],
-    ),
-  ).then((v) => (v == null || v.isEmpty) ? null : v);
-}
+Future<String?> _askName(BuildContext context, String title) =>
+    askNameDialog(context, title: title);

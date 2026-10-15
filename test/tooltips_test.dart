@@ -47,6 +47,7 @@ bool _isControl(Widget w) {
   if (w is FloatingActionButton) return w.onPressed != null;
   if (w is Checkbox) return w.onChanged != null;
   if (w is CheckboxListTile) return w.onChanged != null;
+  if (w is SwitchListTile) return w.onChanged != null;
   if (w is ListTile) return w.onTap != null;
   if (w is SimpleDialogOption) return w.onPressed != null;
   if (w is PopupMenuItem) return w.enabled;
@@ -155,6 +156,36 @@ void main() {
     await tester.tap(find.text('Delete this list'));
     await _settle(tester);
     _expectAllTipped(tester, 'delete list confirmation');
+  });
+
+  testWidgets('list settings and manage lists dialogs have tooltips', (
+    tester,
+  ) async {
+    await pumpShopIt(
+      tester,
+      lists: [fakeList('l1', 'Grocery list'), fakeList('l2', 'Party')],
+    );
+    await tester.tap(find.byTooltip('List options'));
+    await _settle(tester);
+    await tester.tap(find.text('List settings'));
+    await _settle(tester);
+    _expectAllTipped(tester, 'list settings dialog');
+    await tester.tap(find.text('Done'));
+    await _settle(tester);
+
+    await tester.tap(find.byTooltip('List options'));
+    await _settle(tester);
+    await tester.tap(find.text('Manage lists'));
+    await _settle(tester);
+    _expectAllTipped(tester, 'manage lists dialog');
+    await tester.tap(find.byTooltip('Rename list').first);
+    await _settle(tester);
+    _expectAllTipped(tester, 'rename list dialog');
+    await tester.tap(find.text('Cancel'));
+    await _settle(tester);
+    await tester.tap(find.byTooltip('Delete list').first);
+    await _settle(tester);
+    _expectAllTipped(tester, 'delete list confirmation (from manage lists)');
   });
 
   testWidgets('pantry: every control has a tooltip', (tester) async {

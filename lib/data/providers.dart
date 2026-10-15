@@ -31,3 +31,15 @@ final taxRatesProvider = StreamProvider<List<TaxRate>>(
 final pantryProvider = StreamProvider<List<PantryItem>>(
   (ref) => ref.watch(databaseProvider).watchPantry(),
 );
+
+/// The manual category order for one list (empty = use the default order).
+final listCategoryOrderProvider =
+    StreamProvider.family<List<ListCategoryOrder>, String>(
+      (ref, listId) =>
+          ref.watch(databaseProvider).watchListCategoryOrder(listId),
+    );
+
+/// Previously added items, most recent first.
+final historyProvider = StreamProvider<List<HistoryEntry>>(
+  (ref) => ref.watch(databaseProvider).watchHistory(),
+);

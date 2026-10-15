@@ -11,8 +11,22 @@ import 'package:shop_it/data/providers.dart';
 
 final _t = DateTime(2026, 1, 1);
 
-ShoppingList fakeList(String id, String name) =>
-    ShoppingList(id: id, updatedAt: _t, name: name);
+ShoppingList fakeList(
+  String id,
+  String name, {
+  bool useCategories = true,
+  bool autoCategorize = true,
+  bool showEmptyCategories = false,
+  int sortOrder = 0,
+}) => ShoppingList(
+  id: id,
+  updatedAt: _t,
+  name: name,
+  useCategories: useCategories,
+  autoCategorize: autoCategorize,
+  showEmptyCategories: showEmptyCategories,
+  sortOrder: sortOrder,
+);
 
 ShoppingItem fakeItem(
   String id,
@@ -68,6 +82,7 @@ Future<void> pumpShopIt(
   List<ShoppingItem>? items,
   List<PantryItem>? pantry,
   List<TaxRate> rates = const [],
+  List<ListCategoryOrder> categoryOrder = const [],
   GlobalKey? boundary,
 }) async {
   tester.view.physicalSize = Size(width, height);
@@ -103,6 +118,12 @@ Future<void> pumpShopIt(
         ]),
       ),
       taxRatesProvider.overrideWith((_) => Stream.value(rates)),
+      listCategoryOrderProvider.overrideWith(
+        (ref, id) => Stream.value([
+          for (final o in categoryOrder)
+            if (o.listId == id) o,
+        ]),
+      ),
       pantryProvider.overrideWith((_) => Stream.value(thePantry)),
       catalogSearchProvider.overrideWith(
         (ref, q) async => [

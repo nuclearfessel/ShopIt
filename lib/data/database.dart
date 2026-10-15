@@ -29,6 +29,18 @@ class ShoppingLists extends Table with SyncColumns {
 
   /// Which saved tax rate applies to this list; null means no tax.
   TextColumn get taxRateId => text().nullable()();
+
+  /// List settings (Out of Milk's "List settings"): group items by category,
+  /// file new items into a category automatically, and show category headers
+  /// that have no items.
+  BoolColumn get useCategories => boolean().withDefault(const Constant(true))();
+  BoolColumn get autoCategorize =>
+      boolean().withDefault(const Constant(true))();
+  BoolColumn get showEmptyCategories =>
+      boolean().withDefault(const Constant(false))();
+
+  /// Position among the lists (Manage lists lets the user reorder them).
+  IntColumn get sortOrder => integer().withDefault(const Constant(0))();
 }
 
 /// User-defined sales tax rates. Rates differ by country, state and region, so
@@ -82,8 +94,31 @@ class Categories extends Table {
   TextColumn get name => text()();
   IntColumn get sortOrder => integer()();
 
+  /// The header colour as an ARGB value; null means the automatic colour.
+  IntColumn get color => integer().nullable()();
+
   @override
   Set<Column> get primaryKey => {name};
+}
+
+/// The user's manual order of categories within one list.
+class ListCategoryOrders extends Table {
+  TextColumn get listId => text()();
+  TextColumn get category => text()();
+  IntColumn get position => integer()();
+
+  @override
+  Set<Column> get primaryKey => {listId, category};
+}
+
+/// Items the user has added before: the "history" they can re-add from.
+@DataClassName('HistoryEntry')
+class ItemHistory extends Table with SyncColumns {
+  TextColumn get name => text()();
+  TextColumn get category => text().withDefault(const Constant(''))();
+  TextColumn get unit => text().withDefault(const Constant(''))();
+  DateTimeColumn get lastUsed => dateTime().clientDefault(DateTime.now)();
+  IntColumn get useCount => integer().withDefault(const Constant(1))();
 }
 
 /// Searchable catalog of known items. Seeded from `catalog_seed.dart`; items
@@ -107,6 +142,8 @@ class CatalogItems extends Table with SyncColumns {
     Categories,
     CatalogItems,
     TaxRates,
+    ListCategoryOrders,
+    ItemHistory,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -116,7 +153,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.memory() : super(NativeDatabase.memory());
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -166,6 +203,18 @@ class AppDatabase extends _$AppDatabase {
           await m.addColumn(taxRates, taxRates.ruleSet);
           await m.addColumn(taxRates, taxRates.groceryPercent);
         }
+      }
+      if (from < 8) {
+        // v8: list settings and order, category colours and per-list order,
+        // and item history.
+        await m.addColumn(shoppingLists, shoppingLists.useCategories);
+        await m.addColumn(shoppingLists, shoppingLists.autoCategorize);
+        await m.addColumn(shoppingLists, shoppingLists.showEmptyCategories);
+        await m.addColumn(shoppingLists, shoppingLists.sortOrder);
+        if (from >= 2) await m.addColumn(categories, categories.color);
+        await m.createTable(listCategoryOrders);
+        await m.createTable(itemHistory);
+        await _backfillHistory();
       }
     },
   );
@@ -267,7 +316,10 @@ class AppDatabase extends _$AppDatabase {
   Stream<List<ShoppingList>> watchLists() =>
       (select(shoppingLists)
             ..where((t) => t.deletedAt.isNull())
-            ..orderBy([(t) => OrderingTerm.asc(t.name)]))
+            ..orderBy([
+              (t) => OrderingTerm.asc(t.sortOrder),
+              (t) => OrderingTerm.asc(t.name),
+            ]))
           .watch();
 
   // ---- Tax rates ----
@@ -334,8 +386,241 @@ class AppDatabase extends _$AppDatabase {
         ),
       );
 
-  Future<void> addList(String name) =>
-      into(shoppingLists).insert(ShoppingListsCompanion.insert(name: name));
+  Future<void> addList(String name) async {
+    final count = (await (select(
+      shoppingLists,
+    )..where((t) => t.deletedAt.isNull())).get()).length;
+    await into(shoppingLists).insert(
+      ShoppingListsCompanion.insert(name: name, sortOrder: Value(count)),
+    );
+  }
+
+  Future<void> renameList(String id, String name) =>
+      (update(shoppingLists)..where((t) => t.id.equals(id))).write(
+        ShoppingListsCompanion(
+          name: Value(name),
+          updatedAt: Value(DateTime.now()),
+        ),
+      );
+
+  /// Saves the order of the lists: [ids] first to last.
+  Future<void> reorderLists(List<String> ids) => transaction(() async {
+    for (var i = 0; i < ids.length; i++) {
+      await (update(shoppingLists)..where((t) => t.id.equals(ids[i]))).write(
+        ShoppingListsCompanion(
+          sortOrder: Value(i),
+          updatedAt: Value(DateTime.now()),
+        ),
+      );
+    }
+  });
+
+  /// Changes list settings; null leaves a setting as it is.
+  Future<void> updateListSettings(
+    String id, {
+    bool? useCategories,
+    bool? autoCategorize,
+    bool? showEmptyCategories,
+  }) => (update(shoppingLists)..where((t) => t.id.equals(id))).write(
+    ShoppingListsCompanion(
+      useCategories: useCategories == null
+          ? const Value.absent()
+          : Value(useCategories),
+      autoCategorize: autoCategorize == null
+          ? const Value.absent()
+          : Value(autoCategorize),
+      showEmptyCategories: showEmptyCategories == null
+          ? const Value.absent()
+          : Value(showEmptyCategories),
+      updatedAt: Value(DateTime.now()),
+    ),
+  );
+
+  /// Puts every item on the list into the cart.
+  Future<void> checkAll(String listId) =>
+      (update(shoppingItems)..where(
+            (t) =>
+                t.listId.equals(listId) &
+                t.checked.equals(false) &
+                t.deletedAt.isNull(),
+          ))
+          .write(
+            ShoppingItemsCompanion(
+              checked: const Value(true),
+              updatedAt: Value(DateTime.now()),
+            ),
+          );
+
+  // ---- Categories ----
+
+  /// Adds a category (ignored if one with that name exists, ignoring case).
+  Future<void> addCategory(String name) async {
+    final clean = name.trim();
+    if (clean.isEmpty) return;
+    final all = await select(categories).get();
+    if (all.any((c) => c.name.toLowerCase() == clean.toLowerCase())) return;
+    final next = all.isEmpty
+        ? 0
+        : all.map((c) => c.sortOrder).reduce((a, b) => a > b ? a : b) + 1;
+    await into(categories)
+        .insert(CategoriesCompanion.insert(name: clean, sortOrder: next));
+  }
+
+  /// Deletes a category everywhere. Items in it become uncategorised and the
+  /// remembered category of catalog items falls back to "Other".
+  Future<void> deleteCategory(String name) async {
+    if (name == 'Other') return;
+    await transaction(() async {
+      final now = DateTime.now();
+      await (update(
+        shoppingItems,
+      )..where((t) => t.category.equals(name) & t.deletedAt.isNull())).write(
+        ShoppingItemsCompanion(
+          category: const Value(''),
+          updatedAt: Value(now),
+        ),
+      );
+      await (update(
+        pantryItems,
+      )..where((t) => t.category.equals(name) & t.deletedAt.isNull())).write(
+        PantryItemsCompanion(category: const Value(''), updatedAt: Value(now)),
+      );
+      await (update(catalogItems)..where((t) => t.category.equals(name))).write(
+        CatalogItemsCompanion(
+          category: const Value('Other'),
+          updatedAt: Value(now),
+        ),
+      );
+      await (delete(
+        listCategoryOrders,
+      )..where((t) => t.category.equals(name))).go();
+      await (delete(categories)..where((t) => t.name.equals(name))).go();
+    });
+  }
+
+  /// Sets a category's header colour (ARGB), or null for the automatic one.
+  Future<void> setCategoryColor(String name, int? argb) =>
+      (update(categories)..where((t) => t.name.equals(name))).write(
+        CategoriesCompanion(color: Value(argb)),
+      );
+
+  Stream<List<ListCategoryOrder>> watchListCategoryOrder(String listId) =>
+      (select(listCategoryOrders)
+            ..where((t) => t.listId.equals(listId))
+            ..orderBy([(t) => OrderingTerm.asc(t.position)]))
+          .watch();
+
+  /// Saves the manual category order for one list: [ordered] first to last.
+  Future<void> setListCategoryOrder(String listId, List<String> ordered) =>
+      transaction(() async {
+        await (delete(
+          listCategoryOrders,
+        )..where((t) => t.listId.equals(listId))).go();
+        for (var i = 0; i < ordered.length; i++) {
+          await into(listCategoryOrders).insert(
+            ListCategoryOrdersCompanion.insert(
+              listId: listId,
+              category: ordered[i],
+              position: i,
+            ),
+          );
+        }
+      });
+
+  /// Remembers that [name] belongs in [category] from now on, so adding it
+  /// again (typing it or from history) files it there.
+  Future<void> assignCategory(String name, String category) async {
+    if (category.isEmpty) return;
+    final now = DateTime.now();
+    final changed =
+        await (update(
+          catalogItems,
+        )..where((t) => t.name.lower().equals(name.toLowerCase()))).write(
+          CatalogItemsCompanion(
+            category: Value(category),
+            updatedAt: Value(now),
+          ),
+        );
+    if (changed == 0) await _rememberItem(name, category, '');
+    await (update(
+      itemHistory,
+    )..where((t) => t.name.lower().equals(name.toLowerCase()))).write(
+      ItemHistoryCompanion(category: Value(category), updatedAt: Value(now)),
+    );
+  }
+
+  // ---- History ----
+
+  /// Everything the user has added before, most recent first.
+  Stream<List<HistoryEntry>> watchHistory() =>
+      (select(itemHistory)
+            ..where((t) => t.deletedAt.isNull())
+            ..orderBy([(t) => OrderingTerm.desc(t.lastUsed)]))
+          .watch();
+
+  Future<void> recordHistory(String name, String category, String unit) async {
+    final existing =
+        await (select(itemHistory)
+              ..where((t) => t.name.lower().equals(name.toLowerCase()))
+              ..limit(1))
+            .getSingleOrNull();
+    final now = DateTime.now();
+    if (existing == null) {
+      await into(itemHistory).insert(
+        ItemHistoryCompanion.insert(
+          name: name,
+          category: Value(category),
+          unit: Value(unit),
+        ),
+      );
+    } else {
+      await (update(itemHistory)..where((t) => t.id.equals(existing.id))).write(
+        ItemHistoryCompanion(
+          category: Value(category.isEmpty ? existing.category : category),
+          unit: Value(unit.isEmpty ? existing.unit : unit),
+          lastUsed: Value(now),
+          useCount: Value(existing.useCount + 1),
+          deletedAt: const Value(null),
+          updatedAt: Value(now),
+        ),
+      );
+    }
+  }
+
+  /// Removes one entry from the history (the trash can in the history list).
+  Future<void> removeHistory(String id) =>
+      (update(itemHistory)..where((t) => t.id.equals(id))).write(
+        ItemHistoryCompanion(
+          deletedAt: Value(DateTime.now()),
+          updatedAt: Value(DateTime.now()),
+        ),
+      );
+
+  /// On upgrade, seeds the history from items already on the user's lists.
+  Future<void> _backfillHistory() async {
+    final items = await (select(
+      shoppingItems,
+    )..orderBy([(t) => OrderingTerm.asc(t.updatedAt)])).get();
+    final byName = <String, ShoppingItem>{};
+    final counts = <String, int>{};
+    for (final i in items) {
+      final key = i.name.toLowerCase();
+      byName[key] = i; // later (newer) rows win
+      counts[key] = (counts[key] ?? 0) + 1;
+    }
+    for (final entry in byName.entries) {
+      final i = entry.value;
+      await into(itemHistory).insert(
+        ItemHistoryCompanion.insert(
+          name: i.name,
+          category: Value(i.category),
+          unit: Value(i.unit),
+          lastUsed: Value(i.updatedAt),
+          useCount: Value(counts[entry.key] ?? 1),
+        ),
+      );
+    }
+  }
 
   Future<void> deleteList(String id) async {
     final now = DateTime.now();
@@ -392,6 +677,7 @@ class AppDatabase extends _$AppDatabase {
       ),
     );
     await _rememberItem(name, category, unit);
+    await recordHistory(name, category, unit);
   }
 
   Future<void> setChecked(String id, bool checked) =>
