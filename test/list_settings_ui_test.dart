@@ -72,7 +72,7 @@ void main() {
         items: [fakeItem('a', 'Milk', category: 'Dairy & Eggs')],
         lists: [fakeList('l1', 'Grocery list', showEmptyCategories: true)],
       );
-      expect(_headers(tester), ['PRODUCE', 'BAKERY', 'DAIRY & EGGS']);
+      expect(_headers(tester), ['PRODUCE', 'BAKERY', 'DAIRY & EGGS', 'OTHER']);
     });
 
     testWidgets('without it, empty categories stay hidden', (tester) async {
@@ -92,7 +92,7 @@ void main() {
         lists: [fakeList('l1', 'Grocery list', showEmptyCategories: true)],
       );
       expect(find.text('Nothing to buy'), findsNothing);
-      expect(_headers(tester), ['PRODUCE', 'BAKERY', 'DAIRY & EGGS']);
+      expect(_headers(tester), ['PRODUCE', 'BAKERY', 'DAIRY & EGGS', 'OTHER']);
     });
   });
 

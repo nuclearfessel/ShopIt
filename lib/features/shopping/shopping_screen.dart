@@ -8,6 +8,9 @@ import '../catalog/catalog_suggestions.dart';
 import '../../data/tax_rules.dart';
 import '../../data/totals.dart';
 import '../catalog/item_editor.dart';
+import '../../data/category_order.dart';
+import '../categories/category_color_dialog.dart';
+import '../categories/manage_categories_dialog.dart';
 import '../lists/list_settings_dialog.dart';
 import '../lists/manage_lists_dialog.dart';
 import '../settings/settings_dialog.dart';
@@ -140,17 +143,24 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
         final manualOrder =
             ref.watch(listCategoryOrderProvider(current.id)).value ??
             const <ListCategoryOrder>[];
-        // The user's own order for this list first, then the default order.
-        final categoryOrder = {
-          for (final c in allCategories) c.name: 1000 + c.sortOrder,
-          for (final o in manualOrder) o.category: o.position,
+        final categoryOrder = categoryOrderMap(allCategories, manualOrder);
+        final categoryNames = orderedCategoryNames(allCategories, manualOrder);
+        final categoryColors = {
+          for (final c in allCategories)
+            if (c.color != null) c.name: Color(c.color!),
         };
-        final categoryNames = [for (final c in allCategories) c.name]
-          ..sort(
-            (a, b) => (categoryOrder[a] ?? 1 << 20).compareTo(
-              categoryOrder[b] ?? 1 << 20,
-            ),
+        Future<void> recolor(String name) async {
+          final choice = await showCategoryColorDialog(
+            context,
+            category: name,
+            current: allCategories
+                .where((c) => c.name == name)
+                .firstOrNull
+                ?.color,
           );
+          if (choice != null) await db.setCategoryColor(name, choice.argb);
+        }
+
         return Scaffold(
           appBar: AppBar(
             title: const Text('Shopping'),
@@ -185,6 +195,14 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
                     await db.checkAll(current.id);
                   } else if (v == 'uncheckAll') {
                     await db.uncheckAll(current.id);
+                  } else if (v == 'categories') {
+                    await showDialog<void>(
+                      context: context,
+                      builder: (_) => ManageCategoriesDialog(
+                        listId: current.id,
+                        listName: current.name,
+                      ),
+                    );
                   } else if (v == 'listSettings') {
                     await showDialog<void>(
                       context: context,
@@ -232,6 +250,13 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
                     child: Tip(
                       'Put everything in your cart back on the list',
                       child: const Text('Uncheck all'),
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: 'categories',
+                    child: Tip(
+                      'Add, reorder, recolor or delete categories',
+                      child: const Text('Manage categories'),
                     ),
                   ),
                   PopupMenuItem(
@@ -366,6 +391,8 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
                               useCategories: current.useCategories,
                               showEmpty: current.showEmptyCategories,
                               categoryNames: categoryNames,
+                              colors: categoryColors,
+                              onHeaderTap: recolor,
                             ),
                           ],
                         ),
@@ -395,6 +422,8 @@ List<Widget> _grouped(
   bool useCategories = true,
   bool showEmpty = false,
   List<String> categoryNames = const [],
+  Map<String, Color> colors = const {},
+  void Function(String category)? onHeaderTap,
 }) {
   final open = rows.where((i) => !i.checked).toList();
   final done = rows.where((i) => i.checked).toList();
@@ -424,7 +453,11 @@ List<Widget> _grouped(
     ..sort((a, b) => (order[a] ?? 1 << 20).compareTo(order[b] ?? 1 << 20));
   return [
     for (final n in names) ...[
-      _Header(n),
+      _Header(
+        n,
+        color: colors[n],
+        onTap: onHeaderTap == null ? null : () => onHeaderTap(n),
+      ),
       for (final i in byCategory[n] ?? const <ShoppingItem>[]) tile(i),
     ],
     ?cart,
@@ -445,14 +478,19 @@ Color _accentFor(String name, Brightness brightness) {
 }
 
 class _Header extends StatelessWidget {
-  const _Header(this.text);
+  const _Header(this.text, {this.color, this.onTap});
+
   final String text;
+
+  /// The category's chosen colour; null means the automatic one.
+  final Color? color;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final accent = _accentFor(text, theme.brightness);
-    return Padding(
+    final accent = color ?? _accentFor(text, theme.brightness);
+    final row = Padding(
       padding: const EdgeInsets.fromLTRB(0, 14, 16, 4),
       child: Row(
         children: [
@@ -470,6 +508,11 @@ class _Header extends StatelessWidget {
           ),
         ],
       ),
+    );
+    if (onTap == null) return row;
+    return Tip(
+      'Change the color of "$text"',
+      child: InkWell(onTap: onTap, child: row),
     );
   }
 }

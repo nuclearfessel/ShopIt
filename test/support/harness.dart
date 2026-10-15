@@ -83,6 +83,7 @@ Future<void> pumpShopIt(
   List<PantryItem>? pantry,
   List<TaxRate> rates = const [],
   List<ListCategoryOrder> categoryOrder = const [],
+  List<Category>? categories,
   GlobalKey? boundary,
 }) async {
   tester.view.physicalSize = Size(width, height);
@@ -105,11 +106,15 @@ Future<void> pumpShopIt(
       databaseProvider.overrideWithValue(AppDatabase.memory()),
       listsProvider.overrideWith((_) => Stream.value(theLists)),
       categoriesProvider.overrideWith(
-        (_) => Stream.value([
-          Category(name: 'Produce', sortOrder: 0),
-          Category(name: 'Bakery', sortOrder: 1),
-          Category(name: 'Dairy & Eggs', sortOrder: 2),
-        ]),
+        (_) => Stream.value(
+          categories ??
+              [
+                Category(name: 'Produce', sortOrder: 0),
+                Category(name: 'Bakery', sortOrder: 1),
+                Category(name: 'Dairy & Eggs', sortOrder: 2),
+                Category(name: 'Other', sortOrder: 3),
+              ],
+        ),
       ),
       shoppingItemsProvider.overrideWith(
         (ref, id) => Stream.value([

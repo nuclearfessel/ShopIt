@@ -48,6 +48,7 @@ bool _isControl(Widget w) {
   if (w is Checkbox) return w.onChanged != null;
   if (w is CheckboxListTile) return w.onChanged != null;
   if (w is SwitchListTile) return w.onChanged != null;
+  if (w is Slider) return w.onChanged != null;
   if (w is ListTile) return w.onTap != null;
   if (w is SimpleDialogOption) return w.onPressed != null;
   if (w is PopupMenuItem) return w.enabled;
@@ -186,6 +187,32 @@ void main() {
     await tester.tap(find.byTooltip('Delete list').first);
     await _settle(tester);
     _expectAllTipped(tester, 'delete list confirmation (from manage lists)');
+  });
+
+  testWidgets('categories and the colour dialog have tooltips', (tester) async {
+    await pumpShopIt(tester);
+    await tester.tap(find.byTooltip('List options'));
+    await _settle(tester);
+    await tester.tap(find.text('Manage categories'));
+    await _settle(tester);
+    _expectAllTipped(tester, 'manage categories dialog');
+    await tester.tap(find.byTooltip('Change the color of "Produce"').first);
+    await _settle(tester);
+    _expectAllTipped(tester, 'category colour dialog');
+    await tester.tap(find.text('Cancel'));
+    await _settle(tester);
+    await tester.tap(find.byTooltip('Delete category').first);
+    await _settle(tester);
+    _expectAllTipped(tester, 'delete category confirmation');
+    await tester.tap(find.text('Cancel'));
+    await _settle(tester);
+    await tester.tap(find.text('Done'));
+    await _settle(tester);
+
+    // Tapping a header on the list opens the same colour dialog.
+    await tester.tap(find.byTooltip('Change the color of "Bakery"'));
+    await _settle(tester);
+    _expectAllTipped(tester, 'colour dialog from a header');
   });
 
   testWidgets('pantry: every control has a tooltip', (tester) async {
