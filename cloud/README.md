@@ -1,14 +1,12 @@
 # Cloud mailbox
 
-Shop-it stores each paired device's latest list snapshot as a retained MQTT
-message so the phone and the computer can sync without being on the same
-Wi-Fi, and without being online at the same moment.
+Cloud sync stores each device’s latest list snapshot so the phone and computer can stay in sync without sharing a Wi-Fi network, and without both being online at once.
 
-The default broker is the public HiveMQ endpoint (`broker.hivemq.com` on
-port 8883). The eight-character household code is part of the topic path.
-No Shop-it account is required.
+Shop-it publishes a retained MQTT message per device on the public HiveMQ broker (`broker.hivemq.com`, port 8883). The household code is part of the topic. No Shop-it account is required.
 
-Topic layout:
+## Topics
 
-- `shopit/1/{code}/{deviceId}` — retained snapshot for one device
-- subscribers use `shopit/1/{code}/+` to collect every device in the household
+| Topic | Purpose |
+| --- | --- |
+| `shopit/1/{code}/{deviceId}` | Retained snapshot for one device |
+| `shopit/1/{code}/+` | Subscribe to every device in the household |
