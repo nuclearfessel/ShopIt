@@ -82,39 +82,39 @@ class _ManageCategoriesDialogState
       title: const Text('Manage categories'),
       content: SizedBox(
         width: 440,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Drag a category by its handle to reorder it on '
-              '"${widget.listName}". Tap a color dot to change its color on '
-              'every list.',
-              style: theme.textTheme.bodySmall,
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _newName,
-                    decoration: const InputDecoration(
-                      labelText: 'New category',
-                      isDense: true,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Drag a category by its handle to reorder it on '
+                '"${widget.listName}". Tap a color dot to change its color on '
+                'every list.',
+                style: theme.textTheme.bodySmall,
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _newName,
+                      decoration: const InputDecoration(
+                        labelText: 'New category',
+                        isDense: true,
+                      ),
+                      onSubmitted: (_) => _add(),
                     ),
-                    onSubmitted: (_) => _add(),
                   ),
-                ),
-                IconButton(
-                  tooltip: 'Add category',
-                  icon: const KeylineIcon(KeylineIcons.plus),
-                  onPressed: _add,
-                ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Flexible(
-              child: ConstrainedBox(
+                  IconButton(
+                    tooltip: 'Add category',
+                    icon: const KeylineIcon(KeylineIcons.plus),
+                    onPressed: _add,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              ConstrainedBox(
                 constraints: BoxConstraints(
                   maxHeight: (MediaQuery.sizeOf(context).height * 0.45).clamp(
                     140.0,
@@ -142,20 +142,20 @@ class _ManageCategoriesDialogState
                   ],
                 ),
               ),
-            ),
-            if (manual.isNotEmpty)
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Tip(
-                  'Go back to the default category order for this list',
-                  child: TextButton(
-                    onPressed: () =>
-                        db.setListCategoryOrder(widget.listId, const []),
-                    child: const Text('Reset order'),
+              if (manual.isNotEmpty)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Tip(
+                    'Go back to the default category order for this list',
+                    child: TextButton(
+                      onPressed: () =>
+                          db.setListCategoryOrder(widget.listId, const []),
+                      child: const Text('Reset order'),
+                    ),
                   ),
                 ),
-              ),
-          ],
+            ],
+          ),
         ),
       ),
       actions: [

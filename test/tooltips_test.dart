@@ -231,6 +231,21 @@ void main() {
     _expectAllTipped(tester, 'new item editor');
   });
 
+  testWidgets('the Move/Copy dialog has tooltips', (tester) async {
+    await pumpShopIt(
+      tester,
+      lists: [fakeList('l1', 'Grocery list'), fakeList('l2', 'Party')],
+    );
+    await tester.tap(find.byTooltip('List options'));
+    await _settle(tester);
+    await tester.tap(find.text('Move/Copy items'));
+    await _settle(tester);
+    _expectAllTipped(tester, 'move/copy dialog');
+    await tester.tap(find.text('Select all'));
+    await tester.pump();
+    _expectAllTipped(tester, 'move/copy dialog with items ticked');
+  });
+
   testWidgets('pantry: every control has a tooltip', (tester) async {
     await pumpShopIt(tester);
     await tester.tap(find.byTooltip('Go to Pantry'));

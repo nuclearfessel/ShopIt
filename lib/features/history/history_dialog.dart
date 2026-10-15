@@ -57,34 +57,34 @@ class _HistoryDialogState extends ConsumerState<HistoryDialog> {
       title: const Text('History'),
       content: SizedBox(
         width: 440,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Tap an item to add it to "${widget.list.name}" again.',
-              style: theme.textTheme.bodySmall,
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _filter,
-              onChanged: (_) => setState(() {}),
-              decoration: InputDecoration(
-                hintText: 'Search your history',
-                isDense: true,
-                prefixIcon: const KeylineIcon(KeylineIcons.search),
-                suffixIcon: _filter.text.isEmpty
-                    ? null
-                    : IconButton(
-                        tooltip: 'Clear search',
-                        icon: const KeylineIcon(KeylineIcons.x),
-                        onPressed: () => setState(_filter.clear),
-                      ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Tap an item to add it to "${widget.list.name}" again.',
+                style: theme.textTheme.bodySmall,
               ),
-            ),
-            const SizedBox(height: 4),
-            Flexible(
-              child: ConstrainedBox(
+              const SizedBox(height: 8),
+              TextField(
+                controller: _filter,
+                onChanged: (_) => setState(() {}),
+                decoration: InputDecoration(
+                  hintText: 'Search your history',
+                  isDense: true,
+                  prefixIcon: const KeylineIcon(KeylineIcons.search),
+                  suffixIcon: _filter.text.isEmpty
+                      ? null
+                      : IconButton(
+                          tooltip: 'Clear search',
+                          icon: const KeylineIcon(KeylineIcons.x),
+                          onPressed: () => setState(_filter.clear),
+                        ),
+                ),
+              ),
+              const SizedBox(height: 4),
+              ConstrainedBox(
                 constraints: BoxConstraints(
                   maxHeight: (MediaQuery.sizeOf(context).height * 0.45).clamp(
                     140.0,
@@ -135,8 +135,8 @@ class _HistoryDialogState extends ConsumerState<HistoryDialog> {
                         ],
                       ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
       actions: [

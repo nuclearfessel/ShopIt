@@ -13,6 +13,7 @@ import '../categories/category_color_dialog.dart';
 import '../categories/manage_categories_dialog.dart';
 import '../history/history_dialog.dart';
 import '../lists/list_settings_dialog.dart';
+import '../lists/move_copy_dialog.dart';
 import '../lists/manage_lists_dialog.dart';
 import '../settings/settings_dialog.dart';
 import 'tax_rates_dialog.dart';
@@ -260,6 +261,21 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
                       await db.deleteList(current.id);
                       setState(() => _listId = null);
                     }
+                  } else if (v == 'moveCopy') {
+                    final outcome = await showDialog<MoveCopyOutcome>(
+                      context: context,
+                      builder: (_) => MoveCopyDialog(
+                        list: current,
+                        items: items.value ?? const [],
+                      ),
+                    );
+                    if (outcome != null && context.mounted) {
+                      showUndoSnackBar(
+                        context,
+                        message: outcome.message,
+                        onUndo: outcome.undo,
+                      );
+                    }
                   } else if (v == 'checkAll') {
                     await db.checkAll(current.id);
                   } else if (v == 'uncheckAll') {
@@ -305,6 +321,13 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
                     child: Tip(
                       'Start another shopping list',
                       child: const Text('New list'),
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: 'moveCopy',
+                    child: Tip(
+                      'Move or copy items to another list or the pantry',
+                      child: const Text('Move/Copy items'),
                     ),
                   ),
                   PopupMenuItem(

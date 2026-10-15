@@ -451,6 +451,136 @@ class AppDatabase extends _$AppDatabase {
             ),
           );
 
+  // ---- Moving and copying items between lists ----
+
+  /// Moves shopping items to [listId]. Returns each item's previous list so
+  /// the move can be undone with [restoreShoppingLists].
+  Future<Map<String, String>> moveShoppingItems(
+    List<String> ids,
+    String listId,
+  ) async {
+    final before = <String, String>{};
+    await transaction(() async {
+      final rows = await (select(
+        shoppingItems,
+      )..where((t) => t.id.isIn(ids))).get();
+      for (final r in rows) {
+        before[r.id] = r.listId;
+      }
+      await (update(shoppingItems)..where((t) => t.id.isIn(ids))).write(
+        ShoppingItemsCompanion(
+          listId: Value(listId),
+          updatedAt: Value(DateTime.now()),
+        ),
+      );
+    });
+    return before;
+  }
+
+  /// Puts items back on the lists they were moved from.
+  Future<void> restoreShoppingLists(Map<String, String> before) =>
+      transaction(() async {
+        for (final e in before.entries) {
+          await (update(shoppingItems)..where((t) => t.id.equals(e.key))).write(
+            ShoppingItemsCompanion(
+              listId: Value(e.value),
+              updatedAt: Value(DateTime.now()),
+            ),
+          );
+        }
+      });
+
+  /// Copies shopping items onto [listId] (they arrive unchecked). Returns the
+  /// new items' ids.
+  Future<List<String>> copyShoppingItems(
+    List<ShoppingItem> items,
+    String listId,
+  ) async {
+    final ids = <String>[];
+    for (final i in items) {
+      final row = await into(shoppingItems).insertReturning(
+        ShoppingItemsCompanion.insert(
+          listId: listId,
+          name: i.name,
+          quantity: Value(i.quantity),
+          unit: Value(i.unit),
+          category: Value(i.category),
+          price: Value(i.price),
+          note: Value(i.note),
+          taxable: Value(i.taxable),
+          hasCoupon: Value(i.hasCoupon),
+          taxManual: Value(i.taxManual),
+        ),
+      );
+      ids.add(row.id);
+    }
+    return ids;
+  }
+
+  /// Adds shopping items to the pantry. Returns the new pantry items' ids.
+  Future<List<String>> copyShoppingToPantry(List<ShoppingItem> items) async {
+    final ids = <String>[];
+    for (final i in items) {
+      final row = await into(pantryItems).insertReturning(
+        PantryItemsCompanion.insert(
+          name: i.name,
+          quantity: Value(i.quantity),
+          unit: Value(i.unit),
+          category: Value(i.category),
+          note: Value(i.note),
+        ),
+      );
+      ids.add(row.id);
+    }
+    return ids;
+  }
+
+  /// Adds pantry items to a shopping list (to restock them). Returns the new
+  /// shopping items' ids.
+  Future<List<String>> copyPantryToShopping(
+    List<PantryItem> items,
+    String listId,
+  ) async {
+    final ids = <String>[];
+    for (final i in items) {
+      final row = await into(shoppingItems).insertReturning(
+        ShoppingItemsCompanion.insert(
+          listId: listId,
+          name: i.name,
+          quantity: Value(i.quantity),
+          unit: Value(i.unit),
+          category: Value(i.category),
+          note: Value(i.note),
+          taxable: const Value(true),
+        ),
+      );
+      ids.add(row.id);
+    }
+    return ids;
+  }
+
+  Future<void> deleteShoppingItems(List<String> ids) {
+    final now = DateTime.now();
+    return (update(shoppingItems)..where((t) => t.id.isIn(ids))).write(
+      ShoppingItemsCompanion(deletedAt: Value(now), updatedAt: Value(now)),
+    );
+  }
+
+  Future<void> deletePantryItems(List<String> ids) {
+    final now = DateTime.now();
+    return (update(pantryItems)..where((t) => t.id.isIn(ids))).write(
+      PantryItemsCompanion(deletedAt: Value(now), updatedAt: Value(now)),
+    );
+  }
+
+  Future<void> restorePantryItems(List<String> ids) =>
+      (update(pantryItems)..where((t) => t.id.isIn(ids))).write(
+        PantryItemsCompanion(
+          deletedAt: const Value(null),
+          updatedAt: Value(DateTime.now()),
+        ),
+      );
+
   // ---- Categories ----
 
   /// Adds a category (ignored if one with that name exists, ignoring case).

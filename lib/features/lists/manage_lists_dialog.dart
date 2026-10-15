@@ -42,20 +42,20 @@ class ManageListsDialog extends ConsumerWidget {
       title: const Text('Manage lists'),
       content: SizedBox(
         width: 420,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (lists.length > 1)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Text(
-                  'Drag a list by its handle to change the order.',
-                  style: theme.textTheme.bodySmall,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (lists.length > 1)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Text(
+                    'Drag a list by its handle to change the order.',
+                    style: theme.textTheme.bodySmall,
+                  ),
                 ),
-              ),
-            Flexible(
-              child: ConstrainedBox(
+              ConstrainedBox(
                 constraints: BoxConstraints(
                   maxHeight: (MediaQuery.sizeOf(context).height * 0.45).clamp(
                     120.0,
@@ -112,20 +112,23 @@ class ManageListsDialog extends ConsumerWidget {
                         ],
                       ),
               ),
-            ),
-            const SizedBox(height: 4),
-            Tip(
-              'Start another shopping list',
-              child: TextButton.icon(
-                onPressed: () async {
-                  final name = await askNameDialog(context, title: 'New list');
-                  if (name != null) await db.addList(name);
-                },
-                icon: const KeylineIcon(KeylineIcons.listPlus),
-                label: const Text('New list'),
+              const SizedBox(height: 4),
+              Tip(
+                'Start another shopping list',
+                child: TextButton.icon(
+                  onPressed: () async {
+                    final name = await askNameDialog(
+                      context,
+                      title: 'New list',
+                    );
+                    if (name != null) await db.addList(name);
+                  },
+                  icon: const KeylineIcon(KeylineIcons.listPlus),
+                  label: const Text('New list'),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
       actions: [
