@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/database.dart';
 import '../../data/providers.dart';
+import '../../services/tax_lookup.dart';
 
 String formatPercent(double p) {
   final text = p.toStringAsFixed(3);
@@ -13,19 +14,88 @@ String formatPercent(double p) {
 /// Pick the sales tax rate for a list, and add, edit or delete saved rates.
 ///
 /// No rates are built in: tax differs by country, state and region, so you
-/// enter the ones that apply where you shop (e.g. "Home 8.25%").
-class TaxRatesDialog extends ConsumerWidget {
+/// enter the ones that apply where you shop (e.g. "Home 8.25%"), or tap "Use my
+/// location" to fill one in.
+class TaxRatesDialog extends ConsumerStatefulWidget {
   const TaxRatesDialog({super.key, required this.listId});
 
   final String listId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<TaxRatesDialog> createState() => _TaxRatesDialogState();
+}
+
+class _TaxRatesDialogState extends ConsumerState<TaxRatesDialog> {
+  bool _busy = false;
+  String? _status;
+
+  /// "Use my location": read the position once, name the place (OpenStreetMap)
+  /// and, in the US, look up the combined rate (Ziptax, with the user's key).
+  /// The result pre-fills the add-rate form so the user confirms it.
+  Future<void> _useLocation() async {
+    final db = ref.read(databaseProvider);
+    setState(() {
+      _busy = true;
+      _status = 'Finding your location...';
+    });
+    try {
+      final pos = await currentPosition();
+      if (!mounted) return;
+      setState(() => _status = 'Looking up your area...');
+      final place = await reversePlace(pos.latitude, pos.longitude);
+
+      double? percent;
+      String? note;
+      if (place?.isUs ?? false) {
+        var key = await loadZiptaxKey();
+        if (key == null && mounted) {
+          key = await _askForKey(context);
+        }
+        if (key == null) {
+          note = 'Add a Ziptax API key to look up the exact rate '
+              'automatically.';
+        } else {
+          if (!mounted) return;
+          setState(() => _status = 'Looking up the sales tax rate...');
+          percent = await ziptaxPercent(pos.latitude, pos.longitude, key);
+        }
+      } else {
+        note = 'Automatic rates are only available in the US. Enter the rate '
+            'that applies here.';
+      }
+      if (!mounted) return;
+      setState(() {
+        _busy = false;
+        _status = null;
+      });
+      final id = await _editRate(
+        context,
+        db,
+        initialName: place?.label ?? '',
+        initialPercent: percent,
+        note: percent != null
+            ? 'Rate found for your location. Local rates change, so check it '
+                'against a receipt.'
+            : note,
+      );
+      if (id != null) await db.setListTaxRate(widget.listId, id);
+    } on LookupException catch (e) {
+      if (mounted) {
+        setState(() {
+          _busy = false;
+          _status = e.message;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final db = ref.read(databaseProvider);
     final rates = ref.watch(taxRatesProvider).value ?? const <TaxRate>[];
     final lists = ref.watch(listsProvider).value ?? const <ShoppingList>[];
     final selected =
-        lists.where((l) => l.id == listId).firstOrNull?.taxRateId;
+        lists.where((l) => l.id == widget.listId).firstOrNull?.taxRateId;
     final theme = Theme.of(context);
 
     Widget option({
@@ -56,7 +126,7 @@ class TaxRatesDialog extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Tax rates differ by country, state and region, so enter the '
+                'Tax rates differ by country, state and region, so use the '
                 'rate that applies where you shop. Only items marked "has '
                 'sales tax" are taxed.',
                 style: theme.textTheme.bodySmall,
@@ -65,14 +135,14 @@ class TaxRatesDialog extends ConsumerWidget {
               option(
                 title: 'No tax',
                 isSelected: selected == null,
-                onTap: () => db.setListTaxRate(listId, null),
+                onTap: () => db.setListTaxRate(widget.listId, null),
               ),
               for (final r in rates)
                 option(
                   title: r.name,
                   subtitle: '${formatPercent(r.percent)}%',
                   isSelected: selected == r.id,
-                  onTap: () => db.setListTaxRate(listId, r.id),
+                  onTap: () => db.setListTaxRate(widget.listId, r.id),
                   trailing: Row(mainAxisSize: MainAxisSize.min, children: [
                     IconButton(
                       tooltip: 'Edit rate',
@@ -89,13 +159,43 @@ class TaxRatesDialog extends ConsumerWidget {
                   ]),
                 ),
               const SizedBox(height: 4),
-              TextButton.icon(
-                onPressed: () async {
-                  final id = await _editRate(context, db);
-                  if (id != null) await db.setListTaxRate(listId, id);
-                },
-                icon: const Icon(Icons.add),
-                label: const Text('Add a tax rate'),
+              Wrap(spacing: 4, children: [
+                TextButton.icon(
+                  onPressed: _busy
+                      ? null
+                      : () async {
+                          final id = await _editRate(context, db);
+                          if (id != null) {
+                            await db.setListTaxRate(widget.listId, id);
+                          }
+                        },
+                  icon: const Icon(Icons.add),
+                  label: const Text('Add a tax rate'),
+                ),
+                TextButton.icon(
+                  onPressed: _busy ? null : _useLocation,
+                  icon: const Icon(Icons.my_location),
+                  label: const Text('Use my location'),
+                ),
+              ]),
+              if (_busy) const LinearProgressIndicator(),
+              if (_status != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Text(_status!, style: theme.textTheme.bodySmall),
+                ),
+              const SizedBox(height: 8),
+              Text(
+                'Using your location sends your coordinates to OpenStreetMap '
+                '(to name the place) and, in the US, to Ziptax (to find the '
+                'rate). Nothing is sent until you tap the button.',
+                style: theme.textTheme.bodySmall?.copyWith(
+                    color:
+                        theme.colorScheme.onSurface.withValues(alpha: 0.55)),
+              ),
+              TextButton(
+                onPressed: _busy ? null : () => _askForKey(context),
+                child: const Text('Ziptax API key...'),
               ),
             ],
           ),
@@ -109,13 +209,60 @@ class TaxRatesDialog extends ConsumerWidget {
   }
 }
 
+/// Asks for (or clears) the user's own Ziptax API key. Returns the saved key,
+/// or null if there is none.
+Future<String?> _askForKey(BuildContext context) async {
+  final controller = TextEditingController(text: await loadZiptaxKey() ?? '');
+  if (!context.mounted) return null;
+  final saved = await showDialog<String>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: const Text('Ziptax API key'),
+      content: Column(mainAxisSize: MainAxisSize.min, children: [
+        Text(
+          'For automatic US tax rates. Create a free account at '
+          'platform.zip.tax and paste your own key here (the free plan '
+          'allows 100 lookups a month). It is kept on this device only.',
+          style: Theme.of(ctx).textTheme.bodySmall,
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: controller,
+          autofocus: true,
+          obscureText: true,
+          decoration: const InputDecoration(labelText: 'API key'),
+        ),
+      ]),
+      actions: [
+        TextButton(
+            onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+        TextButton(
+            onPressed: () => Navigator.pop(ctx, ''),
+            child: const Text('Remove key')),
+        FilledButton(
+            onPressed: () => Navigator.pop(ctx, controller.text.trim()),
+            child: const Text('Save')),
+      ],
+    ),
+  );
+  if (saved == null) return loadZiptaxKey(); // cancelled: keep what we had
+  await saveZiptaxKey(saved);
+  return saved.isEmpty ? null : saved;
+}
+
 /// Asks for a rate name and percentage; returns the saved rate's id, or null if
-/// cancelled.
+/// cancelled. [initialName], [initialPercent] and [note] pre-fill the form when
+/// the values come from a location lookup.
 Future<String?> _editRate(BuildContext context, AppDatabase db,
-    {TaxRate? existing}) {
-  final name = TextEditingController(text: existing?.name ?? '');
+    {TaxRate? existing,
+    String initialName = '',
+    double? initialPercent,
+    String? note}) {
+  final name = TextEditingController(text: existing?.name ?? initialName);
   final percent = TextEditingController(
-      text: existing == null ? '' : formatPercent(existing.percent));
+      text: existing != null
+          ? formatPercent(existing.percent)
+          : (initialPercent == null ? '' : formatPercent(initialPercent)));
   String? error;
   return showDialog<String>(
     context: context,
@@ -123,6 +270,10 @@ Future<String?> _editRate(BuildContext context, AppDatabase db,
       builder: (ctx, setState) => AlertDialog(
         title: Text(existing == null ? 'Add tax rate' : 'Edit tax rate'),
         content: Column(mainAxisSize: MainAxisSize.min, children: [
+          if (note != null) ...[
+            Text(note, style: Theme.of(ctx).textTheme.bodySmall),
+            const SizedBox(height: 12),
+          ],
           TextField(
             controller: name,
             autofocus: true,
@@ -145,10 +296,7 @@ Future<String?> _editRate(BuildContext context, AppDatabase db,
             onPressed: () async {
               final n = name.text.trim();
               final p = double.tryParse(percent.text.trim().replaceAll(',', '.'));
-              if (n.isEmpty) {
-                setState(() => error = null);
-                return;
-              }
+              if (n.isEmpty) return;
               if (p == null || p < 0 || p > 100) {
                 setState(() => error = 'Enter a number from 0 to 100');
                 return;
