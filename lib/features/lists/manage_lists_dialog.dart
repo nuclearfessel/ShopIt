@@ -9,12 +9,18 @@ import '../../ui/tip.dart';
 
 /// Rename, reorder, add and delete shopping lists ("Manage lists").
 class ManageListsDialog extends ConsumerWidget {
-  const ManageListsDialog({super.key});
+  const ManageListsDialog({super.key, this.pantry = false});
+
+  /// Manage the pantry lists instead of the shopping lists.
+  final bool pantry;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final db = ref.read(databaseProvider);
-    final lists = ref.watch(listsProvider).value ?? const <ShoppingList>[];
+    final lists =
+        ref.watch(pantry ? pantryListsProvider : listsProvider).value ??
+        const <ShoppingList>[];
+    final kind = pantry ? 'pantry' : 'shopping';
     final theme = Theme.of(context);
 
     Future<void> rename(ShoppingList l) async {
@@ -39,7 +45,7 @@ class ManageListsDialog extends ConsumerWidget {
     }
 
     return AlertDialog(
-      title: const Text('Manage lists'),
+      title: Text(pantry ? 'Manage pantry lists' : 'Manage lists'),
       content: SizedBox(
         width: 420,
         child: SingleChildScrollView(
@@ -114,14 +120,16 @@ class ManageListsDialog extends ConsumerWidget {
               ),
               const SizedBox(height: 4),
               Tip(
-                'Start another shopping list',
+                pantry
+                    ? 'Start another pantry list'
+                    : 'Start another shopping list',
                 child: TextButton.icon(
                   onPressed: () async {
                     final name = await askNameDialog(
                       context,
                       title: 'New list',
                     );
-                    if (name != null) await db.addList(name);
+                    if (name != null) await db.addList(name, kind: kind);
                   },
                   icon: const KeylineIcon(KeylineIcons.listPlus),
                   label: const Text('New list'),

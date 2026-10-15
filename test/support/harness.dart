@@ -18,6 +18,8 @@ ShoppingList fakeList(
   bool autoCategorize = true,
   bool showEmptyCategories = false,
   int sortOrder = 0,
+  String kind = 'shopping',
+  String quantityMode = 'level',
 }) => ShoppingList(
   id: id,
   updatedAt: _t,
@@ -26,6 +28,8 @@ ShoppingList fakeList(
   autoCategorize: autoCategorize,
   showEmptyCategories: showEmptyCategories,
   sortOrder: sortOrder,
+  kind: kind,
+  quantityMode: quantityMode,
 );
 
 ShoppingItem fakeItem(
@@ -51,7 +55,14 @@ ShoppingItem fakeItem(
   taxManual: false,
 );
 
-PantryItem fakePantryItem(String id, String name) => PantryItem(
+PantryItem fakePantryItem(
+  String id,
+  String name, {
+  String listId = 'p1',
+  String mode = 'number',
+  String level = 'full',
+  String category = 'Dairy & Eggs',
+}) => PantryItem(
   id: id,
   updatedAt: _t,
   name: name,
@@ -59,8 +70,11 @@ PantryItem fakePantryItem(String id, String name) => PantryItem(
   unit: 'packs',
   expiryDate: DateTime(2030, 1, 1),
   location: 'Fridge',
-  category: 'Dairy & Eggs',
+  category: category,
   note: '',
+  listId: listId,
+  quantityMode: mode,
+  level: level,
 );
 
 CatalogItem fakeCatalog(String name, {String parent = ''}) => CatalogItem(
@@ -81,6 +95,7 @@ Future<void> pumpShopIt(
   List<ShoppingList>? lists,
   List<ShoppingItem>? items,
   List<PantryItem>? pantry,
+  List<ShoppingList>? pantryLists,
   List<TaxRate> rates = const [],
   List<ListCategoryOrder> categoryOrder = const [],
   List<Category>? categories,
@@ -130,7 +145,17 @@ Future<void> pumpShopIt(
             if (o.listId == id) o,
         ]),
       ),
-      pantryProvider.overrideWith((_) => Stream.value(thePantry)),
+      pantryListsProvider.overrideWith(
+        (_) => Stream.value(
+          pantryLists ?? [fakeList('p1', 'Pantry', kind: 'pantry')],
+        ),
+      ),
+      pantryProvider.overrideWith(
+        (ref, id) => Stream.value([
+          for (final i in thePantry)
+            if (i.listId == id) i,
+        ]),
+      ),
       historyProvider.overrideWith((_) => Stream.value(history)),
       catalogSearchProvider.overrideWith(
         (ref, q) async => [

@@ -28,8 +28,14 @@ final taxRatesProvider = StreamProvider<List<TaxRate>>(
   (ref) => ref.watch(databaseProvider).watchTaxRates(),
 );
 
-final pantryProvider = StreamProvider<List<PantryItem>>(
-  (ref) => ref.watch(databaseProvider).watchPantry(),
+/// The pantry lists (kept apart from the shopping lists).
+final pantryListsProvider = StreamProvider<List<ShoppingList>>(
+  (ref) => ref.watch(databaseProvider).watchPantryLists(),
+);
+
+/// The items on one pantry list.
+final pantryProvider = StreamProvider.family<List<PantryItem>, String>(
+  (ref, listId) => ref.watch(databaseProvider).watchPantry(listId: listId),
 );
 
 /// The manual category order for one list (empty = use the default order).

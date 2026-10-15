@@ -66,8 +66,11 @@ void main() {
               taxRatesProvider.overrideWith(
                 (_) => Stream.value(const <TaxRate>[]),
               ),
+              pantryListsProvider.overrideWith(
+                (_) => Stream.value(const <ShoppingList>[]),
+              ),
               pantryProvider.overrideWith(
-                (_) => Stream.value(const <PantryItem>[]),
+                (ref, id) => Stream.value(const <PantryItem>[]),
               ),
             ],
             child: const ShopItApp(windowChrome: false),

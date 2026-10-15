@@ -246,6 +246,56 @@ void main() {
     _expectAllTipped(tester, 'move/copy dialog with items ticked');
   });
 
+  testWidgets('the pantry menu and its dialogs have tooltips', (tester) async {
+    await pumpShopIt(
+      tester,
+      pantry: [
+        fakePantryItem('a', 'Yogurt', mode: 'level'),
+        fakePantryItem('b', 'Rice'),
+      ],
+      lists: [fakeList('l1', 'Grocery list'), fakeList('l2', 'Party')],
+      pantryLists: [
+        fakeList('p1', 'Pantry', kind: 'pantry'),
+        fakeList('p2', 'Garage', kind: 'pantry'),
+      ],
+    );
+    await tester.tap(find.byTooltip('Go to Pantry'));
+    await _settle(tester);
+    _expectAllTipped(tester, 'pantry screen (Low/Full and numbers)');
+
+    Future<void> openFromMenu(String entry) async {
+      await tester.tap(find.byTooltip('List options'));
+      await _settle(tester);
+      await tester.tap(find.widgetWithText(PopupMenuItem<String>, entry));
+      await _settle(tester);
+    }
+
+    await tester.tap(find.byTooltip('List options'));
+    await _settle(tester);
+    _expectAllTipped(tester, 'pantry list menu');
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await _settle(tester);
+
+    await openFromMenu('Items setting');
+    _expectAllTipped(tester, 'items setting dialog');
+    await tester.tap(find.text('Cancel'));
+    await _settle(tester);
+
+    await openFromMenu('Manage lists');
+    _expectAllTipped(tester, 'manage pantry lists');
+    await tester.tap(find.text('Done'));
+    await _settle(tester);
+
+    await openFromMenu('Move/Copy items');
+    _expectAllTipped(tester, 'pantry move/copy dialog');
+    await tester.tap(find.text('Cancel'));
+    await _settle(tester);
+
+    await tester.tap(find.text('Yogurt'));
+    await _settle(tester);
+    _expectAllTipped(tester, 'pantry item editor (Low/Full)');
+  });
+
   testWidgets('pantry: every control has a tooltip', (tester) async {
     await pumpShopIt(tester);
     await tester.tap(find.byTooltip('Go to Pantry'));

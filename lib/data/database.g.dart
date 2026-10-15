@@ -118,6 +118,28 @@ class $ShoppingListsTable extends ShoppingLists
     requiredDuringInsert: false,
     defaultValue: const Constant(0),
   );
+  static const VerificationMeta _kindMeta = const VerificationMeta('kind');
+  @override
+  late final GeneratedColumn<String> kind = GeneratedColumn<String>(
+    'kind',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('shopping'),
+  );
+  static const VerificationMeta _quantityModeMeta = const VerificationMeta(
+    'quantityMode',
+  );
+  @override
+  late final GeneratedColumn<String> quantityMode = GeneratedColumn<String>(
+    'quantity_mode',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('level'),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -129,6 +151,8 @@ class $ShoppingListsTable extends ShoppingLists
     autoCategorize,
     showEmptyCategories,
     sortOrder,
+    kind,
+    quantityMode,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -204,6 +228,21 @@ class $ShoppingListsTable extends ShoppingLists
         sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta),
       );
     }
+    if (data.containsKey('kind')) {
+      context.handle(
+        _kindMeta,
+        kind.isAcceptableOrUnknown(data['kind']!, _kindMeta),
+      );
+    }
+    if (data.containsKey('quantity_mode')) {
+      context.handle(
+        _quantityModeMeta,
+        quantityMode.isAcceptableOrUnknown(
+          data['quantity_mode']!,
+          _quantityModeMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -249,6 +288,14 @@ class $ShoppingListsTable extends ShoppingLists
         DriftSqlType.int,
         data['${effectivePrefix}sort_order'],
       )!,
+      kind: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}kind'],
+      )!,
+      quantityMode: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}quantity_mode'],
+      )!,
     );
   }
 
@@ -276,6 +323,14 @@ class ShoppingList extends DataClass implements Insertable<ShoppingList> {
 
   /// Position among the lists (Manage lists lets the user reorder them).
   final int sortOrder;
+
+  /// 'shopping' or 'pantry': both kinds of list live in this table so they
+  /// share renaming, ordering and category order.
+  final String kind;
+
+  /// For pantry lists: how new items show their amount, 'level' (Low/Full) or
+  /// 'number' (an exact quantity).
+  final String quantityMode;
   const ShoppingList({
     required this.id,
     required this.updatedAt,
@@ -286,6 +341,8 @@ class ShoppingList extends DataClass implements Insertable<ShoppingList> {
     required this.autoCategorize,
     required this.showEmptyCategories,
     required this.sortOrder,
+    required this.kind,
+    required this.quantityMode,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -303,6 +360,8 @@ class ShoppingList extends DataClass implements Insertable<ShoppingList> {
     map['auto_categorize'] = Variable<bool>(autoCategorize);
     map['show_empty_categories'] = Variable<bool>(showEmptyCategories);
     map['sort_order'] = Variable<int>(sortOrder);
+    map['kind'] = Variable<String>(kind);
+    map['quantity_mode'] = Variable<String>(quantityMode);
     return map;
   }
 
@@ -321,6 +380,8 @@ class ShoppingList extends DataClass implements Insertable<ShoppingList> {
       autoCategorize: Value(autoCategorize),
       showEmptyCategories: Value(showEmptyCategories),
       sortOrder: Value(sortOrder),
+      kind: Value(kind),
+      quantityMode: Value(quantityMode),
     );
   }
 
@@ -341,6 +402,8 @@ class ShoppingList extends DataClass implements Insertable<ShoppingList> {
         json['showEmptyCategories'],
       ),
       sortOrder: serializer.fromJson<int>(json['sortOrder']),
+      kind: serializer.fromJson<String>(json['kind']),
+      quantityMode: serializer.fromJson<String>(json['quantityMode']),
     );
   }
   @override
@@ -356,6 +419,8 @@ class ShoppingList extends DataClass implements Insertable<ShoppingList> {
       'autoCategorize': serializer.toJson<bool>(autoCategorize),
       'showEmptyCategories': serializer.toJson<bool>(showEmptyCategories),
       'sortOrder': serializer.toJson<int>(sortOrder),
+      'kind': serializer.toJson<String>(kind),
+      'quantityMode': serializer.toJson<String>(quantityMode),
     };
   }
 
@@ -369,6 +434,8 @@ class ShoppingList extends DataClass implements Insertable<ShoppingList> {
     bool? autoCategorize,
     bool? showEmptyCategories,
     int? sortOrder,
+    String? kind,
+    String? quantityMode,
   }) => ShoppingList(
     id: id ?? this.id,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -379,6 +446,8 @@ class ShoppingList extends DataClass implements Insertable<ShoppingList> {
     autoCategorize: autoCategorize ?? this.autoCategorize,
     showEmptyCategories: showEmptyCategories ?? this.showEmptyCategories,
     sortOrder: sortOrder ?? this.sortOrder,
+    kind: kind ?? this.kind,
+    quantityMode: quantityMode ?? this.quantityMode,
   );
   ShoppingList copyWithCompanion(ShoppingListsCompanion data) {
     return ShoppingList(
@@ -397,6 +466,10 @@ class ShoppingList extends DataClass implements Insertable<ShoppingList> {
           ? data.showEmptyCategories.value
           : this.showEmptyCategories,
       sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
+      kind: data.kind.present ? data.kind.value : this.kind,
+      quantityMode: data.quantityMode.present
+          ? data.quantityMode.value
+          : this.quantityMode,
     );
   }
 
@@ -411,7 +484,9 @@ class ShoppingList extends DataClass implements Insertable<ShoppingList> {
           ..write('useCategories: $useCategories, ')
           ..write('autoCategorize: $autoCategorize, ')
           ..write('showEmptyCategories: $showEmptyCategories, ')
-          ..write('sortOrder: $sortOrder')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('kind: $kind, ')
+          ..write('quantityMode: $quantityMode')
           ..write(')'))
         .toString();
   }
@@ -427,6 +502,8 @@ class ShoppingList extends DataClass implements Insertable<ShoppingList> {
     autoCategorize,
     showEmptyCategories,
     sortOrder,
+    kind,
+    quantityMode,
   );
   @override
   bool operator ==(Object other) =>
@@ -440,7 +517,9 @@ class ShoppingList extends DataClass implements Insertable<ShoppingList> {
           other.useCategories == this.useCategories &&
           other.autoCategorize == this.autoCategorize &&
           other.showEmptyCategories == this.showEmptyCategories &&
-          other.sortOrder == this.sortOrder);
+          other.sortOrder == this.sortOrder &&
+          other.kind == this.kind &&
+          other.quantityMode == this.quantityMode);
 }
 
 class ShoppingListsCompanion extends UpdateCompanion<ShoppingList> {
@@ -453,6 +532,8 @@ class ShoppingListsCompanion extends UpdateCompanion<ShoppingList> {
   final Value<bool> autoCategorize;
   final Value<bool> showEmptyCategories;
   final Value<int> sortOrder;
+  final Value<String> kind;
+  final Value<String> quantityMode;
   final Value<int> rowid;
   const ShoppingListsCompanion({
     this.id = const Value.absent(),
@@ -464,6 +545,8 @@ class ShoppingListsCompanion extends UpdateCompanion<ShoppingList> {
     this.autoCategorize = const Value.absent(),
     this.showEmptyCategories = const Value.absent(),
     this.sortOrder = const Value.absent(),
+    this.kind = const Value.absent(),
+    this.quantityMode = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   ShoppingListsCompanion.insert({
@@ -476,6 +559,8 @@ class ShoppingListsCompanion extends UpdateCompanion<ShoppingList> {
     this.autoCategorize = const Value.absent(),
     this.showEmptyCategories = const Value.absent(),
     this.sortOrder = const Value.absent(),
+    this.kind = const Value.absent(),
+    this.quantityMode = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : name = Value(name);
   static Insertable<ShoppingList> custom({
@@ -488,6 +573,8 @@ class ShoppingListsCompanion extends UpdateCompanion<ShoppingList> {
     Expression<bool>? autoCategorize,
     Expression<bool>? showEmptyCategories,
     Expression<int>? sortOrder,
+    Expression<String>? kind,
+    Expression<String>? quantityMode,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -501,6 +588,8 @@ class ShoppingListsCompanion extends UpdateCompanion<ShoppingList> {
       if (showEmptyCategories != null)
         'show_empty_categories': showEmptyCategories,
       if (sortOrder != null) 'sort_order': sortOrder,
+      if (kind != null) 'kind': kind,
+      if (quantityMode != null) 'quantity_mode': quantityMode,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -515,6 +604,8 @@ class ShoppingListsCompanion extends UpdateCompanion<ShoppingList> {
     Value<bool>? autoCategorize,
     Value<bool>? showEmptyCategories,
     Value<int>? sortOrder,
+    Value<String>? kind,
+    Value<String>? quantityMode,
     Value<int>? rowid,
   }) {
     return ShoppingListsCompanion(
@@ -527,6 +618,8 @@ class ShoppingListsCompanion extends UpdateCompanion<ShoppingList> {
       autoCategorize: autoCategorize ?? this.autoCategorize,
       showEmptyCategories: showEmptyCategories ?? this.showEmptyCategories,
       sortOrder: sortOrder ?? this.sortOrder,
+      kind: kind ?? this.kind,
+      quantityMode: quantityMode ?? this.quantityMode,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -561,6 +654,12 @@ class ShoppingListsCompanion extends UpdateCompanion<ShoppingList> {
     if (sortOrder.present) {
       map['sort_order'] = Variable<int>(sortOrder.value);
     }
+    if (kind.present) {
+      map['kind'] = Variable<String>(kind.value);
+    }
+    if (quantityMode.present) {
+      map['quantity_mode'] = Variable<String>(quantityMode.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -579,6 +678,8 @@ class ShoppingListsCompanion extends UpdateCompanion<ShoppingList> {
           ..write('autoCategorize: $autoCategorize, ')
           ..write('showEmptyCategories: $showEmptyCategories, ')
           ..write('sortOrder: $sortOrder, ')
+          ..write('kind: $kind, ')
+          ..write('quantityMode: $quantityMode, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -1494,6 +1595,38 @@ class $PantryItemsTable extends PantryItems
     requiredDuringInsert: false,
     defaultValue: const Constant(''),
   );
+  static const VerificationMeta _listIdMeta = const VerificationMeta('listId');
+  @override
+  late final GeneratedColumn<String> listId = GeneratedColumn<String>(
+    'list_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _quantityModeMeta = const VerificationMeta(
+    'quantityMode',
+  );
+  @override
+  late final GeneratedColumn<String> quantityMode = GeneratedColumn<String>(
+    'quantity_mode',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('level'),
+  );
+  static const VerificationMeta _levelMeta = const VerificationMeta('level');
+  @override
+  late final GeneratedColumn<String> level = GeneratedColumn<String>(
+    'level',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('full'),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1506,6 +1639,9 @@ class $PantryItemsTable extends PantryItems
     location,
     category,
     note,
+    listId,
+    quantityMode,
+    level,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1578,6 +1714,27 @@ class $PantryItemsTable extends PantryItems
         note.isAcceptableOrUnknown(data['note']!, _noteMeta),
       );
     }
+    if (data.containsKey('list_id')) {
+      context.handle(
+        _listIdMeta,
+        listId.isAcceptableOrUnknown(data['list_id']!, _listIdMeta),
+      );
+    }
+    if (data.containsKey('quantity_mode')) {
+      context.handle(
+        _quantityModeMeta,
+        quantityMode.isAcceptableOrUnknown(
+          data['quantity_mode']!,
+          _quantityModeMeta,
+        ),
+      );
+    }
+    if (data.containsKey('level')) {
+      context.handle(
+        _levelMeta,
+        level.isAcceptableOrUnknown(data['level']!, _levelMeta),
+      );
+    }
     return context;
   }
 
@@ -1627,6 +1784,18 @@ class $PantryItemsTable extends PantryItems
         DriftSqlType.string,
         data['${effectivePrefix}note'],
       )!,
+      listId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}list_id'],
+      )!,
+      quantityMode: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}quantity_mode'],
+      )!,
+      level: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}level'],
+      )!,
     );
   }
 
@@ -1647,6 +1816,15 @@ class PantryItem extends DataClass implements Insertable<PantryItem> {
   final String location;
   final String category;
   final String note;
+
+  /// The pantry list this item is on.
+  final String listId;
+
+  /// 'level' (shows Low/Full, see [level]) or 'number' (shows [quantity]).
+  final String quantityMode;
+
+  /// 'full' or 'low'.
+  final String level;
   const PantryItem({
     required this.id,
     required this.updatedAt,
@@ -1658,6 +1836,9 @@ class PantryItem extends DataClass implements Insertable<PantryItem> {
     required this.location,
     required this.category,
     required this.note,
+    required this.listId,
+    required this.quantityMode,
+    required this.level,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1676,6 +1857,9 @@ class PantryItem extends DataClass implements Insertable<PantryItem> {
     map['location'] = Variable<String>(location);
     map['category'] = Variable<String>(category);
     map['note'] = Variable<String>(note);
+    map['list_id'] = Variable<String>(listId);
+    map['quantity_mode'] = Variable<String>(quantityMode);
+    map['level'] = Variable<String>(level);
     return map;
   }
 
@@ -1695,6 +1879,9 @@ class PantryItem extends DataClass implements Insertable<PantryItem> {
       location: Value(location),
       category: Value(category),
       note: Value(note),
+      listId: Value(listId),
+      quantityMode: Value(quantityMode),
+      level: Value(level),
     );
   }
 
@@ -1714,6 +1901,9 @@ class PantryItem extends DataClass implements Insertable<PantryItem> {
       location: serializer.fromJson<String>(json['location']),
       category: serializer.fromJson<String>(json['category']),
       note: serializer.fromJson<String>(json['note']),
+      listId: serializer.fromJson<String>(json['listId']),
+      quantityMode: serializer.fromJson<String>(json['quantityMode']),
+      level: serializer.fromJson<String>(json['level']),
     );
   }
   @override
@@ -1730,6 +1920,9 @@ class PantryItem extends DataClass implements Insertable<PantryItem> {
       'location': serializer.toJson<String>(location),
       'category': serializer.toJson<String>(category),
       'note': serializer.toJson<String>(note),
+      'listId': serializer.toJson<String>(listId),
+      'quantityMode': serializer.toJson<String>(quantityMode),
+      'level': serializer.toJson<String>(level),
     };
   }
 
@@ -1744,6 +1937,9 @@ class PantryItem extends DataClass implements Insertable<PantryItem> {
     String? location,
     String? category,
     String? note,
+    String? listId,
+    String? quantityMode,
+    String? level,
   }) => PantryItem(
     id: id ?? this.id,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -1755,6 +1951,9 @@ class PantryItem extends DataClass implements Insertable<PantryItem> {
     location: location ?? this.location,
     category: category ?? this.category,
     note: note ?? this.note,
+    listId: listId ?? this.listId,
+    quantityMode: quantityMode ?? this.quantityMode,
+    level: level ?? this.level,
   );
   PantryItem copyWithCompanion(PantryItemsCompanion data) {
     return PantryItem(
@@ -1770,6 +1969,11 @@ class PantryItem extends DataClass implements Insertable<PantryItem> {
       location: data.location.present ? data.location.value : this.location,
       category: data.category.present ? data.category.value : this.category,
       note: data.note.present ? data.note.value : this.note,
+      listId: data.listId.present ? data.listId.value : this.listId,
+      quantityMode: data.quantityMode.present
+          ? data.quantityMode.value
+          : this.quantityMode,
+      level: data.level.present ? data.level.value : this.level,
     );
   }
 
@@ -1785,7 +1989,10 @@ class PantryItem extends DataClass implements Insertable<PantryItem> {
           ..write('expiryDate: $expiryDate, ')
           ..write('location: $location, ')
           ..write('category: $category, ')
-          ..write('note: $note')
+          ..write('note: $note, ')
+          ..write('listId: $listId, ')
+          ..write('quantityMode: $quantityMode, ')
+          ..write('level: $level')
           ..write(')'))
         .toString();
   }
@@ -1802,6 +2009,9 @@ class PantryItem extends DataClass implements Insertable<PantryItem> {
     location,
     category,
     note,
+    listId,
+    quantityMode,
+    level,
   );
   @override
   bool operator ==(Object other) =>
@@ -1816,7 +2026,10 @@ class PantryItem extends DataClass implements Insertable<PantryItem> {
           other.expiryDate == this.expiryDate &&
           other.location == this.location &&
           other.category == this.category &&
-          other.note == this.note);
+          other.note == this.note &&
+          other.listId == this.listId &&
+          other.quantityMode == this.quantityMode &&
+          other.level == this.level);
 }
 
 class PantryItemsCompanion extends UpdateCompanion<PantryItem> {
@@ -1830,6 +2043,9 @@ class PantryItemsCompanion extends UpdateCompanion<PantryItem> {
   final Value<String> location;
   final Value<String> category;
   final Value<String> note;
+  final Value<String> listId;
+  final Value<String> quantityMode;
+  final Value<String> level;
   final Value<int> rowid;
   const PantryItemsCompanion({
     this.id = const Value.absent(),
@@ -1842,6 +2058,9 @@ class PantryItemsCompanion extends UpdateCompanion<PantryItem> {
     this.location = const Value.absent(),
     this.category = const Value.absent(),
     this.note = const Value.absent(),
+    this.listId = const Value.absent(),
+    this.quantityMode = const Value.absent(),
+    this.level = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   PantryItemsCompanion.insert({
@@ -1855,6 +2074,9 @@ class PantryItemsCompanion extends UpdateCompanion<PantryItem> {
     this.location = const Value.absent(),
     this.category = const Value.absent(),
     this.note = const Value.absent(),
+    this.listId = const Value.absent(),
+    this.quantityMode = const Value.absent(),
+    this.level = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : name = Value(name);
   static Insertable<PantryItem> custom({
@@ -1868,6 +2090,9 @@ class PantryItemsCompanion extends UpdateCompanion<PantryItem> {
     Expression<String>? location,
     Expression<String>? category,
     Expression<String>? note,
+    Expression<String>? listId,
+    Expression<String>? quantityMode,
+    Expression<String>? level,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -1881,6 +2106,9 @@ class PantryItemsCompanion extends UpdateCompanion<PantryItem> {
       if (location != null) 'location': location,
       if (category != null) 'category': category,
       if (note != null) 'note': note,
+      if (listId != null) 'list_id': listId,
+      if (quantityMode != null) 'quantity_mode': quantityMode,
+      if (level != null) 'level': level,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -1896,6 +2124,9 @@ class PantryItemsCompanion extends UpdateCompanion<PantryItem> {
     Value<String>? location,
     Value<String>? category,
     Value<String>? note,
+    Value<String>? listId,
+    Value<String>? quantityMode,
+    Value<String>? level,
     Value<int>? rowid,
   }) {
     return PantryItemsCompanion(
@@ -1909,6 +2140,9 @@ class PantryItemsCompanion extends UpdateCompanion<PantryItem> {
       location: location ?? this.location,
       category: category ?? this.category,
       note: note ?? this.note,
+      listId: listId ?? this.listId,
+      quantityMode: quantityMode ?? this.quantityMode,
+      level: level ?? this.level,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1946,6 +2180,15 @@ class PantryItemsCompanion extends UpdateCompanion<PantryItem> {
     if (note.present) {
       map['note'] = Variable<String>(note.value);
     }
+    if (listId.present) {
+      map['list_id'] = Variable<String>(listId.value);
+    }
+    if (quantityMode.present) {
+      map['quantity_mode'] = Variable<String>(quantityMode.value);
+    }
+    if (level.present) {
+      map['level'] = Variable<String>(level.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1965,6 +2208,9 @@ class PantryItemsCompanion extends UpdateCompanion<PantryItem> {
           ..write('location: $location, ')
           ..write('category: $category, ')
           ..write('note: $note, ')
+          ..write('listId: $listId, ')
+          ..write('quantityMode: $quantityMode, ')
+          ..write('level: $level, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -4023,6 +4269,8 @@ typedef $$ShoppingListsTableCreateCompanionBuilder =
       Value<bool> autoCategorize,
       Value<bool> showEmptyCategories,
       Value<int> sortOrder,
+      Value<String> kind,
+      Value<String> quantityMode,
       Value<int> rowid,
     });
 typedef $$ShoppingListsTableUpdateCompanionBuilder =
@@ -4036,6 +4284,8 @@ typedef $$ShoppingListsTableUpdateCompanionBuilder =
       Value<bool> autoCategorize,
       Value<bool> showEmptyCategories,
       Value<int> sortOrder,
+      Value<String> kind,
+      Value<String> quantityMode,
       Value<int> rowid,
     });
 
@@ -4120,6 +4370,16 @@ class $$ShoppingListsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get quantityMode => $composableBuilder(
+    column: $table.quantityMode,
+    builder: (column) => ColumnFilters(column),
+  );
+
   Expression<bool> shoppingItemsRefs(
     Expression<bool> Function($$ShoppingItemsTableFilterComposer f) f,
   ) {
@@ -4199,6 +4459,16 @@ class $$ShoppingListsTableOrderingComposer
     column: $table.sortOrder,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get quantityMode => $composableBuilder(
+    column: $table.quantityMode,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$ShoppingListsTableAnnotationComposer
@@ -4242,6 +4512,14 @@ class $$ShoppingListsTableAnnotationComposer
 
   GeneratedColumn<int> get sortOrder =>
       $composableBuilder(column: $table.sortOrder, builder: (column) => column);
+
+  GeneratedColumn<String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => column);
+
+  GeneratedColumn<String> get quantityMode => $composableBuilder(
+    column: $table.quantityMode,
+    builder: (column) => column,
+  );
 
   Expression<T> shoppingItemsRefs<T extends Object>(
     Expression<T> Function($$ShoppingItemsTableAnnotationComposer a) f,
@@ -4306,6 +4584,8 @@ class $$ShoppingListsTableTableManager
                 Value<bool> autoCategorize = const Value.absent(),
                 Value<bool> showEmptyCategories = const Value.absent(),
                 Value<int> sortOrder = const Value.absent(),
+                Value<String> kind = const Value.absent(),
+                Value<String> quantityMode = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ShoppingListsCompanion(
                 id: id,
@@ -4317,6 +4597,8 @@ class $$ShoppingListsTableTableManager
                 autoCategorize: autoCategorize,
                 showEmptyCategories: showEmptyCategories,
                 sortOrder: sortOrder,
+                kind: kind,
+                quantityMode: quantityMode,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -4330,6 +4612,8 @@ class $$ShoppingListsTableTableManager
                 Value<bool> autoCategorize = const Value.absent(),
                 Value<bool> showEmptyCategories = const Value.absent(),
                 Value<int> sortOrder = const Value.absent(),
+                Value<String> kind = const Value.absent(),
+                Value<String> quantityMode = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ShoppingListsCompanion.insert(
                 id: id,
@@ -4341,6 +4625,8 @@ class $$ShoppingListsTableTableManager
                 autoCategorize: autoCategorize,
                 showEmptyCategories: showEmptyCategories,
                 sortOrder: sortOrder,
+                kind: kind,
+                quantityMode: quantityMode,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -4903,6 +5189,9 @@ typedef $$PantryItemsTableCreateCompanionBuilder =
       Value<String> location,
       Value<String> category,
       Value<String> note,
+      Value<String> listId,
+      Value<String> quantityMode,
+      Value<String> level,
       Value<int> rowid,
     });
 typedef $$PantryItemsTableUpdateCompanionBuilder =
@@ -4917,6 +5206,9 @@ typedef $$PantryItemsTableUpdateCompanionBuilder =
       Value<String> location,
       Value<String> category,
       Value<String> note,
+      Value<String> listId,
+      Value<String> quantityMode,
+      Value<String> level,
       Value<int> rowid,
     });
 
@@ -4976,6 +5268,21 @@ class $$PantryItemsTableFilterComposer
 
   ColumnFilters<String> get note => $composableBuilder(
     column: $table.note,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get listId => $composableBuilder(
+    column: $table.listId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get quantityMode => $composableBuilder(
+    column: $table.quantityMode,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get level => $composableBuilder(
+    column: $table.level,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -5038,6 +5345,21 @@ class $$PantryItemsTableOrderingComposer
     column: $table.note,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get listId => $composableBuilder(
+    column: $table.listId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get quantityMode => $composableBuilder(
+    column: $table.quantityMode,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get level => $composableBuilder(
+    column: $table.level,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$PantryItemsTableAnnotationComposer
@@ -5080,6 +5402,17 @@ class $$PantryItemsTableAnnotationComposer
 
   GeneratedColumn<String> get note =>
       $composableBuilder(column: $table.note, builder: (column) => column);
+
+  GeneratedColumn<String> get listId =>
+      $composableBuilder(column: $table.listId, builder: (column) => column);
+
+  GeneratedColumn<String> get quantityMode => $composableBuilder(
+    column: $table.quantityMode,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get level =>
+      $composableBuilder(column: $table.level, builder: (column) => column);
 }
 
 class $$PantryItemsTableTableManager
@@ -5123,6 +5456,9 @@ class $$PantryItemsTableTableManager
                 Value<String> location = const Value.absent(),
                 Value<String> category = const Value.absent(),
                 Value<String> note = const Value.absent(),
+                Value<String> listId = const Value.absent(),
+                Value<String> quantityMode = const Value.absent(),
+                Value<String> level = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => PantryItemsCompanion(
                 id: id,
@@ -5135,6 +5471,9 @@ class $$PantryItemsTableTableManager
                 location: location,
                 category: category,
                 note: note,
+                listId: listId,
+                quantityMode: quantityMode,
+                level: level,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -5149,6 +5488,9 @@ class $$PantryItemsTableTableManager
                 Value<String> location = const Value.absent(),
                 Value<String> category = const Value.absent(),
                 Value<String> note = const Value.absent(),
+                Value<String> listId = const Value.absent(),
+                Value<String> quantityMode = const Value.absent(),
+                Value<String> level = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => PantryItemsCompanion.insert(
                 id: id,
@@ -5161,6 +5503,9 @@ class $$PantryItemsTableTableManager
                 location: location,
                 category: category,
                 note: note,
+                listId: listId,
+                quantityMode: quantityMode,
+                level: level,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

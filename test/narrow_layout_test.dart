@@ -18,6 +18,8 @@ final _list = ShoppingList(
   autoCategorize: true,
   showEmptyCategories: false,
   sortOrder: 0,
+  kind: 'shopping',
+  quantityMode: 'level',
 );
 
 final _rate = TaxRate(
@@ -95,8 +97,24 @@ void main() {
                 _item('c', 'Eggs', checked: true),
               ]),
             ),
-            pantryProvider.overrideWith(
+            pantryListsProvider.overrideWith(
               (_) => Stream.value([
+                ShoppingList(
+                  id: 'p1',
+                  updatedAt: _t,
+                  name: 'Pantry',
+                  taxRateId: null,
+                  useCategories: true,
+                  autoCategorize: true,
+                  showEmptyCategories: false,
+                  sortOrder: 0,
+                  kind: 'pantry',
+                  quantityMode: 'number',
+                ),
+              ]),
+            ),
+            pantryProvider.overrideWith(
+              (ref, id) => Stream.value([
                 PantryItem(
                   id: 'p1',
                   updatedAt: _t,
@@ -107,6 +125,9 @@ void main() {
                   location: 'Fridge, top shelf, at the back',
                   category: 'Dairy & Eggs',
                   note: 'Opened last week, use for the pasta bake',
+                  listId: 'p1',
+                  quantityMode: 'number',
+                  level: 'full',
                 ),
               ]),
             ),
@@ -215,6 +236,7 @@ void main() {
       await tester.tap(find.text('Pantry').last);
       await tester.pump(const Duration(milliseconds: 500));
       await tester.pump(const Duration(milliseconds: 500)); // stream emits
+      await tester.pump(const Duration(milliseconds: 500)); // the list's items
       expect(tester.takeException(), isNull, reason: 'pantry screen');
 
       // Item details sheet from the pantry.

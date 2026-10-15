@@ -18,7 +18,7 @@ import '../lists/manage_lists_dialog.dart';
 import '../settings/settings_dialog.dart';
 import 'tax_rates_dialog.dart';
 import '../../ui/keyline/keyline_icon.dart';
-import '../../ui/category_color.dart';
+import '../../ui/category_header.dart';
 import '../../ui/dialogs.dart';
 import '../../ui/tip.dart';
 import '../../ui/undo_snack_bar.dart';
@@ -202,6 +202,9 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
         );
         final db = ref.read(databaseProvider);
         final items = ref.watch(shoppingItemsProvider(current.id));
+        // Watched (not read) so they are loaded by the time Move/Copy needs them.
+        final pantryLists =
+            ref.watch(pantryListsProvider).value ?? const <ShoppingList>[];
         final rate = ref
             .watch(taxRatesProvider)
             .value
@@ -262,12 +265,13 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
                       setState(() => _listId = null);
                     }
                   } else if (v == 'moveCopy') {
-                    final outcome = await showDialog<MoveCopyOutcome>(
-                      context: context,
-                      builder: (_) => MoveCopyDialog(
-                        list: current,
-                        items: items.value ?? const [],
-                      ),
+                    final outcome = await showShoppingMoveCopy(
+                      context,
+                      db: db,
+                      list: current,
+                      items: items.value ?? const [],
+                      shoppingLists: all,
+                      pantryLists: pantryLists,
                     );
                     if (outcome != null && context.mounted) {
                       showUndoSnackBar(
@@ -571,7 +575,7 @@ List<Widget> _grouped(
     ..sort((a, b) => (order[a] ?? 1 << 20).compareTo(order[b] ?? 1 << 20));
   return [
     for (final n in names) ...[
-      _Header(
+      CategoryHeader(
         n,
         color: colors[n],
         onTap: onHeaderTap == null ? null : () => onHeaderTap(n),
@@ -580,46 +584,6 @@ List<Widget> _grouped(
     ],
     ?cart,
   ];
-}
-
-class _Header extends StatelessWidget {
-  const _Header(this.text, {this.color, this.onTap});
-
-  final String text;
-
-  /// The category's chosen colour; null means the automatic one.
-  final Color? color;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final accent = color ?? automaticCategoryColor(text, theme.brightness);
-    final row = Padding(
-      padding: const EdgeInsets.fromLTRB(0, 14, 16, 4),
-      child: Row(
-        children: [
-          Container(width: 4, height: 22, color: accent),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              text.toUpperCase(),
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.labelLarge?.copyWith(
-                color: accent,
-                letterSpacing: 0.6,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-    if (onTap == null) return row;
-    return Tip(
-      'Change the color of "$text"',
-      child: InkWell(onTap: onTap, child: row),
-    );
-  }
 }
 
 /// Checked items in their own, slightly tinted panel. The "Uncheck all" and

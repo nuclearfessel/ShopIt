@@ -22,6 +22,8 @@ class ItemEdit {
     this.expiry,
     this.taxable = false,
     this.hasCoupon = false,
+    this.quantityMode = 'number',
+    this.level = 'full',
   });
 
   String name;
@@ -32,6 +34,12 @@ class ItemEdit {
   String note;
   String location;
   DateTime? expiry;
+
+  /// Pantry items: 'level' shows Low/Full, 'number' shows [quantity].
+  String quantityMode;
+
+  /// Pantry items in 'level' mode: 'low' or 'full'.
+  String level;
   bool taxable;
   bool hasCoupon;
 }
@@ -197,6 +205,8 @@ class _ItemEditorSheetState extends State<_ItemEditorSheet> {
   late String _unit = widget.initial.unit;
   late bool _taxable = widget.initial.taxable;
   late bool _coupon = widget.initial.hasCoupon;
+  late String _mode = widget.initial.quantityMode;
+  late String _level = widget.initial.level;
   DateTime? _expiry;
 
   @override
@@ -232,6 +242,8 @@ class _ItemEditorSheetState extends State<_ItemEditorSheet> {
     expiry: _expiry,
     taxable: _taxable,
     hasCoupon: _coupon,
+    quantityMode: _mode,
+    level: _level,
   );
 
   void _save() {
@@ -455,33 +467,77 @@ class _ItemEditorSheetState extends State<_ItemEditorSheet> {
                       decoration: const InputDecoration(labelText: 'Name'),
                     ),
                     gap,
-                    _label('Quantity'),
-                    LayoutBuilder(
-                      builder: (context, box) {
-                        final narrow = box.maxWidth < 340;
-                        final stepRow = Row(
-                          children: [
-                            _stepper(scheme),
-                            const SizedBox(width: 10),
-                            Expanded(child: _quantityValue()),
-                            if (!narrow) ...[
-                              const SizedBox(width: 10),
-                              Expanded(flex: 2, child: _unitDropdown()),
-                            ],
+                    if (widget.showPantryFields) ...[
+                      _label('Amount'),
+                      SegmentedButton<String>(
+                        showSelectedIcon: false,
+                        segments: const [
+                          ButtonSegment(
+                            value: 'level',
+                            label: Text('Low / Full'),
+                            tooltip: 'Just track whether it is low or full',
+                          ),
+                          ButtonSegment(
+                            value: 'number',
+                            label: Text('Number'),
+                            tooltip: 'Track an exact quantity',
+                          ),
+                        ],
+                        selected: {_mode},
+                        onSelectionChanged: (v) =>
+                            setState(() => _mode = v.first),
+                      ),
+                      const SizedBox(height: 10),
+                      if (_mode == 'level')
+                        SegmentedButton<String>(
+                          showSelectedIcon: false,
+                          segments: const [
+                            ButtonSegment(
+                              value: 'low',
+                              label: Text('Low'),
+                              tooltip: 'Running low: time to restock',
+                            ),
+                            ButtonSegment(
+                              value: 'full',
+                              label: Text('Full'),
+                              tooltip: 'Plenty left',
+                            ),
                           ],
-                        );
-                        return narrow
-                            ? Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  stepRow,
-                                  const SizedBox(height: 10),
-                                  _unitDropdown(),
-                                ],
-                              )
-                            : stepRow;
-                      },
-                    ),
+                          selected: {_level},
+                          onSelectionChanged: (v) =>
+                              setState(() => _level = v.first),
+                        ),
+                    ],
+                    if (!widget.showPantryFields || _mode == 'number') ...[
+                      if (!widget.showPantryFields) _label('Quantity'),
+                      LayoutBuilder(
+                        builder: (context, box) {
+                          final narrow = box.maxWidth < 340;
+                          final stepRow = Row(
+                            children: [
+                              _stepper(scheme),
+                              const SizedBox(width: 10),
+                              Expanded(child: _quantityValue()),
+                              if (!narrow) ...[
+                                const SizedBox(width: 10),
+                                Expanded(flex: 2, child: _unitDropdown()),
+                              ],
+                            ],
+                          );
+                          return narrow
+                              ? Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    stepRow,
+                                    const SizedBox(height: 10),
+                                    _unitDropdown(),
+                                  ],
+                                )
+                              : stepRow;
+                        },
+                      ),
+                    ],
                     gap,
                     _label('Category'),
                     Tip(

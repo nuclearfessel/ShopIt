@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/database.dart';
-import '../../data/providers.dart';
 import '../../ui/tip.dart';
 
 /// What a move or copy did, so the caller can say so and offer Undo.
@@ -13,25 +11,52 @@ class MoveCopyOutcome {
   final Future<void> Function() undo;
 }
 
-/// The pantry as a destination (the lists are identified by their ids).
-const String kPantryTarget = 'pantry';
+/// One row to tick in the dialog.
+class MoveCopyEntry {
+  const MoveCopyEntry(this.id, this.name, this.category);
+  final String id;
+  final String name;
+  final String category;
+}
+
+/// Somewhere the items can go.
+class MoveCopyDestination {
+  const MoveCopyDestination(this.id, this.label);
+  final String id;
+  final String label;
+}
+
+/// Does the move or copy of the items with [ids] to [target].
+typedef MoveCopyRun = Future<MoveCopyOutcome> Function(
+  String target,
+  List<String> ids, {
+  required bool move,
+});
 
 String _items(int n) => '$n ${n == 1 ? 'item' : 'items'}';
 
-/// "Move/Copy items": tick items on a shopping list, choose another shopping
-/// list or the pantry, then Move (they leave this list) or Copy (they stay).
-/// Pops a [MoveCopyOutcome] when done, or null if cancelled.
-class MoveCopyDialog extends ConsumerStatefulWidget {
-  const MoveCopyDialog({super.key, required this.list, required this.items});
+/// "Move/Copy items": tick items, choose where they should go, then Move (they
+/// leave this list) or Copy (they stay too). Pops a [MoveCopyOutcome] when
+/// done, or null if cancelled.
+class MoveCopyDialog extends StatefulWidget {
+  const MoveCopyDialog({
+    super.key,
+    required this.listName,
+    required this.entries,
+    required this.destinations,
+    required this.onRun,
+  });
 
-  final ShoppingList list;
-  final List<ShoppingItem> items;
+  final String listName;
+  final List<MoveCopyEntry> entries;
+  final List<MoveCopyDestination> destinations;
+  final MoveCopyRun onRun;
 
   @override
-  ConsumerState<MoveCopyDialog> createState() => _MoveCopyDialogState();
+  State<MoveCopyDialog> createState() => _MoveCopyDialogState();
 }
 
-class _MoveCopyDialogState extends ConsumerState<MoveCopyDialog> {
+class _MoveCopyDialogState extends State<MoveCopyDialog> {
   final _selected = <String>{};
   String? _target;
   bool _busy = false;
@@ -40,60 +65,19 @@ class _MoveCopyDialogState extends ConsumerState<MoveCopyDialog> {
     final target = _target;
     if (target == null || _selected.isEmpty || _busy) return;
     setState(() => _busy = true);
-    final db = ref.read(databaseProvider);
-    final chosen = [
-      for (final i in widget.items)
-        if (_selected.contains(i.id)) i,
+    final ids = [
+      for (final e in widget.entries)
+        if (_selected.contains(e.id)) e.id,
     ];
-    final ids = [for (final i in chosen) i.id];
-    final n = _items(chosen.length);
-    final lists = ref.read(listsProvider).value ?? const <ShoppingList>[];
-    final targetName = target == kPantryTarget
-        ? 'the pantry'
-        : '"${lists.firstWhere((l) => l.id == target).name}"';
-
-    final MoveCopyOutcome outcome;
-    if (target == kPantryTarget) {
-      final created = await db.copyShoppingToPantry(chosen);
-      if (move) {
-        await db.deleteShoppingItems(ids);
-        outcome = MoveCopyOutcome('Moved $n to $targetName', () async {
-          await db.deletePantryItems(created);
-          await db.restoreItems(ids);
-        });
-      } else {
-        outcome = MoveCopyOutcome(
-          'Copied $n to $targetName',
-          () => db.deletePantryItems(created),
-        );
-      }
-    } else if (move) {
-      final before = await db.moveShoppingItems(ids, target);
-      outcome = MoveCopyOutcome(
-        'Moved $n to $targetName',
-        () => db.restoreShoppingLists(before),
-      );
-    } else {
-      final created = await db.copyShoppingItems(chosen, target);
-      outcome = MoveCopyOutcome(
-        'Copied $n to $targetName',
-        () => db.deleteShoppingItems(created),
-      );
-    }
+    final outcome = await widget.onRun(target, ids, move: move);
     if (mounted) Navigator.pop(context, outcome);
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final lists = ref.watch(listsProvider).value ?? const <ShoppingList>[];
-    final destinations = <(String, String)>[
-      for (final l in lists)
-        if (l.id != widget.list.id) (l.id, l.name),
-      (kPantryTarget, 'Pantry'),
-    ];
     final ready = _selected.isNotEmpty && _target != null && !_busy;
-    final all = widget.items.length;
+    final all = widget.entries.length;
 
     return AlertDialog(
       title: const Text('Move or copy items'),
@@ -105,9 +89,9 @@ class _MoveCopyDialogState extends ConsumerState<MoveCopyDialog> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Tick the items from "${widget.list.name}", choose where they '
-                'should go, then Move (they leave this list) or Copy (they stay '
-                'too).',
+                'Tick the items from "${widget.listName}", choose where they '
+                'should go, then Move (they leave this list) or Copy (they '
+                'stay too).',
                 style: theme.textTheme.bodySmall,
               ),
               const SizedBox(height: 8),
@@ -122,7 +106,7 @@ class _MoveCopyDialogState extends ConsumerState<MoveCopyDialog> {
                           ? null
                           : () => setState(
                               () => _selected.addAll(
-                                widget.items.map((i) => i.id),
+                                widget.entries.map((e) => e.id),
                               ),
                             ),
                       child: const Text('Select all'),
@@ -158,30 +142,30 @@ class _MoveCopyDialogState extends ConsumerState<MoveCopyDialog> {
                     : ListView(
                         shrinkWrap: true,
                         children: [
-                          for (final i in widget.items)
+                          for (final e in widget.entries)
                             Tip(
-                              _selected.contains(i.id)
-                                  ? 'Leave "${i.name}" out'
-                                  : 'Include "${i.name}"',
+                              _selected.contains(e.id)
+                                  ? 'Leave "${e.name}" out'
+                                  : 'Include "${e.name}"',
                               child: CheckboxListTile(
-                                key: ValueKey(i.id),
+                                key: ValueKey(e.id),
                                 dense: true,
                                 contentPadding: EdgeInsets.zero,
                                 controlAffinity:
                                     ListTileControlAffinity.leading,
                                 title: Text(
-                                  i.name,
+                                  e.name,
                                   overflow: TextOverflow.ellipsis,
                                 ),
-                                subtitle: i.category.isEmpty
+                                subtitle: e.category.isEmpty
                                     ? null
-                                    : Text(i.category),
-                                value: _selected.contains(i.id),
+                                    : Text(e.category),
+                                value: _selected.contains(e.id),
                                 onChanged: (v) => setState(() {
                                   if (v ?? false) {
-                                    _selected.add(i.id);
+                                    _selected.add(e.id);
                                   } else {
-                                    _selected.remove(i.id);
+                                    _selected.remove(e.id);
                                   }
                                 }),
                               ),
@@ -200,10 +184,10 @@ class _MoveCopyDialogState extends ConsumerState<MoveCopyDialog> {
                     isDense: true,
                   ),
                   items: [
-                    for (final (id, name) in destinations)
+                    for (final d in widget.destinations)
                       DropdownMenuItem(
-                        value: id,
-                        child: Text(name, overflow: TextOverflow.ellipsis),
+                        value: d.id,
+                        child: Text(d.label, overflow: TextOverflow.ellipsis),
                       ),
                   ],
                   onChanged: (v) => setState(() => _target = v),
@@ -238,4 +222,145 @@ class _MoveCopyDialogState extends ConsumerState<MoveCopyDialog> {
       ],
     );
   }
+}
+
+// ---- Destinations are written 'shop:<id>' or 'pantry:<id>' ----------------
+
+String _pantryLabel(List<ShoppingList> pantryLists, ShoppingList l) =>
+    pantryLists.length == 1 ? 'Pantry' : 'Pantry: ${l.name}';
+
+/// Move/Copy for a shopping list: other shopping lists and the pantry lists.
+Future<MoveCopyOutcome?> showShoppingMoveCopy(
+  BuildContext context, {
+  required AppDatabase db,
+  required ShoppingList list,
+  required List<ShoppingItem> items,
+  required List<ShoppingList> shoppingLists,
+  required List<ShoppingList> pantryLists,
+}) {
+  String nameOf(String target) {
+    final id = target.split(':').last;
+    if (target.startsWith('pantry:')) {
+      return pantryLists.length == 1
+          ? 'the pantry'
+          : '"${pantryLists.firstWhere((l) => l.id == id).name}"';
+    }
+    return '"${shoppingLists.firstWhere((l) => l.id == id).name}"';
+  }
+
+  return showDialog<MoveCopyOutcome>(
+    context: context,
+    builder: (_) => MoveCopyDialog(
+      listName: list.name,
+      entries: [for (final i in items) MoveCopyEntry(i.id, i.name, i.category)],
+      destinations: [
+        for (final l in shoppingLists)
+          if (l.id != list.id) MoveCopyDestination('shop:${l.id}', l.name),
+        for (final l in pantryLists)
+          MoveCopyDestination('pantry:${l.id}', _pantryLabel(pantryLists, l)),
+      ],
+      onRun: (target, ids, {required move}) async {
+        final chosen = [
+          for (final i in items)
+            if (ids.contains(i.id)) i,
+        ];
+        final n = _items(chosen.length);
+        final to = nameOf(target);
+        final id = target.split(':').last;
+        if (target.startsWith('pantry:')) {
+          final created = await db.copyShoppingToPantry(chosen, listId: id);
+          if (!move) {
+            return MoveCopyOutcome(
+              'Copied $n to $to',
+              () => db.deletePantryItems(created),
+            );
+          }
+          await db.deleteShoppingItems(ids);
+          return MoveCopyOutcome('Moved $n to $to', () async {
+            await db.deletePantryItems(created);
+            await db.restoreItems(ids);
+          });
+        }
+        if (move) {
+          final before = await db.moveShoppingItems(ids, id);
+          return MoveCopyOutcome(
+            'Moved $n to $to',
+            () => db.restoreShoppingLists(before),
+          );
+        }
+        final created = await db.copyShoppingItems(chosen, id);
+        return MoveCopyOutcome(
+          'Copied $n to $to',
+          () => db.deleteShoppingItems(created),
+        );
+      },
+    ),
+  );
+}
+
+/// Move/Copy for a pantry list: other pantry lists, and the shopping lists
+/// (to restock what is running low).
+Future<MoveCopyOutcome?> showPantryMoveCopy(
+  BuildContext context, {
+  required AppDatabase db,
+  required ShoppingList list,
+  required List<PantryItem> items,
+  required List<ShoppingList> shoppingLists,
+  required List<ShoppingList> pantryLists,
+}) {
+  String nameOf(String target) {
+    final id = target.split(':').last;
+    return target.startsWith('pantry:')
+        ? '"${pantryLists.firstWhere((l) => l.id == id).name}"'
+        : '"${shoppingLists.firstWhere((l) => l.id == id).name}"';
+  }
+
+  return showDialog<MoveCopyOutcome>(
+    context: context,
+    builder: (_) => MoveCopyDialog(
+      listName: list.name,
+      entries: [for (final i in items) MoveCopyEntry(i.id, i.name, i.category)],
+      destinations: [
+        for (final l in shoppingLists)
+          MoveCopyDestination('shop:${l.id}', l.name),
+        for (final l in pantryLists)
+          if (l.id != list.id) MoveCopyDestination('pantry:${l.id}', l.name),
+      ],
+      onRun: (target, ids, {required move}) async {
+        final chosen = [
+          for (final i in items)
+            if (ids.contains(i.id)) i,
+        ];
+        final n = _items(chosen.length);
+        final to = nameOf(target);
+        final id = target.split(':').last;
+        if (target.startsWith('shop:')) {
+          final created = await db.copyPantryToShopping(chosen, id);
+          if (!move) {
+            return MoveCopyOutcome(
+              'Copied $n to $to',
+              () => db.deleteShoppingItems(created),
+            );
+          }
+          await db.deletePantryItems(ids);
+          return MoveCopyOutcome('Moved $n to $to', () async {
+            await db.deleteShoppingItems(created);
+            await db.restorePantryItems(ids);
+          });
+        }
+        if (move) {
+          final before = await db.movePantryItems(ids, id);
+          return MoveCopyOutcome(
+            'Moved $n to $to',
+            () => db.restorePantryLists(before),
+          );
+        }
+        final created = await db.copyPantryItems(chosen, id);
+        return MoveCopyOutcome(
+          'Copied $n to $to',
+          () => db.deletePantryItems(created),
+        );
+      },
+    ),
+  );
 }

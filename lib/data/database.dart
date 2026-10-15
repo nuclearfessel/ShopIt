@@ -41,6 +41,14 @@ class ShoppingLists extends Table with SyncColumns {
 
   /// Position among the lists (Manage lists lets the user reorder them).
   IntColumn get sortOrder => integer().withDefault(const Constant(0))();
+
+  /// 'shopping' or 'pantry': both kinds of list live in this table so they
+  /// share renaming, ordering and category order.
+  TextColumn get kind => text().withDefault(const Constant('shopping'))();
+
+  /// For pantry lists: how new items show their amount, 'level' (Low/Full) or
+  /// 'number' (an exact quantity).
+  TextColumn get quantityMode => text().withDefault(const Constant('level'))();
 }
 
 /// User-defined sales tax rates. Rates differ by country, state and region, so
@@ -87,6 +95,15 @@ class PantryItems extends Table with SyncColumns {
   TextColumn get location => text().withDefault(const Constant(''))();
   TextColumn get category => text().withDefault(const Constant(''))();
   TextColumn get note => text().withDefault(const Constant(''))();
+
+  /// The pantry list this item is on.
+  TextColumn get listId => text().withDefault(const Constant(''))();
+
+  /// 'level' (shows Low/Full, see [level]) or 'number' (shows [quantity]).
+  TextColumn get quantityMode => text().withDefault(const Constant('level'))();
+
+  /// 'full' or 'low'.
+  TextColumn get level => text().withDefault(const Constant('full'))();
 }
 
 /// Store-aisle categories; [sortOrder] is the walking order used to group lists.
@@ -153,7 +170,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.memory() : super(NativeDatabase.memory());
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -161,6 +178,12 @@ class AppDatabase extends _$AppDatabase {
       await m.createAll();
       await into(shoppingLists)
           .insert(ShoppingListsCompanion.insert(name: 'Groceries'));
+      await into(shoppingLists).insert(
+        ShoppingListsCompanion.insert(
+          name: 'Pantry',
+          kind: const Value('pantry'),
+        ),
+      );
       await _seedCatalog();
     },
     onUpgrade: (m, from, to) async {
@@ -215,6 +238,29 @@ class AppDatabase extends _$AppDatabase {
         await m.createTable(listCategoryOrders);
         await m.createTable(itemHistory);
         await _backfillHistory();
+      }
+      if (from < 9) {
+        // v9: several pantry lists, Low/Full or exact amounts, per item.
+        await m.addColumn(shoppingLists, shoppingLists.kind);
+        await m.addColumn(shoppingLists, shoppingLists.quantityMode);
+        await m.addColumn(pantryItems, pantryItems.listId);
+        await m.addColumn(pantryItems, pantryItems.quantityMode);
+        await m.addColumn(pantryItems, pantryItems.level);
+        // The existing pantry becomes the first pantry list. Its items keep
+        // showing the exact amounts they already had.
+        final pantry = await into(shoppingLists).insertReturning(
+          ShoppingListsCompanion.insert(
+            name: 'Pantry',
+            kind: const Value('pantry'),
+            quantityMode: const Value('number'),
+          ),
+        );
+        await (update(pantryItems)).write(
+          PantryItemsCompanion(
+            listId: Value(pantry.id),
+            quantityMode: const Value('number'),
+          ),
+        );
       }
     },
   );
@@ -315,7 +361,7 @@ class AppDatabase extends _$AppDatabase {
   // ---- Shopping lists ----
   Stream<List<ShoppingList>> watchLists() =>
       (select(shoppingLists)
-            ..where((t) => t.deletedAt.isNull())
+            ..where((t) => t.deletedAt.isNull() & t.kind.equals('shopping'))
             ..orderBy([
               (t) => OrderingTerm.asc(t.sortOrder),
               (t) => OrderingTerm.asc(t.name),
@@ -386,14 +432,29 @@ class AppDatabase extends _$AppDatabase {
         ),
       );
 
-  Future<void> addList(String name) async {
+  /// Adds a list of the given [kind] ('shopping' or 'pantry') at the end.
+  Future<String> addList(String name, {String kind = 'shopping'}) async {
     final count = (await (select(
       shoppingLists,
-    )..where((t) => t.deletedAt.isNull())).get()).length;
-    await into(shoppingLists).insert(
-      ShoppingListsCompanion.insert(name: name, sortOrder: Value(count)),
+    )..where((t) => t.deletedAt.isNull() & t.kind.equals(kind))).get()).length;
+    final row = await into(shoppingLists).insertReturning(
+      ShoppingListsCompanion.insert(
+        name: name,
+        sortOrder: Value(count),
+        kind: Value(kind),
+      ),
     );
+    return row.id;
   }
+
+  Stream<List<ShoppingList>> watchPantryLists() =>
+      (select(shoppingLists)
+            ..where((t) => t.deletedAt.isNull() & t.kind.equals('pantry'))
+            ..orderBy([
+              (t) => OrderingTerm.asc(t.sortOrder),
+              (t) => OrderingTerm.asc(t.name),
+            ]))
+          .watch();
 
   Future<void> renameList(String id, String name) =>
       (update(shoppingLists)..where((t) => t.id.equals(id))).write(
@@ -517,8 +578,20 @@ class AppDatabase extends _$AppDatabase {
     return ids;
   }
 
-  /// Adds shopping items to the pantry. Returns the new pantry items' ids.
-  Future<List<String>> copyShoppingToPantry(List<ShoppingItem> items) async {
+  /// Adds shopping items to a pantry list (the first one if [listId] is not
+  /// given). Returns the new pantry items' ids.
+  Future<List<String>> copyShoppingToPantry(
+    List<ShoppingItem> items, {
+    String? listId,
+  }) async {
+    final lists =
+        await (select(shoppingLists)
+              ..where((t) => t.deletedAt.isNull() & t.kind.equals('pantry'))
+              ..orderBy([(t) => OrderingTerm.asc(t.sortOrder)]))
+            .get();
+    final list = listId == null
+        ? lists.firstOrNull
+        : lists.where((l) => l.id == listId).firstOrNull;
     final ids = <String>[];
     for (final i in items) {
       final row = await into(pantryItems).insertReturning(
@@ -528,6 +601,9 @@ class AppDatabase extends _$AppDatabase {
           unit: Value(i.unit),
           category: Value(i.category),
           note: Value(i.note),
+          listId: Value(list?.id ?? listId ?? ''),
+          // Shopping quantities are exact, so they stay as numbers.
+          quantityMode: const Value('number'),
         ),
       );
       ids.add(row.id);
@@ -758,6 +834,9 @@ class AppDatabase extends _$AppDatabase {
       await (update(shoppingItems)..where((t) => t.listId.equals(id))).write(
         ShoppingItemsCompanion(deletedAt: Value(now), updatedAt: Value(now)),
       );
+      await (update(pantryItems)..where((t) => t.listId.equals(id))).write(
+        PantryItemsCompanion(deletedAt: Value(now), updatedAt: Value(now)),
+      );
       await (update(shoppingLists)..where((t) => t.id.equals(id))).write(
         ShoppingListsCompanion(deletedAt: Value(now), updatedAt: Value(now)),
       );
@@ -772,7 +851,9 @@ class AppDatabase extends _$AppDatabase {
       await (update(shoppingItems)..where((t) => t.deletedAt.isNull())).write(
         ShoppingItemsCompanion(deletedAt: Value(now), updatedAt: Value(now)),
       );
-      await (update(shoppingLists)..where((t) => t.deletedAt.isNull())).write(
+      await (update(
+        shoppingLists,
+      )..where((t) => t.deletedAt.isNull() & t.kind.equals('shopping'))).write(
         ShoppingListsCompanion(deletedAt: Value(now), updatedAt: Value(now)),
       );
     });
@@ -948,9 +1029,16 @@ class AppDatabase extends _$AppDatabase {
 
   // ---- Pantry ----
   /// Soonest expiry first; items without an expiry date sort last.
-  Stream<List<PantryItem>> watchPantry() =>
+  /// Pantry items, from one list or (with no [listId]) every pantry list.
+  Stream<List<PantryItem>> watchPantry({String? listId}) =>
       (select(pantryItems)
-            ..where((t) => t.deletedAt.isNull())
+            ..where(
+              (t) =>
+                  t.deletedAt.isNull() &
+                  (listId == null
+                      ? const Constant(true)
+                      : t.listId.equals(listId)),
+            )
             ..orderBy([
               (t) => OrderingTerm(
                 expression: t.expiryDate.isNull(),
@@ -968,7 +1056,17 @@ class AppDatabase extends _$AppDatabase {
     DateTime? expiryDate,
     String location = '',
     String category = '',
+    String? listId,
   }) async {
+    // Default to the first pantry list; its setting says how amounts show.
+    final lists =
+        await (select(shoppingLists)
+              ..where((t) => t.deletedAt.isNull() & t.kind.equals('pantry'))
+              ..orderBy([(t) => OrderingTerm.asc(t.sortOrder)]))
+            .get();
+    final list = listId == null
+        ? lists.firstOrNull
+        : lists.where((l) => l.id == listId).firstOrNull;
     await into(pantryItems).insert(
       PantryItemsCompanion.insert(
         name: name,
@@ -977,9 +1075,106 @@ class AppDatabase extends _$AppDatabase {
         expiryDate: Value(expiryDate),
         location: Value(location),
         category: Value(category),
+        listId: Value(list?.id ?? listId ?? ''),
+        quantityMode: Value(list?.quantityMode ?? 'level'),
       ),
     );
     await _rememberItem(name, category, unit);
+  }
+
+  /// Marks a pantry item Low or Full.
+  Future<void> setPantryLevel(String id, String level) =>
+      (update(pantryItems)..where((t) => t.id.equals(id))).write(
+        PantryItemsCompanion(
+          level: Value(level),
+          updatedAt: Value(DateTime.now()),
+        ),
+      );
+
+  /// Sets how every item on a pantry list shows its amount ('level' for
+  /// Low/Full, 'number' for exact quantities), and what new items use.
+  Future<void> setPantryQuantityMode(
+    String listId,
+    String mode,
+  ) => transaction(() async {
+    final now = DateTime.now();
+    await (update(shoppingLists)..where((t) => t.id.equals(listId))).write(
+      ShoppingListsCompanion(quantityMode: Value(mode), updatedAt: Value(now)),
+    );
+    await (update(pantryItems)..where((t) => t.listId.equals(listId))).write(
+      PantryItemsCompanion(quantityMode: Value(mode), updatedAt: Value(now)),
+    );
+  });
+
+  /// Changes how a single pantry item shows its amount.
+  Future<void> setPantryItemMode(String id, String mode) =>
+      (update(pantryItems)..where((t) => t.id.equals(id))).write(
+        PantryItemsCompanion(
+          quantityMode: Value(mode),
+          updatedAt: Value(DateTime.now()),
+        ),
+      );
+
+  /// Moves pantry items to another pantry list; returns their previous lists
+  /// so it can be undone with [restorePantryLists].
+  Future<Map<String, String>> movePantryItems(
+    List<String> ids,
+    String listId,
+  ) async {
+    final before = <String, String>{};
+    await transaction(() async {
+      final rows = await (select(
+        pantryItems,
+      )..where((t) => t.id.isIn(ids))).get();
+      for (final r in rows) {
+        before[r.id] = r.listId;
+      }
+      await (update(pantryItems)..where((t) => t.id.isIn(ids))).write(
+        PantryItemsCompanion(
+          listId: Value(listId),
+          updatedAt: Value(DateTime.now()),
+        ),
+      );
+    });
+    return before;
+  }
+
+  Future<void> restorePantryLists(Map<String, String> before) =>
+      transaction(() async {
+        for (final e in before.entries) {
+          await (update(pantryItems)..where((t) => t.id.equals(e.key))).write(
+            PantryItemsCompanion(
+              listId: Value(e.value),
+              updatedAt: Value(DateTime.now()),
+            ),
+          );
+        }
+      });
+
+  /// Copies pantry items onto another pantry list. Returns the new ids.
+  Future<List<String>> copyPantryItems(
+    List<PantryItem> items,
+    String listId,
+  ) async {
+    final ids = <String>[];
+    for (final i in items) {
+      final row = await into(pantryItems).insertReturning(
+        PantryItemsCompanion.insert(
+          name: i.name,
+          quantity: Value(i.quantity),
+          unit: Value(i.unit),
+          expiryDate: Value(i.expiryDate),
+          location: Value(i.location),
+          category: Value(i.category),
+          note: Value(i.note),
+          listId: Value(listId),
+          quantityMode: Value(i.quantityMode),
+          level: Value(i.level),
+        ),
+      );
+      ids.add(row.id);
+    }
+    return ids;
   }
 
   Future<void> updatePantryQuantity(String id, double quantity) =>
@@ -1000,6 +1195,8 @@ class AppDatabase extends _$AppDatabase {
     required String location,
     DateTime? expiryDate,
     required String note,
+    String? quantityMode,
+    String? level,
   }) => (update(pantryItems)..where((t) => t.id.equals(id))).write(
     PantryItemsCompanion(
       name: Value(name),
@@ -1009,6 +1206,10 @@ class AppDatabase extends _$AppDatabase {
       location: Value(location),
       expiryDate: Value(expiryDate),
       note: Value(note),
+      quantityMode: quantityMode == null
+          ? const Value.absent()
+          : Value(quantityMode),
+      level: level == null ? const Value.absent() : Value(level),
       updatedAt: Value(DateTime.now()),
     ),
   );

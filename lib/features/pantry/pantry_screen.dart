@@ -1,55 +1,329 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../data/database.dart';
 import '../../data/catalog_seed.dart';
+import '../../data/category_order.dart';
+import '../../data/database.dart';
 import '../../data/providers.dart';
-import '../catalog/catalog_suggestions.dart';
-import '../catalog/item_editor.dart';
-import '../settings/settings_dialog.dart';
+import '../../ui/category_header.dart';
+import '../../ui/dialogs.dart';
 import '../../ui/keyline/keyline_icon.dart';
 import '../../ui/tip.dart';
+import '../../ui/undo_snack_bar.dart';
+import '../catalog/catalog_suggestions.dart';
+import '../catalog/item_editor.dart';
+import '../categories/category_color_dialog.dart';
+import '../categories/manage_categories_dialog.dart';
+import '../lists/manage_lists_dialog.dart';
+import '../lists/move_copy_dialog.dart';
+import '../settings/settings_dialog.dart';
+import 'items_setting_dialog.dart';
 
-class PantryScreen extends ConsumerWidget {
+class PantryScreen extends ConsumerStatefulWidget {
   const PantryScreen({super.key});
 
   @override
+  ConsumerState<PantryScreen> createState() => _PantryScreenState();
+}
+
+class _PantryScreenState extends ConsumerState<PantryScreen> {
+  String? _listId;
+
+  Future<void> _newList() async {
+    final name = await askNameDialog(context, title: 'New pantry list');
+    if (name == null) return;
+    final id = await ref.read(databaseProvider).addList(name, kind: 'pantry');
+    if (mounted) setState(() => _listId = id);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final lists = ref.watch(pantryListsProvider);
+    final settingsButton = IconButton(
+      tooltip: 'Settings',
+      icon: const KeylineIcon(KeylineIcons.settings),
+      onPressed: () => showDialog<void>(
+        context: context,
+        builder: (_) => const SettingsDialog(),
+      ),
+    );
+    return lists.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, _) => Center(child: Text('Error: $e')),
+      data: (all) {
+        if (all.isEmpty) {
+          return Scaffold(
+            appBar: AppBar(
+              title: const Text('Pantry'),
+              actions: [settingsButton],
+            ),
+            body: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('No pantry lists yet'),
+                  const SizedBox(height: 12),
+                  Tip(
+                    'Create your first pantry list',
+                    child: FilledButton.icon(
+                      onPressed: _newList,
+                      icon: const KeylineIcon(KeylineIcons.listPlus),
+                      label: const Text('Create a pantry list'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+        final current = all.firstWhere(
+          (l) => l.id == _listId,
+          orElse: () => all.first,
+        );
+        return _PantryBody(
+          lists: all,
+          current: current,
+          onSelect: (id) => setState(() => _listId = id),
+          onNewList: _newList,
+          onListGone: () => setState(() => _listId = null),
+          settingsButton: settingsButton,
+        );
+      },
+    );
+  }
+}
+
+class _PantryBody extends ConsumerWidget {
+  const _PantryBody({
+    required this.lists,
+    required this.current,
+    required this.onSelect,
+    required this.onNewList,
+    required this.onListGone,
+    required this.settingsButton,
+  });
+
+  final List<ShoppingList> lists;
+  final ShoppingList current;
+  final ValueChanged<String> onSelect;
+  final Future<void> Function() onNewList;
+  final VoidCallback onListGone;
+  final Widget settingsButton;
+
+  @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final items = ref.watch(pantryProvider);
     final db = ref.read(databaseProvider);
-    final categories = [
-      for (final c in ref.watch(categoriesProvider).value ?? const <Category>[])
-        c.name,
-    ];
+    final items = ref.watch(pantryProvider(current.id));
+    // Watched (not read) so they are loaded by the time Move/Copy needs them.
+    final shoppingLists =
+        ref.watch(listsProvider).value ?? const <ShoppingList>[];
+    final allCategories =
+        ref.watch(categoriesProvider).value ?? const <Category>[];
+    final manual =
+        ref.watch(listCategoryOrderProvider(current.id)).value ??
+        const <ListCategoryOrder>[];
+    final order = categoryOrderMap(allCategories, manual);
+    final categories = orderedCategoryNames(allCategories, manual);
+    final colors = {
+      for (final c in allCategories)
+        if (c.color != null) c.name: Color(c.color!),
+    };
+
+    Future<void> recolor(String name) async {
+      final choice = await showCategoryColorDialog(
+        context,
+        category: name,
+        current: allCategories.where((c) => c.name == name).firstOrNull?.color,
+      );
+      if (choice != null) await db.setCategoryColor(name, choice.argb);
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Pantry'),
         actions: [
-          IconButton(
-            tooltip: 'Settings',
-            icon: const KeylineIcon(KeylineIcons.settings),
-            onPressed: () => showDialog<void>(
-              context: context,
-              builder: (_) => const SettingsDialog(),
+          settingsButton,
+          PopupMenuButton<String>(
+            tooltip: 'List options',
+            icon: const KeylineIcon(KeylineIcons.moreVertical),
+            onSelected: (v) async {
+              if (v == 'new') {
+                await onNewList();
+              } else if (v == 'moveCopy') {
+                final outcome = await showPantryMoveCopy(
+                  context,
+                  db: db,
+                  list: current,
+                  items: items.value ?? const [],
+                  shoppingLists: shoppingLists,
+                  pantryLists: lists,
+                );
+                if (outcome != null && context.mounted) {
+                  showUndoSnackBar(
+                    context,
+                    message: outcome.message,
+                    onUndo: outcome.undo,
+                  );
+                }
+              } else if (v == 'itemsSetting') {
+                await showDialog<void>(
+                  context: context,
+                  builder: (_) => PantryItemsSettingDialog(list: current),
+                );
+              } else if (v == 'categories') {
+                await showDialog<void>(
+                  context: context,
+                  builder: (_) => ManageCategoriesDialog(
+                    listId: current.id,
+                    listName: current.name,
+                  ),
+                );
+              } else if (v == 'manageLists') {
+                await showDialog<void>(
+                  context: context,
+                  builder: (_) => const ManageListsDialog(pantry: true),
+                );
+              } else if (v == 'delete') {
+                final ok = await confirmDialog(
+                  context,
+                  title: 'Delete "${current.name}"?',
+                  message: 'The list and all its items will be removed.',
+                  confirmTip: 'Delete this pantry list and its items',
+                );
+                if (ok) {
+                  await db.deleteList(current.id);
+                  onListGone();
+                }
+              }
+            },
+            itemBuilder: (_) => [
+              PopupMenuItem(
+                value: 'new',
+                child: Tip(
+                  'Start another pantry list',
+                  child: const Text('Create new list'),
+                ),
+              ),
+              PopupMenuItem(
+                value: 'moveCopy',
+                child: Tip(
+                  'Move or copy items to another list or a shopping list',
+                  child: const Text('Move/Copy items'),
+                ),
+              ),
+              PopupMenuItem(
+                value: 'itemsSetting',
+                child: Tip(
+                  'Show amounts as Low/Full or as numbers',
+                  child: const Text('Items setting'),
+                ),
+              ),
+              PopupMenuItem(
+                value: 'categories',
+                child: Tip(
+                  'Add, reorder, recolor or delete categories',
+                  child: const Text('Manage categories'),
+                ),
+              ),
+              PopupMenuItem(
+                value: 'manageLists',
+                child: Tip(
+                  'Rename, reorder or delete your pantry lists',
+                  child: const Text('Manage lists'),
+                ),
+              ),
+              PopupMenuItem(
+                value: 'delete',
+                child: Tip(
+                  'Delete this pantry list and its items',
+                  child: const Text('Delete this list'),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
+            // A pull-down only when there is more than one list to pick from.
+            child: lists.length > 1
+                ? Tip(
+                    'Choose a pantry list',
+                    child: DropdownButton<String>(
+                      isExpanded: true,
+                      value: current.id,
+                      items: [
+                        for (final l in lists)
+                          DropdownMenuItem(
+                            value: l.id,
+                            child: Text(
+                              l.name,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                      ],
+                      onChanged: (v) {
+                        if (v != null) onSelect(v);
+                      },
+                    ),
+                  )
+                : Align(
+                    alignment: Alignment.centerLeft,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      child: Text(
+                        current.name,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                    ),
+                  ),
+          ),
+          Expanded(
+            child: items.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (e, _) => Center(child: Text('Error: $e')),
+              data: (rows) {
+                if (rows.isEmpty) {
+                  return const Center(child: Text('Pantry is empty'));
+                }
+                final byCategory = <String, List<PantryItem>>{};
+                for (final i in rows) {
+                  byCategory
+                      .putIfAbsent(
+                        i.category.isEmpty ? 'Other' : i.category,
+                        () => [],
+                      )
+                      .add(i);
+                }
+                final names = byCategory.keys.toList()
+                  ..sort(
+                    (a, b) =>
+                        (order[a] ?? 1 << 20).compareTo(order[b] ?? 1 << 20),
+                  );
+                return ListView(
+                  children: [
+                    for (final n in names) ...[
+                      CategoryHeader(
+                        n,
+                        color: colors[n],
+                        onTap: () => recolor(n),
+                      ),
+                      for (final i in byCategory[n]!)
+                        _PantryTile(item: i, db: db, categories: categories),
+                    ],
+                  ],
+                );
+              },
             ),
           ),
         ],
       ),
-      body: items.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error: $e')),
-        data: (rows) => rows.isEmpty
-            ? const Center(child: Text('Pantry is empty'))
-            : ListView(
-                children: [
-                  for (final i in rows)
-                    _PantryTile(item: i, db: db, categories: categories),
-                ],
-              ),
-      ),
       floatingActionButton: FloatingActionButton(
         tooltip: 'Add pantry item',
-        onPressed: () => _showAddDialog(context, db, categories),
+        onPressed: () => _showAddDialog(context, db, categories, current.id),
         child: const KeylineIcon(KeylineIcons.plus),
       ),
     );
@@ -124,33 +398,60 @@ class _PantryTile extends StatelessWidget {
               ],
             ),
           );
-          final stepper = Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              IconButton(
-                tooltip: 'Decrease',
-                visualDensity: VisualDensity.compact,
-                icon: const KeylineIcon(KeylineIcons.circleMinus),
-                onPressed: item.quantity <= 0
-                    ? null
-                    : () => db.updatePantryQuantity(item.id, item.quantity - 1),
-              ),
-              Flexible(
-                child: Text(
-                  '${_fmt(item.quantity)} ${item.unit}'.trim(),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              IconButton(
-                tooltip: 'Increase',
-                visualDensity: VisualDensity.compact,
-                icon: const KeylineIcon(KeylineIcons.circlePlus),
-                onPressed: () =>
-                    db.updatePantryQuantity(item.id, item.quantity + 1),
-              ),
-            ],
-          );
-          // Narrow windows: put the stepper under the text instead of beside it.
+          final amount = item.quantityMode == 'level'
+              ? SegmentedButton<String>(
+                  showSelectedIcon: false,
+                  style: SegmentedButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    textStyle: theme.textTheme.labelMedium,
+                  ),
+                  segments: const [
+                    ButtonSegment(
+                      value: 'low',
+                      label: Text('Low'),
+                      tooltip: 'Running low: time to restock',
+                    ),
+                    ButtonSegment(
+                      value: 'full',
+                      label: Text('Full'),
+                      tooltip: 'Plenty left',
+                    ),
+                  ],
+                  selected: {item.level == 'low' ? 'low' : 'full'},
+                  onSelectionChanged: (s) =>
+                      db.setPantryLevel(item.id, s.first),
+                )
+              : Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      tooltip: 'Decrease',
+                      visualDensity: VisualDensity.compact,
+                      icon: const KeylineIcon(KeylineIcons.circleMinus),
+                      onPressed: item.quantity <= 0
+                          ? null
+                          : () => db.updatePantryQuantity(
+                              item.id,
+                              item.quantity - 1,
+                            ),
+                    ),
+                    Flexible(
+                      child: Text(
+                        '${_fmt(item.quantity)} ${item.unit}'.trim(),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: 'Increase',
+                      visualDensity: VisualDensity.compact,
+                      icon: const KeylineIcon(KeylineIcons.circlePlus),
+                      onPressed: () =>
+                          db.updatePantryQuantity(item.id, item.quantity + 1),
+                    ),
+                  ],
+                );
+          // Narrow windows: put the amount under the text instead of beside it.
           return InkWell(
             onTap: () => _edit(context),
             child: Padding(
@@ -158,12 +459,16 @@ class _PantryTile extends StatelessWidget {
               child: box.maxWidth < 380
                   ? Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [text, stepper],
+                      children: [
+                        text,
+                        const SizedBox(height: 4),
+                        Align(alignment: Alignment.centerLeft, child: amount),
+                      ],
                     )
                   : Row(
                       children: [
                         Expanded(child: text),
-                        stepper,
+                        amount,
                       ],
                     ),
             ),
@@ -187,6 +492,8 @@ class _PantryTile extends StatelessWidget {
         note: item.note,
         location: item.location,
         expiry: item.expiryDate,
+        quantityMode: item.quantityMode,
+        level: item.level,
       ),
     );
     switch (result) {
@@ -200,6 +507,8 @@ class _PantryTile extends StatelessWidget {
           location: edit.location,
           expiryDate: edit.expiry,
           note: edit.note,
+          quantityMode: edit.quantityMode,
+          level: edit.level,
         );
         if (edit.category != item.category) {
           await db.assignCategory(edit.name, edit.category);
@@ -207,7 +516,7 @@ class _PantryTile extends StatelessWidget {
       case ItemDeleted():
         await db.deletePantryItem(item.id);
       case ItemMoved() || ItemCopied() || null:
-        break; // move/copy only apply to shopping items
+        break; // move/copy have their own dialog from the list menu
     }
   }
 }
@@ -216,6 +525,7 @@ Future<void> _showAddDialog(
   BuildContext context,
   AppDatabase db,
   List<String> categories,
+  String listId,
 ) {
   final name = TextEditingController();
   final qty = TextEditingController(text: '1');
@@ -341,6 +651,7 @@ Future<void> _showAddDialog(
                   expiryDate: expiry,
                   location: location.text.trim(),
                   category: category.isEmpty ? 'Other' : category,
+                  listId: listId,
                 );
                 Navigator.pop(ctx);
               },
