@@ -98,8 +98,8 @@ class SettingsDialog extends ConsumerWidget {
               const Divider(height: 24),
               heading('Devices'),
               Text(
-                'Turn on sharing here and on the other device. Both apps need '
-                'to be open on the same Wi-Fi.',
+                'Share on this Wi-Fi when both apps are nearby, or pair once '
+                'with a cloud code to sync over the internet.',
                 style: theme.textTheme.bodyMedium,
               ),
               const SizedBox(height: 8),

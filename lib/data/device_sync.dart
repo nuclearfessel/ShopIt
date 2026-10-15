@@ -105,12 +105,25 @@ extension DeviceSync on AppDatabase {
 
   /// Applies [remote]. Rows already here with a newer [updatedAt] are left as
   /// they are, so an edit made while the sync is in flight is not lost.
+  ///
+  /// A remote list with the same name and kind as a local list is folded into
+  /// that local list instead of creating a second copy. Items on the remote
+  /// list are remapped onto it, and an item with the same name on that list is
+  /// merged rather than duplicated.
   Future<void> applySnapshot(SyncSnapshot remote) => transaction(() async {
     await _applyTaxRates(remote.taxRates);
     final lists = await _applyLists(remote.lists);
     final itemCategories = <String>{};
-    await _applyShoppingItems(remote.shoppingItems, itemCategories);
-    await _applyPantryItems(remote.pantryItems, itemCategories);
+    await _applyShoppingItems(
+      remote.shoppingItems,
+      itemCategories,
+      lists.aliases,
+    );
+    await _applyPantryItems(
+      remote.pantryItems,
+      itemCategories,
+      lists.aliases,
+    );
     await _applyCategories(remote.categories, itemCategories);
     await _applyHistory(remote.history);
     await _applyCatalog(remote.catalog);
@@ -146,26 +159,56 @@ extension DeviceSync on AppDatabase {
     }
   }
 
-  /// Returns the ids of lists that were inserted or updated, and which of
-  /// those are deleted, so category order can follow the list.
-  Future<({Set<String> changed, Set<String> deleted})> _applyLists(
-    List<Map<String, Object?>> rows,
-  ) async {
+  /// Returns the ids of lists that were inserted or updated, which of those
+  /// are deleted, and remote-to-local id aliases for same-name merges.
+  Future<({Set<String> changed, Set<String> deleted, Map<String, String> aliases})>
+  _applyLists(List<Map<String, Object?>> rows) async {
     final changed = <String>{};
     final deleted = <String>{};
+    final aliases = <String, String>{};
     for (final row in rows) {
       final id = _id(row);
       final at = _updatedAt(row);
       final name = _string(row, 'name');
       if (id == null || at == null || name.isEmpty) continue;
-      final local = await (select(
+      final kind = _string(row, 'kind', 'shopping');
+      final resolvedKind = kind.isEmpty ? 'shopping' : kind;
+      final remoteDeleted = _date(row, 'deletedAt') != null;
+
+      var local = await (select(
         shoppingLists,
       )..where((t) => t.id.equals(id))).getSingleOrNull();
+
+      // Same name and kind on this device: keep the oldest twin and fold into
+      // it. Extra local copies of that name are soft-deleted so sync does not
+      // leave two "Groceries" lists behind.
+      if (!remoteDeleted) {
+        final twins = await _listsByName(name, resolvedKind);
+        if (twins.isNotEmpty) {
+          final keeper = twins.first;
+          if (local == null || local.id != keeper.id) {
+            aliases[id] = keeper.id;
+            if (local != null && local.id != keeper.id) {
+              aliases[local.id] = keeper.id;
+            }
+            local = keeper;
+          }
+          for (final extra in twins.skip(1)) {
+            await _foldListInto(extra, keeper);
+            aliases[extra.id] = keeper.id;
+            changed.add(keeper.id);
+            deleted.add(extra.id);
+          }
+        }
+      }
+
+      final targetId = local?.id ?? id;
       if (local != null &&
           !_take(at, local.updatedAt, _identical(_listJson(local), row))) {
+        // Still remember the alias so items on the remote id land here.
+        if (targetId != id) aliases[id] = targetId;
         continue;
       }
-      final kind = _string(row, 'kind', 'shopping');
       final mode = _string(row, 'quantityMode', 'level');
       final values = ShoppingListsCompanion(
         name: Value(name),
@@ -174,7 +217,7 @@ extension DeviceSync on AppDatabase {
         autoCategorize: Value(_bool(row, 'autoCategorize', true)),
         showEmptyCategories: Value(_bool(row, 'showEmptyCategories', false)),
         sortOrder: Value(_int(row, 'sortOrder')),
-        kind: Value(kind.isEmpty ? 'shopping' : kind),
+        kind: Value(resolvedKind),
         quantityMode: Value(mode.isEmpty ? 'level' : mode),
         updatedAt: Value(at),
         deletedAt: Value(_date(row, 'deletedAt')),
@@ -184,27 +227,96 @@ extension DeviceSync on AppDatabase {
       } else {
         await (update(
           shoppingLists,
-        )..where((t) => t.id.equals(id))).write(values);
+        )..where((t) => t.id.equals(targetId))).write(values);
       }
-      changed.add(id);
-      if (_date(row, 'deletedAt') != null) deleted.add(id);
+      changed.add(targetId);
+      if (targetId != id) aliases[id] = targetId;
+      if (remoteDeleted) deleted.add(targetId);
     }
-    return (changed: changed, deleted: deleted);
+    return (changed: changed, deleted: deleted, aliases: aliases);
+  }
+
+  Future<List<ShoppingList>> _listsByName(String name, String kind) async {
+    final needle = name.trim().toLowerCase();
+    final rows = await (select(shoppingLists)..where(
+          (t) => t.deletedAt.isNull() & t.kind.equals(kind),
+        ))
+        .get();
+    final matches = [
+      for (final row in rows)
+        if (row.name.trim().toLowerCase() == needle) row,
+    ];
+    matches.sort((a, b) => a.updatedAt.compareTo(b.updatedAt));
+    return matches;
+  }
+
+  /// Moves items from [extra] onto [keeper] and soft-deletes [extra].
+  Future<void> _foldListInto(ShoppingList extra, ShoppingList keeper) async {
+    final now = DateTime.now().toUtc();
+    final shopping = await (select(
+      shoppingItems,
+    )..where((t) => t.listId.equals(extra.id) & t.deletedAt.isNull())).get();
+    for (final item in shopping) {
+      final twin = await _shoppingItemByName(keeper.id, item.name);
+      if (twin == null) {
+        await (update(shoppingItems)..where((t) => t.id.equals(item.id))).write(
+          ShoppingItemsCompanion(
+            listId: Value(keeper.id),
+            updatedAt: Value(now),
+          ),
+        );
+      } else {
+        await (update(shoppingItems)..where((t) => t.id.equals(item.id))).write(
+          ShoppingItemsCompanion(
+            deletedAt: Value(now),
+            updatedAt: Value(now),
+          ),
+        );
+      }
+    }
+    final pantry = await (select(
+      pantryItems,
+    )..where((t) => t.listId.equals(extra.id) & t.deletedAt.isNull())).get();
+    for (final item in pantry) {
+      final twin = await _pantryItemByName(keeper.id, item.name);
+      if (twin == null) {
+        await (update(pantryItems)..where((t) => t.id.equals(item.id))).write(
+          PantryItemsCompanion(
+            listId: Value(keeper.id),
+            updatedAt: Value(now),
+          ),
+        );
+      } else {
+        await (update(pantryItems)..where((t) => t.id.equals(item.id))).write(
+          PantryItemsCompanion(deletedAt: Value(now), updatedAt: Value(now)),
+        );
+      }
+    }
+    await (update(shoppingLists)..where((t) => t.id.equals(extra.id))).write(
+      ShoppingListsCompanion(deletedAt: Value(now), updatedAt: Value(now)),
+    );
   }
 
   Future<void> _applyShoppingItems(
     List<Map<String, Object?>> rows,
     Set<String> categories,
+    Map<String, String> listAliases,
   ) async {
     for (final row in rows) {
       final id = _id(row);
       final at = _updatedAt(row);
-      final listId = _string(row, 'listId');
+      final rawListId = _string(row, 'listId');
       final name = _string(row, 'name');
-      if (id == null || at == null || listId.isEmpty || name.isEmpty) continue;
-      final local = await (select(
+      if (id == null || at == null || rawListId.isEmpty || name.isEmpty) {
+        continue;
+      }
+      final listId = listAliases[rawListId] ?? rawListId;
+      var local = await (select(
         shoppingItems,
       )..where((t) => t.id.equals(id))).getSingleOrNull();
+      if (local == null) {
+        local = await _shoppingItemByName(listId, name);
+      }
       if (local != null &&
           !_take(at, local.updatedAt, _identical(_shoppingJson(local), row))) {
         continue;
@@ -231,23 +343,41 @@ extension DeviceSync on AppDatabase {
       } else {
         await (update(
           shoppingItems,
-        )..where((t) => t.id.equals(id))).write(values);
+        )..where((t) => t.id.equals(local!.id))).write(values);
       }
     }
+  }
+
+  Future<ShoppingItem?> _shoppingItemByName(String listId, String name) async {
+    final needle = name.trim().toLowerCase();
+    final rows = await (select(shoppingItems)..where(
+          (t) => t.deletedAt.isNull() & t.listId.equals(listId),
+        ))
+        .get();
+    for (final row in rows) {
+      if (row.name.trim().toLowerCase() == needle) return row;
+    }
+    return null;
   }
 
   Future<void> _applyPantryItems(
     List<Map<String, Object?>> rows,
     Set<String> categories,
+    Map<String, String> listAliases,
   ) async {
     for (final row in rows) {
       final id = _id(row);
       final at = _updatedAt(row);
       final name = _string(row, 'name');
       if (id == null || at == null || name.isEmpty) continue;
-      final local = await (select(
+      final rawListId = _string(row, 'listId');
+      final listId = listAliases[rawListId] ?? rawListId;
+      var local = await (select(
         pantryItems,
       )..where((t) => t.id.equals(id))).getSingleOrNull();
+      if (local == null && listId.isNotEmpty) {
+        local = await _pantryItemByName(listId, name);
+      }
       if (local != null &&
           !_take(at, local.updatedAt, _identical(_pantryJson(local), row))) {
         continue;
@@ -264,7 +394,7 @@ extension DeviceSync on AppDatabase {
         location: Value(_string(row, 'location')),
         category: Value(category),
         note: Value(_string(row, 'note')),
-        listId: Value(_string(row, 'listId')),
+        listId: Value(listId),
         quantityMode: Value(mode.isEmpty ? 'level' : mode),
         level: Value(level.isEmpty ? 'full' : level),
         updatedAt: Value(at),
@@ -275,9 +405,21 @@ extension DeviceSync on AppDatabase {
       } else {
         await (update(
           pantryItems,
-        )..where((t) => t.id.equals(id))).write(values);
+        )..where((t) => t.id.equals(local!.id))).write(values);
       }
     }
+  }
+
+  Future<PantryItem?> _pantryItemByName(String listId, String name) async {
+    final needle = name.trim().toLowerCase();
+    final rows = await (select(pantryItems)..where(
+          (t) => t.deletedAt.isNull() & t.listId.equals(listId),
+        ))
+        .get();
+    for (final row in rows) {
+      if (row.name.trim().toLowerCase() == needle) return row;
+    }
+    return null;
   }
 
   Future<void> _applyCategories(
@@ -382,15 +524,25 @@ extension DeviceSync on AppDatabase {
 
   Future<void> _applyOrders(
     List<Map<String, Object?>> rows,
-    ({Set<String> changed, Set<String> deleted}) lists,
+    ({Set<String> changed, Set<String> deleted, Map<String, String> aliases})
+    lists,
   ) async {
     for (final id in lists.changed) {
       await (delete(
         listCategoryOrders,
       )..where((t) => t.listId.equals(id))).go();
       if (lists.deleted.contains(id)) continue;
-      final mine = rows.where((row) => row['listId'] == id).toList()
-        ..sort((a, b) => _int(a, 'position').compareTo(_int(b, 'position')));
+      final remoteIds = <String>{id};
+      for (final entry in lists.aliases.entries) {
+        if (entry.value == id) remoteIds.add(entry.key);
+      }
+      final mine =
+          rows
+              .where((row) => remoteIds.contains(_string(row, 'listId')))
+              .toList()
+            ..sort(
+              (a, b) => _int(a, 'position').compareTo(_int(b, 'position')),
+            );
       for (final row in mine) {
         final category = _string(row, 'category');
         if (category.isEmpty) continue;

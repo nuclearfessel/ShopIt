@@ -1,17 +1,31 @@
 import 'dart:io' show Platform;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../ui/tip.dart';
 import 'device_link_controller.dart';
 
-/// Turn sharing on. The other device does the same, and the two find each other.
-class DeviceLinkDialog extends ConsumerWidget {
+/// Turn sharing on for Wi-Fi and, optionally, over the internet.
+class DeviceLinkDialog extends ConsumerStatefulWidget {
   const DeviceLinkDialog({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<DeviceLinkDialog> createState() => _DeviceLinkDialogState();
+}
+
+class _DeviceLinkDialogState extends ConsumerState<DeviceLinkDialog> {
+  final _code = TextEditingController();
+
+  @override
+  void dispose() {
+    _code.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final link = ref.watch(deviceLinkProvider);
     final muted = theme.textTheme.bodyMedium?.copyWith(
@@ -23,57 +37,145 @@ class DeviceLinkDialog extends ConsumerWidget {
       title: const Text('Share lists'),
       content: SizedBox(
         width: 420,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Turn this on here and on the other device. Lists you add on '
-              'either one show up on the other while both apps are open on '
-              'the same Wi-Fi.',
-              style: muted,
-            ),
-            const SizedBox(height: 12),
-            Text(link.summary, style: theme.textTheme.bodyMedium),
-            if (link.lastSync != null) ...[
-              const SizedBox(height: 4),
-              Text(_when(link), style: theme.textTheme.bodySmall),
-            ],
-            if (link.sharing && Platform.isWindows) ...[
-              const SizedBox(height: 12),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
               Text(
-                'If Windows asks whether to allow Shop-it on private networks, '
-                'choose allow. The phone cannot connect until you do.',
-                style: theme.textTheme.bodySmall,
+                'On the same Wi-Fi, turn sharing on here and on the other '
+                'device. Away from that network, pair once with a cloud code '
+                'and the lists still sync while each app is open.',
+                style: muted,
               ),
-            ],
-            if (link.error != null) ...[
               const SizedBox(height: 12),
+              Text(link.summary, style: theme.textTheme.bodyMedium),
+              if (link.lastSync != null) ...[
+                const SizedBox(height: 4),
+                Text(_when(link), style: theme.textTheme.bodySmall),
+              ],
+              if (link.sharing && Platform.isWindows) ...[
+                const SizedBox(height: 12),
+                Text(
+                  'If Windows asks whether to allow Shop-it on private '
+                  'networks, choose allow. The phone cannot connect on Wi-Fi '
+                  'until you do.',
+                  style: theme.textTheme.bodySmall,
+                ),
+              ],
+              if (link.error != null) ...[
+                const SizedBox(height: 12),
+                Text(
+                  link.error!,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.error,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 16),
               Text(
-                link.error!,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.error,
+                'THIS WI-FI',
+                style: theme.textTheme.labelLarge?.copyWith(
+                  letterSpacing: 0.6,
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                 ),
               ),
+              const SizedBox(height: 8),
+              if (link.sharing)
+                Tip(
+                  'Stop sharing lists on this Wi-Fi',
+                  child: TextButton(
+                    onPressed: link.busy ? null : notifier.stop,
+                    child: const Text('Stop Wi-Fi sharing'),
+                  ),
+                )
+              else
+                Tip(
+                  'Share lists with Shop-it on the other device on this Wi-Fi',
+                  child: FilledButton(
+                    onPressed: link.busy ? null : notifier.startSharing,
+                    child: const Text('Share on this Wi-Fi'),
+                  ),
+                ),
+              const SizedBox(height: 20),
+              Text(
+                'OVER THE INTERNET',
+                style: theme.textTheme.labelLarge?.copyWith(
+                  letterSpacing: 0.6,
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                ),
+              ),
+              const SizedBox(height: 8),
+              if (link.cloudLinked) ...[
+                Text(
+                  'Household code: ${link.cloudCode}',
+                  style: theme.textTheme.bodyMedium,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Enter that code on the other device. Both apps need an '
+                  'internet connection while they are open.',
+                  style: muted,
+                ),
+                const SizedBox(height: 8),
+                Tip(
+                  'Copy the household code',
+                  child: TextButton(
+                    onPressed: () async {
+                      final code = link.cloudCode;
+                      if (code == null) return;
+                      await Clipboard.setData(ClipboardData(text: code));
+                    },
+                    child: const Text('Copy code'),
+                  ),
+                ),
+                Tip(
+                  'Stop syncing over the internet',
+                  child: TextButton(
+                    onPressed: link.cloudBusy ? null : notifier.leaveCloud,
+                    child: const Text('Leave cloud sync'),
+                  ),
+                ),
+              ] else ...[
+                Text(
+                  'Create a code on one device, then enter it on the other. '
+                  'Works on mobile data, not only Wi-Fi.',
+                  style: muted,
+                ),
+                const SizedBox(height: 8),
+                Tip(
+                  'Create a household code for the other device',
+                  child: FilledButton(
+                    onPressed: link.cloudBusy
+                        ? null
+                        : notifier.createCloudHousehold,
+                    child: const Text('Create cloud code'),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _code,
+                  decoration: const InputDecoration(
+                    labelText: 'Code from the other device',
+                    border: OutlineInputBorder(),
+                  ),
+                  textCapitalization: TextCapitalization.none,
+                  autocorrect: false,
+                  maxLength: 8,
+                  enabled: !link.cloudBusy,
+                ),
+                Tip(
+                  'Join the household with that code',
+                  child: OutlinedButton(
+                    onPressed: link.cloudBusy
+                        ? null
+                        : () => notifier.joinCloudHousehold(_code.text),
+                    child: const Text('Join with code'),
+                  ),
+                ),
+              ],
             ],
-            const SizedBox(height: 16),
-            if (link.sharing)
-              Tip(
-                'Stop sharing lists',
-                child: TextButton(
-                  onPressed: link.busy ? null : notifier.stop,
-                  child: const Text('Stop sharing'),
-                ),
-              )
-            else
-              Tip(
-                'Share lists with Shop-it on the other device',
-                child: FilledButton(
-                  onPressed: link.busy ? null : notifier.startSharing,
-                  child: const Text('Share on this Wi-Fi'),
-                ),
-              ),
-          ],
+          ),
         ),
       ),
       actions: [

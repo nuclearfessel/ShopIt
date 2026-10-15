@@ -69,6 +69,71 @@ void main() {
     expect(await shoppingNames(host), contains('From the phone'));
   });
 
+  test('same grocery list name merges instead of duplicating', () async {
+    // Each database already has a seeded "Groceries" list. Adding another with
+    // the same name on either side must still collapse to one list on sync.
+    final phoneList = await client.addList('Groceries');
+    await client.addShoppingItem(phoneList, 'Milk');
+    await client.addShoppingItem(phoneList, 'Bread');
+
+    final computerList = await host.addList('Groceries');
+    await host.addShoppingItem(computerList, 'Eggs');
+    await host.addShoppingItem(computerList, 'Milk');
+
+    await exchange(host, client);
+
+    expect(await shoppingNames(host), ['Groceries']);
+    expect(await shoppingNames(client), ['Groceries']);
+
+    Future<List<String>> itemNames(AppDatabase db) async {
+      final lists = await (db.select(
+        db.shoppingLists,
+      )..where((t) => t.deletedAt.isNull() & t.kind.equals('shopping'))).get();
+      expect(lists, hasLength(1));
+      final items = await (db.select(db.shoppingItems)..where(
+            (t) => t.deletedAt.isNull() & t.listId.equals(lists.single.id),
+          ))
+          .get();
+      return [for (final item in items) item.name]..sort();
+    }
+
+    expect(await itemNames(host), ['Bread', 'Eggs', 'Milk']);
+    expect(await itemNames(client), ['Bread', 'Eggs', 'Milk']);
+  });
+
+  test('same pantry list name merges instead of duplicating', () async {
+    final phone = await client.addList('Garage', kind: 'pantry');
+    await client.addPantryItem('Water', listId: phone);
+    final computer = await host.addList('Garage', kind: 'pantry');
+    await host.addPantryItem('Batteries', listId: computer);
+    await host.addPantryItem('Water', listId: computer);
+
+    await exchange(host, client);
+
+    expect(await pantryNames(host), containsAll(['Pantry', 'Garage']));
+    expect(await pantryNames(client), containsAll(['Pantry', 'Garage']));
+    expect(
+      (await pantryNames(host)).where((n) => n == 'Garage'),
+      hasLength(1),
+    );
+    final garage = (await (host.select(host.shoppingLists)..where(
+          (t) =>
+              t.deletedAt.isNull() &
+              t.kind.equals('pantry') &
+              t.name.equals('Garage'),
+        ))
+        .get())
+        .single;
+    final items = await (host.select(host.pantryItems)..where(
+          (t) => t.deletedAt.isNull() & t.listId.equals(garage.id),
+        ))
+        .get();
+    expect(
+      [for (final item in items) item.name]..sort(),
+      ['Batteries', 'Water'],
+    );
+  });
+
   test('items and a pantry list come along with it', () async {
     final listId = await client.addList('Phone groceries');
     final itemId = await client.addShoppingItem(listId, 'Oat milk');
@@ -188,8 +253,11 @@ void main() {
     await tester.tap(find.text('Share lists'));
     await tester.pumpAndSettle();
     expect(find.text('Share on this Wi-Fi'), findsOneWidget);
+    expect(find.text('Create cloud code'), findsOneWidget);
     expect(
-      find.byTooltip('Share lists with Shop-it on the other device'),
+      find.byTooltip(
+        'Share lists with Shop-it on the other device on this Wi-Fi',
+      ),
       findsOneWidget,
     );
     expect(find.byTooltip('Close'), findsOneWidget);
