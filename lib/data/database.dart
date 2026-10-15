@@ -311,7 +311,9 @@ class AppDatabase extends _$AppDatabase {
         name: name,
         quantity: Value(quantity),
         unit: Value(unit),
-        category: Value(category)));
+        category: Value(category),
+        // New items are taxed by default (like Out of Milk); untick per item.
+        taxable: const Value(true)));
     await _rememberItem(name, category, unit);
   }
 
@@ -341,6 +343,13 @@ class AppDatabase extends _$AppDatabase {
               taxable: Value(taxable),
               hasCoupon: Value(hasCoupon),
               updatedAt: Value(DateTime.now())));
+
+  /// Marks every item on a list as taxable or not.
+  Future<void> setAllTaxable(String listId, bool taxable) =>
+      (update(shoppingItems)
+            ..where((t) => t.listId.equals(listId) & t.deletedAt.isNull()))
+          .write(ShoppingItemsCompanion(
+              taxable: Value(taxable), updatedAt: Value(DateTime.now())));
 
   /// Moves an item to another list.
   Future<void> moveShoppingItem(String id, String listId) =>

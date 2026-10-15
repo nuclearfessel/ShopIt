@@ -155,6 +155,28 @@ void main() {
     expect((await db.watchLists().first).single.taxRateId, isNull);
   });
 
+  test('new items are taxable by default; bulk toggle works per list', () async {
+    final list = (await db.watchLists().first).single;
+    await db.addList('Other');
+    final other =
+        (await db.watchLists().first).firstWhere((l) => l.name == 'Other');
+    await db.addShoppingItem(list.id, 'Milk', category: 'Dairy & Eggs');
+    await db.addShoppingItem(list.id, 'Bread', category: 'Bakery');
+    await db.addShoppingItem(other.id, 'Chips', category: 'Snacks');
+    expect((await db.watchShoppingItems(list.id).first).every((i) => i.taxable),
+        isTrue);
+
+    await db.setAllTaxable(list.id, false);
+    expect((await db.watchShoppingItems(list.id).first).any((i) => i.taxable),
+        isFalse);
+    // The other list is untouched.
+    expect((await db.watchShoppingItems(other.id).first).single.taxable, isTrue);
+
+    await db.setAllTaxable(list.id, true);
+    expect((await db.watchShoppingItems(list.id).first).every((i) => i.taxable),
+        isTrue);
+  });
+
   test('catalog is seeded with ordered categories', () async {
     final cats = await db.watchCategories().first;
     expect(cats.first.name, 'Produce');
