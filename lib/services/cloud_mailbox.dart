@@ -2,15 +2,21 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
+
+import 'package:mqtt_client/mqtt_client.dart';
+import 'package:mqtt_client/mqtt_server_client.dart';
+
 import '../data/database.dart';
 import '../data/device_sync.dart';
 
-/// Version of the blob stored in the shared mailbox.
+/// Version of each device's retained cloud message.
 const cloudMailboxVersion = 1;
 
-/// Default internet mailbox. Uses a free key/value host so Shop-it can sync
-/// without a custom server. The household code is the secret path.
-const defaultCloudMailboxBase = 'https://keyvalue.immanuel.co/api/KeyVal';
+/// Public MQTT broker used as the cloud mailbox. Retained messages hold the
+/// latest snapshot per device so the phone and computer do not need to be
+/// online at the same time.
+const defaultCloudMqttHost = 'broker.hivemq.com';
+const defaultCloudMqttPort = 8883;
 
 /// One device's latest snapshot sitting in the household mailbox.
 class CloudDeviceEntry {
@@ -27,6 +33,7 @@ class CloudDeviceEntry {
   final SyncSnapshot snapshot;
 
   Map<String, Object?> toJson() => {
+    'v': cloudMailboxVersion,
     'name': name,
     'updatedAt': updatedAt.toUtc().toIso8601String(),
     'snapshot': snapshot.toJson(),
@@ -35,6 +42,8 @@ class CloudDeviceEntry {
   static CloudDeviceEntry? tryParse(String deviceId, Object? raw) {
     if (raw is! Map) return null;
     final map = Map<String, Object?>.from(raw);
+    final version = map['v'];
+    if (version != null && version != cloudMailboxVersion) return null;
     final name = map['name'];
     final updated = map['updatedAt'];
     final snap = map['snapshot'];
@@ -66,7 +75,11 @@ class CloudMailboxDoc {
   Map<String, Object?> toJson() => {
     'v': cloudMailboxVersion,
     'devices': {
-      for (final entry in devices.entries) entry.key: entry.value.toJson(),
+      for (final entry in devices.entries) entry.key: {
+        'name': entry.value.name,
+        'updatedAt': entry.value.updatedAt.toUtc().toIso8601String(),
+        'snapshot': entry.value.snapshot.toJson(),
+      },
     },
   };
 
@@ -92,44 +105,33 @@ class CloudMailboxDoc {
   static CloudMailboxDoc empty() => CloudMailboxDoc();
 }
 
-/// Reads and writes the household mailbox over HTTPS.
+/// Reads and writes the household mailbox over a public MQTT broker.
 class CloudMailbox {
-  CloudMailbox({this.baseUrl = defaultCloudMailboxBase, this._client});
+  CloudMailbox({
+    this.host = defaultCloudMqttHost,
+    this.port = defaultCloudMqttPort,
+  });
 
-  final String baseUrl;
-  final HttpClient? _client;
+  final String host;
+  final int port;
 
-  /// Creates an empty household and returns its pairing code.
-  Future<String> createHousehold() async {
-    final code = newHouseholdCode();
-    await write(code, CloudMailboxDoc.empty());
-    return code;
-  }
+  /// Creates a household code. The mailbox is created when the first device
+  /// uploads a snapshot.
+  Future<String> createHousehold() async => newHouseholdCode();
 
-  /// Loads the mailbox for [code], or an empty one when nothing is stored yet.
+  /// Loads every retained device snapshot for [code].
   Future<CloudMailboxDoc> read(String code) async {
-    final text = await _get(code, 'mailbox');
-    if (text == null || text.isEmpty || text == 'null') {
-      return CloudMailboxDoc.empty();
-    }
-    final jsonText = _decodeStored(text);
-    Object? decoded;
-    try {
-      decoded = jsonDecode(jsonText);
-    } on FormatException {
-      throw const SyncException('Could not read the cloud mailbox.');
-    }
-    if (decoded is! Map) {
-      throw const SyncException('Could not read the cloud mailbox.');
-    }
-    return CloudMailboxDoc.fromJson(decoded);
+    final devices = await _collect(code);
+    return CloudMailboxDoc(devices: devices);
   }
 
-  /// Replaces the mailbox for [code].
+  /// Publishes one retained placeholder so a brand-new household is reachable.
+  /// Prefer [syncDevice] for a real upload.
   Future<void> write(String code, CloudMailboxDoc doc) async {
-    // Base64 keeps the body safe for hosts that mishandle JSON punctuation.
-    final raw = utf8.encode(jsonEncode(doc.toJson()));
-    await _put(code, 'mailbox', base64Url.encode(raw));
+    // Kept for tests and older call sites. Live sync uses [syncDevice].
+    for (final entry in doc.devices.entries) {
+      await _publish(code, entry.value);
+    }
   }
 
   /// Merges every other device's snapshot into [db], then uploads this device.
@@ -139,49 +141,49 @@ class CloudMailbox {
     required String deviceName,
     required AppDatabase db,
   }) async {
-    final doc = await read(code);
-    for (final entry in doc.devices.values) {
-      if (entry.deviceId == deviceId) continue;
+    final others = await _collect(code, ignoreDeviceId: deviceId);
+    for (final entry in others.values) {
       await db.applySnapshot(entry.snapshot);
     }
-    final mine = await db.exportSnapshot();
-    doc.devices[deviceId] = CloudDeviceEntry(
+    final mine = CloudDeviceEntry(
       deviceId: deviceId,
       name: deviceName,
       updatedAt: DateTime.now().toUtc(),
-      snapshot: mine,
+      snapshot: await db.exportSnapshot(),
     );
-    await write(code, doc);
+    await _publish(code, mine);
   }
 
-  Future<String?> _get(String secret, String key) async {
-    final client = _client ?? HttpClient();
-    final owned = _client == null;
+  Future<Map<String, CloudDeviceEntry>> _collect(
+    String code, {
+    String? ignoreDeviceId,
+  }) async {
+    final client = _client('r-${_shortId()}');
+    final devices = <String, CloudDeviceEntry>{};
     try {
-      final uri = Uri.parse('$baseUrl/GetValue/$secret/$key');
-      final request = await client
-          .getUrl(uri)
-          .timeout(const Duration(seconds: 12));
-      request.headers.set(HttpHeaders.userAgentHeader, 'Shop-it');
-      final response = await request.close().timeout(
-        const Duration(seconds: 12),
-      );
-      final body = await utf8.decoder.bind(response).join();
-      if (response.statusCode == HttpStatus.notFound) return null;
-      if (response.statusCode != HttpStatus.ok) {
-        throw SyncException(
-          'The cloud mailbox did not answer (${response.statusCode}).',
-        );
-      }
-      if (body.length >= 2 && body.startsWith('"') && body.endsWith('"')) {
-        try {
-          final decoded = jsonDecode(body);
-          if (decoded is String) return decoded;
-        } on FormatException {
-          // Use the raw body.
+      await _connect(client);
+      final topic = _householdTopic(code);
+      client.subscribe(topic, MqttQos.atLeastOnce);
+      final done = Completer<void>();
+      final sub = client.updates?.listen((messages) {
+        for (final message in messages) {
+          final rec = message.payload;
+          if (rec is! MqttPublishMessage) continue;
+          final deviceId = _deviceIdFromTopic(message.topic);
+          if (deviceId == null) continue;
+          if (ignoreDeviceId != null && deviceId == ignoreDeviceId) continue;
+          final text = MqttPublishPayload.bytesToStringAsString(
+            rec.payload.message,
+          );
+          final entry = _entryFromPayload(deviceId, text);
+          if (entry != null) devices[deviceId] = entry;
         }
-      }
-      return body;
+      });
+      // Retained messages arrive right after subscribe; wait briefly for them.
+      await Future<void>.delayed(const Duration(seconds: 2));
+      await sub?.cancel();
+      if (!done.isCompleted) done.complete();
+      return devices;
     } on SyncException {
       rethrow;
     } on SocketException {
@@ -190,34 +192,63 @@ class CloudMailbox {
       );
     } on TimeoutException {
       throw const SyncException('The cloud mailbox did not answer.');
+    } on Object {
+      throw const SyncException('The cloud mailbox did not answer.');
     } finally {
-      if (owned) client.close(force: true);
+      _disconnect(client);
     }
   }
 
-  Future<void> _put(String secret, String key, String value) async {
-    final client = _client ?? HttpClient();
-    final owned = _client == null;
+  Future<void> _publish(String code, CloudDeviceEntry entry) async {
+    final client = _client('w-${_shortId()}');
     try {
-      final uri = Uri.parse('$baseUrl/UpdateValue/$secret/$key');
-      final request = await client
-          .postUrl(uri)
-          .timeout(const Duration(seconds: 12));
-      request.headers.set(HttpHeaders.userAgentHeader, 'Shop-it');
-      request.headers.contentType = ContentType(
-        'text',
-        'plain',
-        charset: 'utf-8',
+      await _connect(client);
+      final topic = _deviceTopic(code, entry.deviceId);
+      final builder = MqttClientPayloadBuilder();
+      // Gzip keeps large lists under typical broker payload limits.
+      final raw = utf8.encode(jsonEncode(entry.toJson()));
+      final compressed = gzip.encode(raw);
+      builder.addString('gz:${base64Url.encode(compressed)}');
+      client.publishMessage(
+        topic,
+        MqttQos.atLeastOnce,
+        builder.payload!,
+        retain: true,
       );
-      request.write(value);
-      final response = await request.close().timeout(
-        const Duration(seconds: 12),
+      // Give the broker a moment to accept the retained publish.
+      await Future<void>.delayed(const Duration(milliseconds: 400));
+    } on SyncException {
+      rethrow;
+    } on SocketException {
+      throw const SyncException(
+        "Can't reach the cloud mailbox. Check the internet connection.",
       );
-      await response.drain<void>();
-      if (response.statusCode < 200 || response.statusCode >= 300) {
-        throw SyncException(
-          'Could not save to the cloud mailbox (${response.statusCode}).',
-        );
+    } on TimeoutException {
+      throw const SyncException('The cloud mailbox did not answer.');
+    } on Object {
+      throw const SyncException('Could not save to the cloud mailbox.');
+    } finally {
+      _disconnect(client);
+    }
+  }
+
+  MqttServerClient _client(String id) {
+    final client = MqttServerClient.withPort(host, id, port);
+    client.logging(on: false);
+    client.keepAlivePeriod = 20;
+    client.connectTimeoutPeriod = 10000;
+    client.secure = port == 8883 || port == 8884;
+    client.useWebSocket = port == 8000 || port == 8884;
+    client.setProtocolV311();
+    client.autoReconnect = false;
+    return client;
+  }
+
+  Future<void> _connect(MqttServerClient client) async {
+    try {
+      final status = await client.connect().timeout(const Duration(seconds: 12));
+      if (status?.state != MqttConnectionState.connected) {
+        throw const SyncException('The cloud mailbox did not answer.');
       }
     } on SyncException {
       rethrow;
@@ -227,10 +258,77 @@ class CloudMailbox {
       );
     } on TimeoutException {
       throw const SyncException('The cloud mailbox did not answer.');
-    } finally {
-      if (owned) client.close(force: true);
+    } on NoConnectionException {
+      throw const SyncException('The cloud mailbox did not answer.');
+    } on Object {
+      throw const SyncException('The cloud mailbox did not answer.');
     }
   }
+
+  void _disconnect(MqttServerClient client) {
+    try {
+      client.disconnect();
+    } on Object {
+      // Already closed.
+    }
+  }
+}
+
+String _householdTopic(String code) => 'shopit/1/$code/+';
+
+String _deviceTopic(String code, String deviceId) => 'shopit/1/$code/$deviceId';
+
+String? _deviceIdFromTopic(String topic) {
+  final parts = topic.split('/');
+  if (parts.length != 4 || parts[0] != 'shopit' || parts[1] != '1') return null;
+  final id = parts[3];
+  return id.isEmpty ? null : id;
+}
+
+CloudDeviceEntry? _entryFromPayload(String deviceId, String text) {
+  final jsonText = _decodeStored(text);
+  Object? decoded;
+  try {
+    decoded = jsonDecode(jsonText);
+  } on FormatException {
+    return null;
+  }
+  return CloudDeviceEntry.tryParse(deviceId, decoded);
+}
+
+String _decodeStored(String text) {
+  final trimmed = text.trim();
+  if (trimmed.startsWith('gz:')) {
+    try {
+      final bytes = gzip.decode(base64Url.decode(trimmed.substring(3)));
+      return utf8.decode(bytes);
+    } on Object {
+      throw const SyncException('Could not read the cloud mailbox.');
+    }
+  }
+  try {
+    final bytes = base64Url.decode(trimmed);
+    return utf8.decode(bytes);
+  } on FormatException {
+    // Plain JSON from tests or older writes.
+  }
+  if (trimmed.length >= 2 && trimmed.startsWith('"') && trimmed.endsWith('"')) {
+    try {
+      final decoded = jsonDecode(trimmed);
+      if (decoded is String) return _decodeStored(decoded);
+    } on FormatException {
+      // Fall through.
+    }
+  }
+  return trimmed;
+}
+
+String _shortId() {
+  final random = Random.secure();
+  return List.generate(
+    8,
+    (_) => random.nextInt(16).toRadixString(16),
+  ).join();
 }
 
 /// Eight-character code one device shows and the other types in.
@@ -250,41 +348,51 @@ bool isHouseholdCode(String raw) {
   return RegExp(r'^[a-z2-9]+$').hasMatch(code);
 }
 
-String _decodeStored(String text) {
-  final trimmed = text.trim();
-  try {
-    final bytes = base64Url.decode(trimmed);
-    return utf8.decode(bytes);
-  } on FormatException {
-    // Older plain-JSON writes, or a host that wraps quotes.
-  }
-  if (trimmed.length >= 2 && trimmed.startsWith('"') && trimmed.endsWith('"')) {
-    try {
-      final decoded = jsonDecode(trimmed);
-      if (decoded is String) return _decodeStored(decoded);
-    } on FormatException {
-      // Fall through.
-    }
-  }
-  return trimmed;
-}
-
 /// In-memory mailbox for tests. No network.
 class MemoryCloudMailbox extends CloudMailbox {
-  MemoryCloudMailbox() : super(baseUrl: 'memory://');
+  MemoryCloudMailbox() : super(host: 'memory');
 
-  final _store = <String, String>{};
+  final _store = <String, CloudDeviceEntry>{};
+
+  @override
+  Future<String> createHousehold() async => newHouseholdCode();
 
   @override
   Future<CloudMailboxDoc> read(String code) async {
-    final text = _store[code];
-    if (text == null || text.isEmpty) return CloudMailboxDoc.empty();
-    return CloudMailboxDoc.fromJson(jsonDecode(_decodeStored(text)) as Map);
+    final devices = <String, CloudDeviceEntry>{};
+    final prefix = '$code/';
+    for (final entry in _store.entries) {
+      if (!entry.key.startsWith(prefix)) continue;
+      devices[entry.value.deviceId] = entry.value;
+    }
+    return CloudMailboxDoc(devices: devices);
   }
 
   @override
   Future<void> write(String code, CloudMailboxDoc doc) async {
-    final raw = utf8.encode(jsonEncode(doc.toJson()));
-    _store[code] = base64Url.encode(raw);
+    for (final entry in doc.devices.entries) {
+      _store['$code/${entry.key}'] = entry.value;
+    }
+  }
+
+  @override
+  Future<void> syncDevice({
+    required String code,
+    required String deviceId,
+    required String deviceName,
+    required AppDatabase db,
+  }) async {
+    final doc = await read(code);
+    for (final entry in doc.devices.values) {
+      if (entry.deviceId == deviceId) continue;
+      await db.applySnapshot(entry.snapshot);
+    }
+    final mine = CloudDeviceEntry(
+      deviceId: deviceId,
+      name: deviceName,
+      updatedAt: DateTime.now().toUtc(),
+      snapshot: await db.exportSnapshot(),
+    );
+    _store['$code/$deviceId'] = mine;
   }
 }

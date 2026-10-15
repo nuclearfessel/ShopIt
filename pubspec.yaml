@@ -19,7 +19,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # Each app update merged to main bumps this by 0.0.1 (0.0.3, 0.0.4, …).
 # The release workflow publishes this version and keeps only the three newest
 # releases.
-version: 0.0.4+4
+version: 0.0.5+5
 
 environment:
   sdk: ^3.13.3
@@ -52,6 +52,7 @@ dependencies:
   path_drawing: ^1.0.1
   file_picker: ^13.1.0
   package_info_plus: ^10.2.2
+  mqtt_client: ^10.13.0
 dev_dependencies:
   flutter_test:
     sdk: flutter

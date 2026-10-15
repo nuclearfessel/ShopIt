@@ -200,12 +200,20 @@ class DeviceLinkController extends Notifier<DeviceLinkState> {
       await _save();
       _startTimer(token);
       await _syncCloud(token);
+      if (token != _token) return;
+      if (state.error != null) {
+        state = state.copyWith(clearCloud: true, cloudBusy: false);
+        await _save();
+        _startTimer(token);
+      }
     } on Object catch (error) {
       if (token != _token) return;
       state = state.copyWith(
+        clearCloud: true,
         cloudBusy: false,
         error: friendlySyncError(error),
       );
+      await _save();
     }
   }
 
@@ -222,9 +230,6 @@ class DeviceLinkController extends Notifier<DeviceLinkState> {
     }
     state = state.copyWith(cloudBusy: true, clearError: true);
     try {
-      // Touch the mailbox so a bad code fails before we save it.
-      await mailbox.read(code);
-      if (token != _token) return;
       state = state.copyWith(
         cloudCode: code,
         cloudBusy: false,
@@ -232,13 +237,16 @@ class DeviceLinkController extends Notifier<DeviceLinkState> {
       );
       await _save();
       _startTimer(token);
+      // First sync proves the mailbox is reachable.
       await _syncCloud(token);
     } on Object catch (error) {
       if (token != _token) return;
       state = state.copyWith(
+        clearCloud: true,
         cloudBusy: false,
         error: friendlySyncError(error),
       );
+      await _save();
     }
   }
 
