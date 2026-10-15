@@ -100,6 +100,14 @@ void main() {
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull, reason: 'shopping item editor');
       expect(find.text('Edit item'), findsOneWidget);
+      if (width >= 700) {
+        // Side navigation visible: a dialog centered in the window.
+        final c = tester.getCenter(find.byType(Dialog));
+        expect(c.dx, closeTo(width / 2, 1), reason: 'dialog centered horizontally');
+        expect(c.dy, closeTo(350, 1), reason: 'dialog centered vertically');
+      } else {
+        expect(find.byType(Dialog), findsNothing, reason: 'bottom sheet when narrow');
+      }
       await tester.tap(find.text('Cancel'));
       await tester.pumpAndSettle();
 

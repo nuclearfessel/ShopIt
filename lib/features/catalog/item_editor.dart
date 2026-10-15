@@ -50,17 +50,32 @@ Future<ItemEditorResult?> showItemEditor(
   bool showPrice = false,
   bool showPantryFields = false,
 }) {
+  Widget sheet(BuildContext _) => _ItemEditorSheet(
+    title: title,
+    initial: initial,
+    showPrice: showPrice,
+    showPantryFields: showPantryFields,
+  );
+  // Wide windows (side navigation visible): a dialog centered in the window.
+  // Narrow windows (bottom navigation): a bottom sheet.
+  if (MediaQuery.sizeOf(context).width >= 700) {
+    return showDialog<ItemEditorResult>(
+      context: context,
+      builder: (ctx) => Dialog(
+        clipBehavior: Clip.antiAlias,
+        insetPadding: const EdgeInsets.all(24),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 520),
+          child: sheet(ctx),
+        ),
+      ),
+    );
+  }
   return showModalBottomSheet<ItemEditorResult>(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
-    constraints: const BoxConstraints(maxWidth: 560),
-    builder: (_) => _ItemEditorSheet(
-      title: title,
-      initial: initial,
-      showPrice: showPrice,
-      showPantryFields: showPantryFields,
-    ),
+    builder: sheet,
   );
 }
 
@@ -158,179 +173,192 @@ class _ItemEditorSheetState extends State<_ItemEditorSheet> {
       if (_category.isNotEmpty) _category,
     };
     final price = _priceValue;
-    return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Flexible(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(widget.title, style: theme.textTheme.titleLarge),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _name,
-                    decoration: const InputDecoration(labelText: 'Name'),
-                  ),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 12,
-                    runSpacing: 12,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton.outlined(
-                            tooltip: 'Less',
-                            icon: const Icon(Icons.remove),
-                            onPressed: () => _step(-1),
+    // Compact type for the editor: 14px input text, 13px titles.
+    final compact = theme.copyWith(
+      textTheme: theme.textTheme.copyWith(
+        bodyLarge: theme.textTheme.bodyLarge?.copyWith(fontSize: 14),
+        titleLarge: theme.textTheme.titleLarge?.copyWith(fontSize: 20),
+      ),
+    );
+    return Theme(
+      data: compact,
+      child: Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.viewInsetsOf(context).bottom,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Flexible(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(widget.title, style: theme.textTheme.titleLarge),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _name,
+                      decoration: const InputDecoration(labelText: 'Name'),
+                    ),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 12,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton.outlined(
+                              tooltip: 'Less',
+                              icon: const Icon(Icons.remove),
+                              onPressed: () => _step(-1),
+                            ),
+                            SizedBox(
+                              width: 72,
+                              child: TextField(
+                                controller: _qty,
+                                textAlign: TextAlign.center,
+                                keyboardType:
+                                    const TextInputType.numberWithOptions(
+                                      decimal: true,
+                                    ),
+                                decoration: const InputDecoration(
+                                  labelText: 'Quantity',
+                                ),
+                                onChanged: (_) => setState(() {}),
+                              ),
+                            ),
+                            IconButton.outlined(
+                              tooltip: 'More',
+                              icon: const Icon(Icons.add),
+                              onPressed: () => _step(1),
+                            ),
+                          ],
+                        ),
+                        SizedBox(
+                          width: 120,
+                          child: TextField(
+                            controller: _unit,
+                            decoration: const InputDecoration(
+                              labelText: 'Unit (kg, pack...)',
+                            ),
                           ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      initialValue: _category.isEmpty ? null : _category,
+                      isExpanded: true,
+                      decoration: const InputDecoration(labelText: 'Category'),
+                      items: [
+                        for (final c in categories)
+                          DropdownMenuItem(value: c, child: Text(c)),
+                      ],
+                      onChanged: (v) => setState(() => _category = v ?? ''),
+                    ),
+                    if (widget.showPrice) ...[
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
                           SizedBox(
-                            width: 72,
+                            width: 140,
                             child: TextField(
-                              controller: _qty,
-                              textAlign: TextAlign.center,
+                              controller: _price,
                               keyboardType:
                                   const TextInputType.numberWithOptions(
                                     decimal: true,
                                   ),
                               decoration: const InputDecoration(
-                                labelText: 'Quantity',
+                                labelText: 'Price each',
                               ),
                               onChanged: (_) => setState(() {}),
                             ),
                           ),
-                          IconButton.outlined(
-                            tooltip: 'More',
-                            icon: const Icon(Icons.add),
-                            onPressed: () => _step(1),
-                          ),
+                          const SizedBox(width: 16),
+                          if (price != null)
+                            Flexible(
+                              child: Text(
+                                'Total ${formatMoney(price * _quantity)}',
+                                style: theme.textTheme.titleMedium,
+                              ),
+                            ),
                         ],
                       ),
-                      SizedBox(
-                        width: 120,
-                        child: TextField(
-                          controller: _unit,
-                          decoration: const InputDecoration(
-                            labelText: 'Unit (kg, pack...)',
-                          ),
+                    ],
+                    if (widget.showPantryFields) ...[
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _location,
+                        decoration: const InputDecoration(
+                          labelText: 'Location (fridge, shelf, ...)',
                         ),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  DropdownButtonFormField<String>(
-                    initialValue: _category.isEmpty ? null : _category,
-                    isExpanded: true,
-                    decoration: const InputDecoration(labelText: 'Category'),
-                    items: [
-                      for (final c in categories)
-                        DropdownMenuItem(value: c, child: Text(c)),
-                    ],
-                    onChanged: (v) => setState(() => _category = v ?? ''),
-                  ),
-                  if (widget.showPrice) ...[
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        SizedBox(
-                          width: 140,
-                          child: TextField(
-                            controller: _price,
-                            keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true,
-                            ),
-                            decoration: const InputDecoration(
-                              labelText: 'Price each',
-                            ),
-                            onChanged: (_) => setState(() {}),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        spacing: 8,
+                        children: [
+                          Text(
+                            _expiry == null
+                                ? 'No expiry date'
+                                : 'Expires ${_expiry!.year}-${_expiry!.month.toString().padLeft(2, '0')}-${_expiry!.day.toString().padLeft(2, '0')}',
                           ),
-                        ),
-                        const SizedBox(width: 16),
-                        if (price != null)
-                          Flexible(
-                            child: Text(
-                              'Total ${formatMoney(price * _quantity)}',
-                              style: theme.textTheme.titleMedium,
-                            ),
+                          TextButton(
+                            onPressed: _pickDate,
+                            child: const Text('Set date'),
                           ),
-                      ],
-                    ),
-                  ],
-                  if (widget.showPantryFields) ...[
+                          if (_expiry != null)
+                            TextButton(
+                              onPressed: () => setState(() => _expiry = null),
+                              child: const Text('Clear'),
+                            ),
+                        ],
+                      ),
+                    ],
                     const SizedBox(height: 12),
                     TextField(
-                      controller: _location,
+                      controller: _note,
+                      minLines: 2,
+                      maxLines: 4,
                       decoration: const InputDecoration(
-                        labelText: 'Location (fridge, shelf, ...)',
+                        labelText: 'Notes (brand, flavour, coupon...)',
+                        alignLabelWithHint: true,
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      spacing: 8,
-                      children: [
-                        Text(
-                          _expiry == null
-                              ? 'No expiry date'
-                              : 'Expires ${_expiry!.year}-${_expiry!.month.toString().padLeft(2, '0')}-${_expiry!.day.toString().padLeft(2, '0')}',
-                        ),
-                        TextButton(
-                          onPressed: _pickDate,
-                          child: const Text('Set date'),
-                        ),
-                        if (_expiry != null)
-                          TextButton(
-                            onPressed: () => setState(() => _expiry = null),
-                            child: const Text('Clear'),
-                          ),
-                      ],
-                    ),
                   ],
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _note,
-                    minLines: 2,
-                    maxLines: 4,
-                    decoration: const InputDecoration(
-                      labelText: 'Notes (brand, flavour, coupon...)',
-                      alignLabelWithHint: true,
+                ),
+              ),
+            ),
+            // Pinned so Save/Cancel stay reachable on short windows.
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: Wrap(
+                  alignment: WrapAlignment.end,
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    TextButton.icon(
+                      onPressed: () => Navigator.pop(context, ItemDeleted()),
+                      icon: const Icon(Icons.delete_outline),
+                      label: const Text('Delete'),
                     ),
-                  ),
-                ],
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Cancel'),
+                    ),
+                    FilledButton(onPressed: _save, child: const Text('Save')),
+                  ],
+                ),
               ),
             ),
-          ),
-          // Pinned so Save/Cancel stay reachable on short windows.
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
-            child: Align(
-              alignment: Alignment.centerRight,
-              child: Wrap(
-                alignment: WrapAlignment.end,
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  TextButton.icon(
-                    onPressed: () => Navigator.pop(context, ItemDeleted()),
-                    icon: const Icon(Icons.delete_outline),
-                    label: const Text('Delete'),
-                  ),
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('Cancel'),
-                  ),
-                  FilledButton(onPressed: _save, child: const Text('Save')),
-                ],
-              ),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
