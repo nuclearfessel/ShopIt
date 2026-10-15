@@ -134,6 +134,7 @@ class _ShopItAppState extends State<ShopItApp> {
   @override
   Widget build(BuildContext context) => MaterialApp.router(
     title: 'Shop-it',
+    debugShowCheckedModeBanner: false,
     theme: _buildTheme(Brightness.light),
     darkTheme: _buildTheme(Brightness.dark),
     routerConfig: _router,
