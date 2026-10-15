@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../ui/tip.dart';
 
-/// The preset header colours (ARGB), as in Out of Milk's "Preset Colors".
+/// Preset header colours (ARGB) for category headers.
 const List<int> kCategoryPresetColors = [
   0xFF00ACC1,
   0xFF43A047,

@@ -6,6 +6,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shop_it/app/app.dart';
+import 'package:shop_it/app/theme_mode.dart';
 import 'package:shop_it/data/database.dart';
 import 'package:shop_it/data/providers.dart';
 import 'package:shop_it/services/file_service.dart';
@@ -103,6 +104,7 @@ Future<void> pumpShopIt(
   List<HistoryEntry> history = const [],
   GlobalKey? boundary,
   FileService? fileService,
+  ThemeMode themeMode = ThemeMode.system,
 }) async {
   tester.view.physicalSize = Size(width, height);
   tester.view.devicePixelRatio = 1;
@@ -123,6 +125,7 @@ Future<void> pumpShopIt(
       if (fileService != null)
         fileServiceProvider.overrideWithValue(fileService),
       // Never opened: every query below is replaced.
+      initialThemeModeProvider.overrideWithValue(themeMode),
       databaseProvider.overrideWithValue(AppDatabase.memory()),
       listsProvider.overrideWith((_) => Stream.value(theLists)),
       categoriesProvider.overrideWith(

@@ -4,9 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/providers.dart';
 import '../../ui/tip.dart';
 
-/// Per-list settings, like Out of Milk's "List settings": whether items are
-/// grouped under categories, filed into a category automatically when added,
-/// and whether category headers with no items are shown.
+/// Per-list settings: whether items are grouped under categories, filed into
+/// a category automatically when added, and whether category headers with no
+/// items are shown.
 class ListSettingsDialog extends ConsumerWidget {
   const ListSettingsDialog({super.key, required this.listId});
 

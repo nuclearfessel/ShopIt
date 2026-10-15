@@ -1,8 +1,13 @@
 name: Release
 
+# App updates on main are published. README and docs changes are not a new
+# release. Each publish keeps only the three newest releases.
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - 'README.md'
+      - 'docs/**'
 
 concurrency:
   group: release
@@ -21,21 +26,16 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
 
-      - name: Next version
+      - name: Read version
         id: bump
         run: |
-          git fetch --tags --force
-          latest=$(git tag -l 'v0.0.*' --sort=-v:refname | head -n 1)
-          if [ -z "$latest" ]; then
+          line=$(grep '^version:' pubspec.yaml | awk '{print $2}')
+          name="${line%%+*}"
+          code="${line#*+}"
+          if [ "$code" = "$line" ]; then
             code=1
-          else
-            patch="${latest##*.}"
-            code=$((patch + 1))
           fi
-          name="0.0.${code}"
           echo "name=$name" >> "$GITHUB_OUTPUT"
           echo "code=$code" >> "$GITHUB_OUTPUT"
           echo "tag=v$name" >> "$GITHUB_OUTPUT"
@@ -161,3 +161,10 @@ jobs:
             "packages/Shop-it-Setup-${VERSION}.exe" \
             --title "$VERSION" \
             --notes "Shop-it ${VERSION}. Install Shop-it-Setup-${VERSION}.exe on Windows, or Shop-it-${VERSION}.apk on Android."
+          # The release section keeps the three newest releases.
+          gh release list --limit 50 --json tagName,publishedAt \
+            --jq 'sort_by(.publishedAt) | reverse | .[3:] | .[].tagName' \
+            | while read -r old; do
+                [ -z "$old" ] && continue
+                gh release delete "$old" --yes --cleanup-tag
+              done

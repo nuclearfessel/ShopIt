@@ -105,10 +105,10 @@ const _units = [
   'ml',
 ];
 
-/// Item details editor, laid out like Out of Milk's: Cancel/Save header, name,
-/// a quantity row ([-][+] stepper, value, unit), category, unit price with
-/// sales-tax and coupon checkboxes, notes, and Delete/Move/Copy along the
-/// bottom. Pantry items get location and expiry instead of price.
+/// Item details editor: Cancel/Save header, name, a quantity row ([-][+]
+/// stepper, value, unit), category, unit price with sales-tax and coupon
+/// checkboxes, notes, and Delete/Move/Copy along the bottom. Pantry items get
+/// location and expiry instead of price.
 ///
 /// Pass [lists] and [currentListId] on shopping items to enable Move and Copy.
 Future<ItemEditorResult?> showItemEditor(
@@ -669,7 +669,7 @@ class _ItemEditorSheetState extends State<_ItemEditorSheet> {
               ),
             ),
             const Divider(height: 1),
-            // Bottom actions, evenly spaced like Out of Milk's.
+            // Bottom actions, evenly spaced.
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
               child: Wrap(

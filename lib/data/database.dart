@@ -32,9 +32,8 @@ class ShoppingLists extends Table with SyncColumns {
   /// Which saved tax rate applies to this list; null means no tax.
   TextColumn get taxRateId => text().nullable()();
 
-  /// List settings (Out of Milk's "List settings"): group items by category,
-  /// file new items into a category automatically, and show category headers
-  /// that have no items.
+  /// Group items by category, file new items into a category automatically,
+  /// and show category headers that have no items.
   BoolColumn get useCategories => boolean().withDefault(const Constant(true))();
   BoolColumn get autoCategorize =>
       boolean().withDefault(const Constant(true))();
@@ -970,7 +969,7 @@ class AppDatabase extends _$AppDatabase {
         quantity: Value(quantity),
         unit: Value(unit),
         category: Value(category),
-        // New items are taxed by default (like Out of Milk); untick per item.
+        // New items are taxed by default; untick per item.
         taxable: const Value(true),
       ),
     );

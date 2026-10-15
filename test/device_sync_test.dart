@@ -193,5 +193,16 @@ void main() {
       findsOneWidget,
     );
     expect(find.byTooltip('Close'), findsOneWidget);
+    await tester.tap(find.text('Close'));
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(
+      find.text('A shopping and pantry list app.'),
+      200,
+    );
+    expect(find.text('ABOUT'), findsOneWidget);
+    expect(find.text('Shop-it'), findsOneWidget);
+    expect(find.text('A shopping and pantry list app.'), findsOneWidget);
+    expect(find.widgetWithText(AlertDialog, 'About'), findsNothing);
   });
 }

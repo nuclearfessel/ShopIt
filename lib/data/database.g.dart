@@ -314,9 +314,8 @@ class ShoppingList extends DataClass implements Insertable<ShoppingList> {
   /// Which saved tax rate applies to this list; null means no tax.
   final String? taxRateId;
 
-  /// List settings (Out of Milk's "List settings"): group items by category,
-  /// file new items into a category automatically, and show category headers
-  /// that have no items.
+  /// Group items by category, file new items into a category automatically,
+  /// and show category headers that have no items.
   final bool useCategories;
   final bool autoCategorize;
   final bool showEmptyCategories;

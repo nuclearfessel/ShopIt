@@ -5,6 +5,7 @@ import '../../app/theme_mode.dart';
 import '../shopping/tax_rates_dialog.dart';
 import '../../ui/keyline/keyline_icon.dart';
 import '../../ui/tip.dart';
+import 'about_section.dart';
 import 'device_link_controller.dart';
 import 'device_link_dialog.dart';
 
@@ -128,6 +129,9 @@ class SettingsDialog extends ConsumerWidget {
                   child: Text(link.sharing ? 'Sharing on' : 'Share lists'),
                 ),
               ),
+              const Divider(height: 24),
+              heading('About'),
+              const AboutSection(),
             ],
           ),
         ),
