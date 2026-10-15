@@ -204,6 +204,18 @@ class AppDatabase extends _$AppDatabase {
     });
   }
 
+  /// Soft-deletes every list and every item on them. Pantry and the item
+  /// catalog are untouched.
+  Future<void> deleteAllLists() async {
+    final now = DateTime.now();
+    await transaction(() async {
+      await (update(shoppingItems)..where((t) => t.deletedAt.isNull())).write(
+          ShoppingItemsCompanion(deletedAt: Value(now), updatedAt: Value(now)));
+      await (update(shoppingLists)..where((t) => t.deletedAt.isNull())).write(
+          ShoppingListsCompanion(deletedAt: Value(now), updatedAt: Value(now)));
+    });
+  }
+
   // ---- Shopping items ----
   Stream<List<ShoppingItem>> watchShoppingItems(String listId) =>
       (select(shoppingItems)

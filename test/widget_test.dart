@@ -45,6 +45,22 @@ void main() {
     expect(await db.watchShoppingItems(party.id).first, isEmpty);
   });
 
+  test('delete all lists empties shopping but keeps pantry, then can restart',
+      () async {
+    final list = (await db.watchLists().first).single;
+    await db.addList('Party');
+    await db.addShoppingItem(list.id, 'Milk', category: 'Dairy & Eggs');
+    await db.addPantryItem('Rice');
+
+    await db.deleteAllLists();
+    expect(await db.watchLists().first, isEmpty);
+    expect(await db.watchShoppingItems(list.id).first, isEmpty);
+    expect(await db.watchPantry().first, hasLength(1));
+
+    await db.addList('Fresh start');
+    expect((await db.watchLists().first).map((l) => l.name), ['Fresh start']);
+  });
+
   test('catalog is seeded with ordered categories', () async {
     final cats = await db.watchCategories().first;
     expect(cats.first.name, 'Produce');

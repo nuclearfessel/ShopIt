@@ -57,9 +57,16 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
         if (all.isEmpty) {
           return Scaffold(
             appBar: AppBar(title: const Text('Shopping')),
-            body: const Center(child: Text('No lists yet')),
-            floatingActionButton: FloatingActionButton(
-                onPressed: _newList, child: const Icon(Icons.add)),
+            body: Center(
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                const Text('No lists yet'),
+                const SizedBox(height: 12),
+                FilledButton.icon(
+                    onPressed: _newList,
+                    icon: const Icon(Icons.playlist_add),
+                    label: const Text('Create a list')),
+              ]),
+            ),
           );
         }
         final current =
@@ -83,17 +90,31 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
                   } else if (v == 'new') {
                     await _newList();
                   } else if (v == 'delete') {
-                    await db.deleteList(current.id);
-                    setState(() => _listId = null);
+                    if (await _confirm(context, 'Delete "${current.name}"?',
+                        'The list and all its items will be removed.')) {
+                      await db.deleteList(current.id);
+                      setState(() => _listId = null);
+                    }
+                  } else if (v == 'deleteAll') {
+                    if (await _confirm(
+                        context,
+                        'Delete all lists?',
+                        'Every shopping list and all their items will be '
+                            'removed so you can start from scratch. Your '
+                            'pantry is not affected.')) {
+                      await db.deleteAllLists();
+                      setState(() => _listId = null);
+                    }
                   }
                 },
                 itemBuilder: (_) => [
                   const PopupMenuItem(
                       value: 'clear', child: Text('Clear checked items')),
                   const PopupMenuItem(value: 'new', child: Text('New list')),
-                  if (all.length > 1)
-                    const PopupMenuItem(
-                        value: 'delete', child: Text('Delete this list')),
+                  const PopupMenuItem(
+                      value: 'delete', child: Text('Delete this list')),
+                  const PopupMenuItem(
+                      value: 'deleteAll', child: Text('Delete all lists')),
                 ],
               ),
             ],
@@ -214,6 +235,25 @@ class _ItemTile extends StatelessWidget {
               onPressed: () => db.deleteShoppingItem(item.id)),
         ),
       );
+}
+
+Future<bool> _confirm(BuildContext context, String title, String message) async {
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: Text(title),
+      content: Text(message),
+      actions: [
+        TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel')),
+        FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete')),
+      ],
+    ),
+  );
+  return ok ?? false;
 }
 
 Future<String?> _askName(BuildContext context, String title) {
