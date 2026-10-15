@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:math';
 import 'dart:typed_data';
 
 import '../data/database.dart';
@@ -10,20 +9,24 @@ import '../data/device_sync.dart';
 /// Port Shop-it listens on when this device is sharing lists.
 const shopItSyncPort = 47821;
 
-const shopItSyncCodeHeader = 'x-shop-it-code';
+/// Port used to notice other copies of Shop-it on the same Wi-Fi.
+const shopItBeaconPort = 47822;
 
-/// A 6-digit code the other device has to enter.
-String newPairingCode() {
-  final value = Random.secure().nextInt(1000000);
-  return value.toString().padLeft(6, '0');
+const shopItSyncHeader = 'x-shop-it';
+
+/// A name the other device can show, such as "the phone".
+String thisDeviceName() {
+  if (Platform.isAndroid) return 'the phone';
+  if (Platform.isWindows) return 'the computer';
+  return 'the other device';
 }
 
-/// Turns "Can't reach…" style failures into a sentence for the dialog.
+/// Turns connection failures into a sentence for the dialog.
 String friendlySyncError(Object error) {
   if (error is SyncException) return error.message;
   if (error is SocketException) {
-    return "Can't reach that device. Check the address, and that both apps "
-        'are open on the same Wi-Fi.';
+    return "Can't reach the other device. Keep both apps open on the same "
+        'Wi-Fi.';
   }
   if (error is TimeoutException) {
     return 'The other device did not answer.';
@@ -31,90 +34,148 @@ String friendlySyncError(Object error) {
   return 'Could not sync with the other device.';
 }
 
-/// `host` or `host:port`, with an optional `http://` in front.
-class SyncAddress {
-  const SyncAddress(this.host, this.port);
+/// What one device announces so the others can find it.
+class ShopItBeacon {
+  const ShopItBeacon({
+    required this.port,
+    required this.id,
+    required this.name,
+  });
+
+  final int port;
+  final String id;
+  final String name;
+
+  String encode() => 'SHOPIT1\t$port\t$id\t$name';
+
+  static ShopItBeacon? tryParse(String raw) {
+    final parts = raw.split('\t');
+    if (parts.length < 4 || parts[0] != 'SHOPIT1') return null;
+    final port = int.tryParse(parts[1]);
+    final id = parts[2];
+    final name = parts.sublist(3).join('\t').trim();
+    if (port == null || port <= 0 || port > 65535) return null;
+    if (id.isEmpty || name.isEmpty) return null;
+    return ShopItBeacon(port: port, id: id, name: name);
+  }
+}
+
+/// Another Shop-it that announced itself on this network.
+class NearbyDevice {
+  const NearbyDevice({
+    required this.id,
+    required this.name,
+    required this.host,
+    required this.port,
+  });
+
+  final String id;
+  final String name;
   final String host;
   final int port;
 }
 
-SyncAddress parseSyncAddress(String raw) {
-  var text = raw.trim();
-  final lower = text.toLowerCase();
-  for (final prefix in ['http://', 'https://']) {
-    if (lower.startsWith(prefix)) {
-      text = text.substring(prefix.length);
-      break;
-    }
+/// Broadcasts "Shop-it is here" and remembers the replies.
+class DeviceDiscovery {
+  RawDatagramSocket? _socket;
+  Timer? _announce;
+  var _httpPort = shopItSyncPort;
+  var _deviceId = '';
+  var _name = '';
+  final _peers = <String, ({NearbyDevice device, DateTime seen})>{};
+
+  /// Called when the set of nearby devices changes.
+  void Function()? onChanged;
+
+  List<NearbyDevice> get peers {
+    _dropStale(notify: false);
+    return [for (final peer in _peers.values) peer.device];
   }
-  final slash = text.indexOf('/');
-  if (slash >= 0) text = text.substring(0, slash);
-  text = text.trim();
-  if (text.isEmpty) {
-    throw const SyncException('Enter the address shown on the other device.');
-  }
-  final colon = text.lastIndexOf(':');
-  if (colon > 0 && !text.substring(0, colon).contains(':')) {
-    final host = text.substring(0, colon).trim();
-    final port = int.tryParse(text.substring(colon + 1));
-    if (host.isEmpty || port == null || port <= 0 || port > 65535) {
-      throw const SyncException(
-        'That address does not look right. Use the one shown on the other '
-        'device, such as 192.168.1.20:47821.',
-      );
-    }
-    return SyncAddress(host, port);
-  }
-  if (text.contains(':') || text.contains(' ')) {
-    throw const SyncException(
-      'That address does not look right. Use the one shown on the other '
-      'device, such as 192.168.1.20:47821.',
+
+  Future<void> start({
+    required int httpPort,
+    required String deviceId,
+    required String name,
+  }) async {
+    await stop();
+    _httpPort = httpPort;
+    _deviceId = deviceId;
+    _name = name;
+    final socket = await RawDatagramSocket.bind(
+      InternetAddress.anyIPv4,
+      shopItBeaconPort,
+      reuseAddress: true,
     );
+    socket.broadcastEnabled = true;
+    _socket = socket;
+    socket.listen(_onEvent, onError: (_, _) {});
+    _announce = Timer.periodic(const Duration(seconds: 2), (_) => _send());
+    _send();
   }
-  return SyncAddress(text, shopItSyncPort);
-}
 
-/// IPv4 addresses the other device can use to reach this one, private
-/// networks first.
-Future<List<String>> localSyncAddresses() async {
-  final primary = await _ipv4(includeLinkLocal: false);
-  if (primary.isNotEmpty) return primary;
-  return _ipv4(includeLinkLocal: true);
-}
-
-Future<List<String>> _ipv4({required bool includeLinkLocal}) async {
-  final found = <String>[];
-  final interfaces = await NetworkInterface.list(
-    includeLoopback: false,
-    includeLinkLocal: includeLinkLocal,
-    type: InternetAddressType.IPv4,
-  );
-  for (final interface in interfaces) {
-    for (final address in interface.addresses) {
-      if (address.isLoopback) continue;
-      found.add(address.address);
+  Future<void> stop() async {
+    _announce?.cancel();
+    _announce = null;
+    final socket = _socket;
+    _socket = null;
+    socket?.close();
+    if (_peers.isNotEmpty) {
+      _peers.clear();
+      onChanged?.call();
     }
   }
-  found.sort((a, b) => _rank(a).compareTo(_rank(b)));
-  return found;
-}
 
-int _rank(String ip) {
-  if (ip.startsWith('10.') || ip.startsWith('192.168.')) return 0;
-  final match = RegExp(r'^172\.(\d+)\.').firstMatch(ip);
-  if (match != null) {
-    final second = int.parse(match.group(1)!);
-    if (second >= 16 && second <= 31) return 0;
+  void _send() {
+    _dropStale(notify: true);
+    final socket = _socket;
+    if (socket == null) return;
+    final bytes = utf8.encode(
+      ShopItBeacon(port: _httpPort, id: _deviceId, name: _name).encode(),
+    );
+    try {
+      socket.send(bytes, InternetAddress('255.255.255.255'), shopItBeaconPort);
+    } on SocketException {
+      // The network went away; the next announcement tries again.
+    }
   }
-  if (ip.startsWith('169.254.')) return 2;
-  return 1;
+
+  void _onEvent(RawSocketEvent event) {
+    if (event != RawSocketEvent.read) return;
+    final socket = _socket;
+    if (socket == null) return;
+    final packet = socket.receive();
+    if (packet == null) return;
+    if (packet.address.type != InternetAddressType.IPv4) return;
+    if (packet.address.isLoopback) return;
+    final beacon = ShopItBeacon.tryParse(utf8.decode(packet.data));
+    if (beacon == null || beacon.id == _deviceId) return;
+    final next = NearbyDevice(
+      id: beacon.id,
+      name: beacon.name,
+      host: packet.address.address,
+      port: beacon.port,
+    );
+    final previous = _peers[beacon.id]?.device;
+    _peers[beacon.id] = (device: next, seen: DateTime.now());
+    if (previous?.host != next.host ||
+        previous?.port != next.port ||
+        previous?.name != next.name) {
+      onChanged?.call();
+    }
+  }
+
+  void _dropStale({required bool notify}) {
+    final cutoff = DateTime.now().subtract(const Duration(seconds: 8));
+    final before = _peers.length;
+    _peers.removeWhere((_, peer) => peer.seen.isBefore(cutoff));
+    if (notify && _peers.length != before) onChanged?.call();
+  }
 }
 
 /// Listens for the other device and merges whatever it sends.
 class DeviceHost {
   HttpServer? _server;
   AppDatabase? _db;
-  String _code = '';
   Future<void> _queue = Future<void>.value();
 
   /// Called after a sync has been merged into the local database.
@@ -125,16 +186,11 @@ class DeviceHost {
 
   Future<int> start({
     required AppDatabase db,
-    required String code,
     InternetAddress? bindAddress,
     int port = shopItSyncPort,
   }) async {
-    if (!RegExp(r'^\d{6}$').hasMatch(code)) {
-      throw const SyncException('The sharing code must be 6 digits.');
-    }
     await stop();
     _db = db;
-    _code = code;
     final address = bindAddress ?? InternetAddress.anyIPv4;
     _server = await _bind(address, port);
     _server!.listen(_onRequest, onError: (_, _) {});
@@ -179,10 +235,8 @@ class DeviceHost {
         response.statusCode = HttpStatus.notFound;
         return;
       }
-      final got = request.headers.value(shopItSyncCodeHeader);
-      if (got != _code) {
+      if (request.headers.value(shopItSyncHeader) != '1') {
         response.statusCode = HttpStatus.unauthorized;
-        response.write('That code does not match.');
         return;
       }
       final db = _db;
@@ -238,28 +292,19 @@ Future<void> syncWithDevice({
   required AppDatabase db,
   required String host,
   required int port,
-  required String code,
   Duration timeout = const Duration(seconds: 8),
 }) async {
   final snapshot = await db.exportSnapshot();
   final client = HttpClient();
   try {
     final request = await client.post(host, port, '/v1/sync').timeout(timeout);
-    request.headers.set(shopItSyncCodeHeader, code);
+    request.headers.set(shopItSyncHeader, '1');
     request.headers.contentType = ContentType.json;
     request.write(jsonEncode(snapshot.toJson()));
     final response = await request.close().timeout(timeout);
     final text = await utf8.decoder.bind(response).join().timeout(timeout);
-    if (response.statusCode == HttpStatus.unauthorized) {
-      throw const SyncException(
-        'That code does not match the one on the other device.',
-      );
-    }
     if (response.statusCode != HttpStatus.ok) {
-      final message = text.trim();
-      throw SyncException(
-        message.isEmpty ? 'The other device could not sync.' : message,
-      );
+      throw const SyncException('The other device could not sync.');
     }
     final decoded = jsonDecode(text);
     if (decoded is! Map) {
@@ -272,8 +317,7 @@ Future<void> syncWithDevice({
     rethrow;
   } on SocketException {
     throw const SyncException(
-      "Can't reach that device. Check the address, and that both apps "
-      'are open on the same Wi-Fi.',
+      "Can't reach the other device. Keep both apps open on the same Wi-Fi.",
     );
   } on TimeoutException {
     throw const SyncException('The other device did not answer.');

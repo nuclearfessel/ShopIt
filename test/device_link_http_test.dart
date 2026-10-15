@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:drift/drift.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shop_it/data/database.dart';
-import 'package:shop_it/data/device_sync.dart';
 import 'package:shop_it/services/device_link.dart';
 
 /// The widget-test binding replaces [HttpClient] with one that never connects.
@@ -47,44 +46,33 @@ void main() {
     addTearDown(server.stop);
     final port = await server.start(
       db: host,
-      code: '123456',
       bindAddress: InternetAddress.loopbackIPv4,
       port: 0,
     );
 
     await client.addList('From the phone');
     await _realHttp(
-      () => syncWithDevice(
-        db: client,
-        host: '127.0.0.1',
-        port: port,
-        code: '123456',
-      ),
+      () => syncWithDevice(db: client, host: '127.0.0.1', port: port),
     );
     expect(await shoppingNames(host), contains('From the phone'));
 
     await host.addList('From the computer');
     await _realHttp(
-      () => syncWithDevice(
-        db: client,
-        host: '127.0.0.1',
-        port: port,
-        code: '123456',
-      ),
+      () => syncWithDevice(db: client, host: '127.0.0.1', port: port),
     );
     expect(await shoppingNames(client), contains('From the computer'));
     expect(await shoppingNames(host), contains('From the phone'));
 
-    await _realHttp(
-      () => expectLater(
-        syncWithDevice(
-          db: client,
-          host: '127.0.0.1',
-          port: port,
-          code: '000000',
-        ),
-        throwsA(isA<SyncException>()),
-      ),
-    );
+    await _realHttp(() async {
+      final http = HttpClient();
+      try {
+        final request = await http.post('127.0.0.1', port, '/v1/sync');
+        request.write('{}');
+        final response = await request.close();
+        expect(response.statusCode, HttpStatus.unauthorized);
+      } finally {
+        http.close(force: true);
+      }
+    });
   });
 }

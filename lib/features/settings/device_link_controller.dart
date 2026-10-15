@@ -1,75 +1,57 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io' show Platform;
+import 'dart:math';
 
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../data/device_sync.dart';
 import '../../data/providers.dart';
 import '../../services/device_link.dart';
 
 const _prefKey = 'device_link';
+const _deviceIdKey = 'device_id';
+const _network = MethodChannel('shop.it/network');
 
-enum DeviceRole { none, host, client }
-
-/// Whether this device is sharing lists, connecting to another, or neither.
+/// Whether this device is sharing lists on the Wi-Fi.
 class DeviceLinkState {
   const DeviceLinkState({
-    this.role = DeviceRole.none,
-    this.code = '',
-    this.address = '',
-    this.port = shopItSyncPort,
-    this.localAddresses = const [],
+    this.sharing = false,
+    this.peerNames = const [],
     this.lastSync,
     this.error,
     this.busy = false,
   });
 
-  final DeviceRole role;
-  final String code;
-  final String address;
-  final int port;
-  final List<String> localAddresses;
+  final bool sharing;
+  final List<String> peerNames;
   final DateTime? lastSync;
   final String? error;
   final bool busy;
 
-  bool get hosting => role == DeviceRole.host;
-  bool get connected => role == DeviceRole.client;
-
   String get summary {
-    switch (role) {
-      case DeviceRole.none:
-        return 'Not shared yet.';
-      case DeviceRole.host:
-        if (localAddresses.isEmpty) {
-          return 'Sharing, but this device has no Wi-Fi address yet.';
-        }
-        return 'Sharing at ${localAddresses.first}:$port';
-      case DeviceRole.client:
-        if (lastSync == null) return 'Trying to reach $address:$port';
-        return 'Connected to $address:$port';
+    if (!sharing) return 'Not shared.';
+    if (peerNames.isEmpty) {
+      if (lastSync != null) return 'Synced with the other device.';
+      return 'Looking for Shop-it on this Wi-Fi.';
     }
+    if (peerNames.length == 1) return 'Sharing with ${peerNames.first}.';
+    return 'Sharing with ${peerNames.length} devices.';
   }
 
   DeviceLinkState copyWith({
-    DeviceRole? role,
-    String? code,
-    String? address,
-    int? port,
-    List<String>? localAddresses,
+    bool? sharing,
+    List<String>? peerNames,
     DateTime? lastSync,
     String? error,
     bool clearError = false,
     bool? busy,
   }) {
     return DeviceLinkState(
-      role: role ?? this.role,
-      code: code ?? this.code,
-      address: address ?? this.address,
-      port: port ?? this.port,
-      localAddresses: localAddresses ?? this.localAddresses,
+      sharing: sharing ?? this.sharing,
+      peerNames: peerNames ?? this.peerNames,
       lastSync: lastSync ?? this.lastSync,
       error: clearError ? null : error ?? this.error,
       busy: busy ?? this.busy,
@@ -77,9 +59,10 @@ class DeviceLinkState {
   }
 }
 
-/// Keeps the Wi-Fi link alive for the whole time the app is open.
+/// Shares lists with any other Shop-it on the same Wi-Fi.
 class DeviceLinkController extends Notifier<DeviceLinkState> {
   final _host = DeviceHost();
+  final _discovery = DeviceDiscovery();
   Timer? _timer;
   Object _token = Object();
   var _syncing = false;
@@ -88,12 +71,18 @@ class DeviceLinkController extends Notifier<DeviceLinkState> {
   DeviceLinkState build() {
     final token = _token = Object();
     _host.onSynced = () {
-      if (token != _token || state.role != DeviceRole.host) return;
+      if (token != _token || !state.sharing) return;
       state = state.copyWith(lastSync: DateTime.now(), clearError: true);
     };
+    _discovery.onChanged = () {
+      if (token != _token || !state.sharing) return;
+      final names = [for (final peer in _discovery.peers) peer.name];
+      if (_sameNames(names, state.peerNames)) return;
+      state = state.copyWith(peerNames: names);
+    };
     final observer = _AppResumeObserver(() {
-      if (token != _token || state.role != DeviceRole.client) return;
-      _exchange(token);
+      if (token != _token || !state.sharing) return;
+      unawaited(_syncPeers(token));
     });
     WidgetsBinding.instance.addObserver(observer);
     ref.onDispose(() {
@@ -101,124 +90,51 @@ class DeviceLinkController extends Notifier<DeviceLinkState> {
       _timer?.cancel();
       _timer = null;
       _host.onSynced = null;
+      _discovery.onChanged = null;
       WidgetsBinding.instance.removeObserver(observer);
-      unawaited(_host.stop());
+      unawaited(_shutdown());
     });
     unawaited(_restore(token));
     return const DeviceLinkState();
   }
 
-  /// Shows an address and code so the other device can connect here.
-  Future<void> share({String? existingCode}) async {
+  /// Starts looking for the other device and syncing with it.
+  Future<void> startSharing() async {
     final token = _token;
-    if (state.busy) return;
-    _timer?.cancel();
+    if (state.busy || state.sharing) return;
     state = state.copyWith(busy: true, clearError: true);
-    final code = existingCode ?? newPairingCode();
     try {
       final db = ref.read(databaseProvider);
-      final port = await _host.start(db: db, code: code);
+      final port = await _host.start(db: db);
       if (token != _token) return;
-      final addresses = await localSyncAddresses();
-      if (token != _token) return;
-      final next = DeviceLinkState(
-        role: DeviceRole.host,
-        code: code,
-        port: port,
-        localAddresses: addresses,
+      await _discovery.start(
+        httpPort: port,
+        deviceId: await _deviceId(),
+        name: thisDeviceName(),
       );
+      if (token != _token) return;
+      await _multicast(true);
+      const next = DeviceLinkState(sharing: true);
       state = next;
-      await _save(next);
-    } on Object catch (error) {
-      if (token != _token) return;
-      state = state.copyWith(busy: false, error: friendlySyncError(error));
-    }
-  }
-
-  /// Connects to a device that is already sharing and keeps syncing.
-  ///
-  /// [keepTrying] is for a link that was saved earlier: if the other device
-  /// is not reachable yet, keep the link and try again.
-  Future<void> connect({
-    required String address,
-    required String code,
-    bool keepTrying = false,
-  }) async {
-    final token = _token;
-    if (state.busy) return;
-    final trimmed = code.trim();
-    if (!RegExp(r'^\d{6}$').hasMatch(trimmed)) {
-      state = state.copyWith(
-        error: 'Enter the 6-digit code shown on the other device.',
-      );
-      return;
-    }
-    SyncAddress parsed;
-    try {
-      parsed = parseSyncAddress(address);
-    } on SyncException catch (error) {
-      state = state.copyWith(error: error.message);
-      return;
-    }
-    final previous = state;
-    _timer?.cancel();
-    state = state.copyWith(busy: true, clearError: true);
-    await _host.stop();
-    try {
-      final db = ref.read(databaseProvider);
-      await syncWithDevice(
-        db: db,
-        host: parsed.host,
-        port: parsed.port,
-        code: trimmed,
-      );
-      if (token != _token) return;
-      final next = DeviceLinkState(
-        role: DeviceRole.client,
-        code: trimmed,
-        address: parsed.host,
-        port: parsed.port,
-        lastSync: DateTime.now(),
-      );
-      state = next;
-      await _save(next);
+      await _save(true);
       _startTimer(token);
     } on Object catch (error) {
+      await _shutdown();
       if (token != _token) return;
-      if (keepTrying) {
-        final next = DeviceLinkState(
-          role: DeviceRole.client,
-          code: trimmed,
-          address: parsed.host,
-          port: parsed.port,
-          error: friendlySyncError(error),
-        );
-        state = next;
-        await _save(next);
-        _startTimer(token);
-        return;
-      }
-      state = previous.copyWith(busy: false, error: friendlySyncError(error));
-      if (previous.hosting && previous.code.length == 6) {
-        await share(existingCode: previous.code);
-      }
+      state = DeviceLinkState(error: friendlySyncError(error));
     }
   }
 
-  /// Pulls and pushes lists once. Sharing from this device has nothing to
-  /// pull: the other device is the one that checks in.
-  Future<void> syncNow() => _exchange(_token);
-
-  /// Stops sharing and forgets the other device.
+  /// Stops sharing and forgets nearby devices.
   Future<void> stop() async {
     final token = _token;
     _timer?.cancel();
     _timer = null;
-    await _host.stop();
+    await _shutdown();
     if (token != _token) return;
     const next = DeviceLinkState();
     state = next;
-    await _save(next);
+    await _save(false);
   }
 
   Future<void> _restore(Object token) async {
@@ -235,41 +151,30 @@ class DeviceLinkController extends Notifier<DeviceLinkState> {
     } on FormatException {
       return;
     }
-    if (decoded is! Map) return;
-    final code = decoded['code'];
-    if (code is! String || !RegExp(r'^\d{6}$').hasMatch(code)) return;
-    if (decoded['role'] == 'host') {
-      await share(existingCode: code);
-      return;
-    }
-    if (decoded['role'] != 'client') return;
-    final address = decoded['address'];
-    final port = decoded['port'];
-    if (address is! String || address.isEmpty || port is! int) return;
-    await connect(address: '$address:$port', code: code, keepTrying: true);
+    if (decoded is! Map || decoded['sharing'] != true) return;
+    await startSharing();
   }
 
   void _startTimer(Object token) {
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 3), (_) {
       if (token != _token) return;
-      _exchange(token);
+      unawaited(_syncPeers(token));
     });
   }
 
-  Future<void> _exchange(Object token) async {
-    if (_syncing || token != _token || state.role != DeviceRole.client) return;
+  Future<void> _syncPeers(Object token) async {
+    if (_syncing || token != _token || !state.sharing) return;
+    final peers = _discovery.peers;
+    if (peers.isEmpty) return;
     _syncing = true;
     try {
       final db = ref.read(databaseProvider);
-      await syncWithDevice(
-        db: db,
-        host: state.address,
-        port: state.port,
-        code: state.code,
-      );
-      if (token != _token) return;
-      state = state.copyWith(lastSync: DateTime.now(), clearError: true);
+      for (final peer in peers) {
+        await syncWithDevice(db: db, host: peer.host, port: peer.port);
+        if (token != _token) return;
+        state = state.copyWith(lastSync: DateTime.now(), clearError: true);
+      }
     } on Object catch (error) {
       if (token != _token) return;
       state = state.copyWith(error: friendlySyncError(error));
@@ -278,25 +183,55 @@ class DeviceLinkController extends Notifier<DeviceLinkState> {
     }
   }
 
-  Future<void> _save(DeviceLinkState value) async {
+  Future<void> _shutdown() async {
+    await _multicast(false);
+    await _discovery.stop();
+    await _host.stop();
+  }
+
+  Future<String> _deviceId() async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getString(_deviceIdKey);
+    if (saved != null && saved.isNotEmpty) return saved;
+    final next = _newId();
+    await prefs.setString(_deviceIdKey, next);
+    return next;
+  }
+
+  Future<void> _save(bool sharing) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      if (value.role == DeviceRole.none) {
+      if (!sharing) {
         await prefs.remove(_prefKey);
         return;
       }
-      await prefs.setString(
-        _prefKey,
-        jsonEncode({
-          'role': value.role.name,
-          'code': value.code,
-          'address': value.address,
-          'port': value.port,
-        }),
-      );
+      await prefs.setString(_prefKey, jsonEncode({'sharing': true}));
     } on Object {
       // Sharing still works this session if the choice cannot be saved.
     }
+  }
+}
+
+String _newId() {
+  final random = Random.secure();
+  final bytes = List<int>.generate(16, (_) => random.nextInt(256));
+  return bytes.map((byte) => byte.toRadixString(16).padLeft(2, '0')).join();
+}
+
+bool _sameNames(List<String> a, List<String> b) {
+  if (a.length != b.length) return false;
+  for (var i = 0; i < a.length; i++) {
+    if (a[i] != b[i]) return false;
+  }
+  return true;
+}
+
+Future<void> _multicast(bool on) async {
+  if (!Platform.isAndroid) return;
+  try {
+    await _network.invokeMethod<void>('multicastLock', on);
+  } on Object {
+    // Some phones receive the announcement without the lock.
   }
 }
 

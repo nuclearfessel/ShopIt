@@ -42,11 +42,22 @@ class SettingsDialog extends ConsumerWidget {
       ),
     );
 
+    // Desktop draws the scrollbar over the scroll view. Keep a gutter so it
+    // sits beside the theme control instead of covering it when the dialog
+    // shrinks to fit a short window.
+    final scrollbarGutter = switch (theme.platform) {
+      TargetPlatform.windows ||
+      TargetPlatform.linux ||
+      TargetPlatform.macOS => 16.0,
+      _ => 0.0,
+    };
+
     return AlertDialog(
       title: const Text('Settings'),
       content: SizedBox(
         width: 420,
         child: SingleChildScrollView(
+          padding: EdgeInsets.only(right: scrollbarGutter),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -86,8 +97,8 @@ class SettingsDialog extends ConsumerWidget {
               const Divider(height: 24),
               heading('Devices'),
               Text(
-                'Lists you add on your phone and on this computer show up on '
-                'both, while Shop-it is open on the same Wi-Fi.',
+                'Turn on sharing here and on the other device. Both apps need '
+                'to be open on the same Wi-Fi.',
                 style: theme.textTheme.bodyMedium,
               ),
               const SizedBox(height: 8),
@@ -114,11 +125,7 @@ class SettingsDialog extends ConsumerWidget {
                     context: context,
                     builder: (_) => const DeviceLinkDialog(),
                   ),
-                  child: Text(
-                    link.role == DeviceRole.none
-                        ? 'Share lists'
-                        : 'Manage sharing',
-                  ),
+                  child: Text(link.sharing ? 'Sharing on' : 'Share lists'),
                 ),
               ),
             ],

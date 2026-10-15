@@ -137,13 +137,14 @@ void main() {
     expect(await shoppingNames(client), contains('From the phone'));
   });
 
-  test('the address can be a host or a host and port', () {
-    expect(parseSyncAddress('192.168.1.20').port, shopItSyncPort);
-    expect(parseSyncAddress('192.168.1.20').host, '192.168.1.20');
-    final withPort = parseSyncAddress('http://192.168.1.20:47822/');
-    expect(withPort.host, '192.168.1.20');
-    expect(withPort.port, 47822);
-    expect(() => parseSyncAddress(''), throwsA(isA<SyncException>()));
+  test('a beacon says which device is sharing and where', () {
+    final beacon = ShopItBeacon.tryParse('SHOPIT1\t47821\tabc\tthe phone');
+    expect(beacon?.port, shopItSyncPort);
+    expect(beacon?.id, 'abc');
+    expect(beacon?.name, 'the phone');
+    expect(beacon?.encode(), 'SHOPIT1\t47821\tabc\tthe phone');
+    expect(ShopItBeacon.tryParse('hello'), null);
+    expect(ShopItBeacon.tryParse('SHOPIT1\tnope\tabc\tphone'), null);
   });
 
   testWidgets('settings explains how to share lists', (tester) async {
@@ -186,12 +187,11 @@ void main() {
     await tester.scrollUntilVisible(find.text('Share lists'), 200);
     await tester.tap(find.text('Share lists'));
     await tester.pumpAndSettle();
-    expect(find.text('Share from this device'), findsOneWidget);
+    expect(find.text('Share on this Wi-Fi'), findsOneWidget);
     expect(
-      find.byTooltip('Let the other device connect to this one'),
+      find.byTooltip('Share lists with Shop-it on the other device'),
       findsOneWidget,
     );
-    expect(find.byTooltip('Sync lists with that device'), findsOneWidget);
     expect(find.byTooltip('Close'), findsOneWidget);
   });
 }

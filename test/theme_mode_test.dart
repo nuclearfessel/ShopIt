@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -48,8 +49,9 @@ void main() {
     Future<ProviderContainer> pumpApp(
       WidgetTester tester, {
       Brightness platform = Brightness.light,
+      Size size = const Size(1000, 800),
     }) async {
-      tester.view.physicalSize = const Size(1000, 800);
+      tester.view.physicalSize = size;
       tester.view.devicePixelRatio = 1;
       tester.platformDispatcher.platformBrightnessTestValue = platform;
       addTearDown(tester.view.reset);
@@ -170,6 +172,27 @@ void main() {
       expect(shown(tester), Brightness.dark); // system is dark by default
       await choose(tester, 'Light');
       expect(shown(tester), Brightness.light);
+    });
+
+    testWidgets('the scrollbar sits beside the theme control', (tester) async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+      try {
+        await pumpApp(tester, size: const Size(720, 460));
+        await tester.tap(find.byTooltip('Settings'));
+        await tester.pumpAndSettle();
+
+        final button = tester.getRect(find.byType(SegmentedButton<ThemeMode>));
+        final scroll = tester.getRect(
+          find.descendant(
+            of: find.byType(SettingsDialog),
+            matching: find.byType(Scrollbar),
+          ),
+        );
+        // The desktop thumb is about 12px and draws on the scroll view's edge.
+        expect(scroll.right - button.right, greaterThanOrEqualTo(14));
+      } finally {
+        debugDefaultTargetPlatformOverride = null;
+      }
     });
 
     testWidgets('settings are reachable from the pantry too', (tester) async {
