@@ -7,6 +7,7 @@ class ListTotals {
     required this.subtotal,
     required this.tax,
     required this.remaining,
+    required this.cartTotal,
     required this.hasPrices,
     required this.anyTaxed,
   });
@@ -19,6 +20,9 @@ class ListTotals {
 
   /// Subtotal plus tax for items not yet checked off.
   final double remaining;
+
+  /// Subtotal plus tax for the checked-off items (what is in the cart).
+  final double cartTotal;
 
   final bool hasPrices;
 
@@ -46,10 +50,12 @@ ListTotals computeTotals(List<ShoppingItem> items, TaxContext? tax) {
   double sum(Iterable<ShoppingItem> r) => r.fold(0.0, (a, i) => a + line(i));
 
   final open = priced.where((i) => !i.checked).toList();
+  final cart = priced.where((i) => i.checked).toList();
   return ListTotals(
     subtotal: _round2(sum(priced)),
     tax: taxOn(priced),
     remaining: _round2(sum(open) + taxOn(open)),
+    cartTotal: _round2(sum(cart) + taxOn(cart)),
     hasPrices: priced.isNotEmpty,
     anyTaxed: tax != null && priced.any(tax.isTaxed),
   );

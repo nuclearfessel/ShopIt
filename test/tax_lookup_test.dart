@@ -6,10 +6,10 @@ void main() {
     test('converts the fraction rate to a percent', () {
       final p = parseZiptaxPercent({
         'metadata': {
-          'response': {'code': 100, 'name': 'RESPONSE_CODE_SUCCESS'}
+          'response': {'code': 100, 'name': 'RESPONSE_CODE_SUCCESS'},
         },
         'taxSummaries': [
-          {'rate': 0.0775, 'taxType': 'SALES_TAX'}
+          {'rate': 0.0775, 'taxType': 'SALES_TAX'},
         ],
       });
       expect(p, 7.75);
@@ -18,10 +18,10 @@ void main() {
     test('a 0% jurisdiction is a valid result', () {
       final p = parseZiptaxPercent({
         'metadata': {
-          'response': {'code': 100}
+          'response': {'code': 100},
         },
         'taxSummaries': [
-          {'rate': 0}
+          {'rate': 0},
         ],
       });
       expect(p, 0);
@@ -30,10 +30,10 @@ void main() {
     test('a rate already above 1 is treated as a percent', () {
       final p = parseZiptaxPercent({
         'metadata': {
-          'response': {'code': 100}
+          'response': {'code': 100},
         },
         'taxSummaries': [
-          {'rate': 8.25}
+          {'rate': 8.25},
         ],
       });
       expect(p, 8.25);
@@ -44,7 +44,7 @@ void main() {
         try {
           parseZiptaxPercent({
             'metadata': {
-              'response': {'code': code}
+              'response': {'code': code},
             },
           });
         } on LookupException catch (e) {
@@ -61,13 +61,14 @@ void main() {
 
     test('success with no summaries is an error, not a zero rate', () {
       expect(
-          () => parseZiptaxPercent({
-                'metadata': {
-                  'response': {'code': 100}
-                },
-                'taxSummaries': [],
-              }),
-          throwsA(isA<LookupException>()));
+        () => parseZiptaxPercent({
+          'metadata': {
+            'response': {'code': 100},
+          },
+          'taxSummaries': [],
+        }),
+        throwsA(isA<LookupException>()),
+      );
     });
   });
 
@@ -79,7 +80,7 @@ void main() {
           'state': 'California',
           'country': 'United States',
           'country_code': 'us',
-        }
+        },
       })!;
       expect(p.label, 'Irvine, California');
       expect(p.isUs, isTrue);
@@ -92,16 +93,16 @@ void main() {
           'province': 'Alberta',
           'country': 'Canada',
           'country_code': 'ca',
-        }
+        },
       })!;
       expect(p.label, 'Banff, Alberta');
       expect(p.isUs, isFalse);
       expect(
-          parseNominatim({
-            'address': {'country': 'Iceland', 'country_code': 'is'}
-          })!
-              .label,
-          'Iceland');
+        parseNominatim({
+          'address': {'country': 'Iceland', 'country_code': 'is'},
+        })!.label,
+        'Iceland',
+      );
     });
 
     test('no address means no place', () {

@@ -40,6 +40,27 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
     setState(_controller.clear);
   }
 
+  /// Deletes the checked items right away, with an Undo in a snack bar.
+  Future<void> _deleteChecked(String listId) async {
+    final db = ref.read(databaseProvider);
+    final ids = await db.clearChecked(listId);
+    if (!mounted || ids.isEmpty) return;
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.clearSnackBars();
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(
+          'Deleted ${ids.length} ${ids.length == 1 ? 'item' : 'items'} '
+          'from your cart',
+        ),
+        action: SnackBarAction(
+          label: 'UNDO',
+          onPressed: () => db.restoreItems(ids),
+        ),
+      ),
+    );
+  }
+
   /// Enter key: use the catalog entry with exactly this name if there is one,
   /// otherwise add the text as a new item under "Other".
   Future<void> _submit(String listId) async {
@@ -106,9 +127,7 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
                 tooltip: 'List options',
                 icon: const Icon(Icons.more_vert),
                 onSelected: (v) async {
-                  if (v == 'clear') {
-                    await db.clearChecked(current.id);
-                  } else if (v == 'new') {
+                  if (v == 'new') {
                     await _newList();
                   } else if (v == 'delete') {
                     if (await _confirm(
@@ -142,10 +161,6 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
                   }
                 },
                 itemBuilder: (_) => [
-                  const PopupMenuItem(
-                    value: 'clear',
-                    child: Text('Clear checked items'),
-                  ),
                   const PopupMenuItem(value: 'new', child: Text('New list')),
                   const PopupMenuItem(
                     value: 'tax',
@@ -228,6 +243,8 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
                               all,
                               current.id,
                               taxCtx,
+                              onUncheckAll: () => db.uncheckAll(current.id),
+                              onDeleteAll: () => _deleteChecked(current.id),
                             ),
                           ],
                         ),
@@ -242,18 +259,20 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
   }
 }
 
-/// Unchecked items under category headers in store-walking order, followed by
-/// a "Checked" section.
+/// Unchecked items under colour-barred category headers in store-walking
+/// order, followed by an "In your cart" section for checked items.
 List<Widget> _grouped(
   List<ShoppingItem> rows,
   Map<String, int> order,
   AppDatabase db,
   List<ShoppingList> lists,
   String listId,
-  TaxContext? tax,
-) {
+  TaxContext? tax, {
+  required VoidCallback onUncheckAll,
+  required VoidCallback onDeleteAll,
+}) {
   final open = rows.where((i) => !i.checked);
-  final done = rows.where((i) => i.checked);
+  final done = rows.where((i) => i.checked).toList();
   final byCategory = <String, List<ShoppingItem>>{};
   for (final i in open) {
     byCategory
@@ -268,12 +287,30 @@ List<Widget> _grouped(
       for (final i in byCategory[n]!)
         _ItemTile(item: i, db: db, lists: lists, listId: listId, tax: tax),
     ],
-    if (done.isNotEmpty) ...[
-      const _Header('Checked'),
-      for (final i in done)
-        _ItemTile(item: i, db: db, lists: lists, listId: listId, tax: tax),
-    ],
+    if (done.isNotEmpty)
+      _CartSection(
+        count: done.length,
+        onUncheckAll: onUncheckAll,
+        onDeleteAll: onDeleteAll,
+        children: [
+          for (final i in done)
+            _ItemTile(item: i, db: db, lists: lists, listId: listId, tax: tax),
+        ],
+      ),
   ];
+}
+
+/// A stable accent colour per category name, for the header's colour bar.
+Color _accentFor(String name, Brightness brightness) {
+  final hue =
+      (name.codeUnits.fold<int>(7, (h, c) => (h * 31 + c) & 0xFFFF) % 360)
+          .toDouble();
+  return HSLColor.fromAHSL(
+    1,
+    hue,
+    0.5,
+    brightness == Brightness.dark ? 0.62 : 0.42,
+  ).toColor();
 }
 
 class _Header extends StatelessWidget {
@@ -281,14 +318,129 @@ class _Header extends StatelessWidget {
   final String text;
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-    child: Text(
-      text,
-      style: Theme.of(context).textTheme.labelLarge
-          ?.copyWith(color: Theme.of(context).colorScheme.primary),
-    ),
-  );
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final accent = _accentFor(text, theme.brightness);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(0, 14, 16, 4),
+      child: Row(
+        children: [
+          Container(width: 4, height: 22, color: accent),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              text.toUpperCase(),
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: accent,
+                letterSpacing: 0.6,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Checked items in their own, slightly tinted panel. The "Uncheck all" and
+/// "Delete all" controls sit compactly in its header: small text buttons when
+/// there is room, small icon buttons when the window is narrow.
+class _CartSection extends StatelessWidget {
+  const _CartSection({
+    required this.count,
+    required this.onUncheckAll,
+    required this.onDeleteAll,
+    required this.children,
+  });
+
+  final int count;
+  final VoidCallback onUncheckAll;
+  final VoidCallback onDeleteAll;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    const compact = VisualDensity(horizontal: -3, vertical: -3);
+    final small = TextButton.styleFrom(
+      visualDensity: compact,
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      minimumSize: const Size(0, 32),
+      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      textStyle: theme.textTheme.labelMedium,
+    );
+    // A Material (not a coloured Container) so the items' tap ripples show.
+    return Padding(
+      padding: const EdgeInsets.only(top: 16),
+      child: Material(
+        color: scheme.surfaceContainerHigh,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 6, 8, 2),
+              child: LayoutBuilder(
+                builder: (context, box) {
+                  final narrow = box.maxWidth < 360;
+                  return Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'IN YOUR CART ($count)',
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.labelLarge?.copyWith(
+                            letterSpacing: 0.6,
+                            color: scheme.onSurface.withValues(alpha: 0.7),
+                          ),
+                        ),
+                      ),
+                      if (narrow) ...[
+                        IconButton(
+                          tooltip: 'Uncheck all',
+                          visualDensity: compact,
+                          iconSize: 20,
+                          icon: const Icon(Icons.remove_done),
+                          onPressed: onUncheckAll,
+                        ),
+                        IconButton(
+                          tooltip: 'Delete all',
+                          visualDensity: compact,
+                          iconSize: 20,
+                          icon: const Icon(Icons.delete_sweep_outlined),
+                          onPressed: onDeleteAll,
+                        ),
+                      ] else ...[
+                        TextButton.icon(
+                          style: small,
+                          onPressed: onUncheckAll,
+                          icon: const Icon(Icons.remove_done, size: 16),
+                          label: const Text('Uncheck all'),
+                        ),
+                        const SizedBox(width: 4),
+                        TextButton.icon(
+                          style: small,
+                          onPressed: onDeleteAll,
+                          icon: const Icon(
+                            Icons.delete_sweep_outlined,
+                            size: 16,
+                          ),
+                          label: const Text('Delete all'),
+                        ),
+                      ],
+                    ],
+                  );
+                },
+              ),
+            ),
+            ...children,
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _ItemTile extends StatelessWidget {
@@ -380,10 +532,14 @@ class _ItemTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final qty = (item.quantity != 1 || item.unit.isNotEmpty)
+        ? '${formatQuantity(item.quantity)} ${item.unit}'.trim()
+        : null;
     final details = [
-      if (item.quantity != 1 || item.unit.isNotEmpty)
-        '${formatQuantity(item.quantity)} ${item.unit}'.trim(),
-      if (item.price != null) formatMoney(item.price! * item.quantity),
+      if (qty != null)
+        item.price != null && item.quantity != 1
+            ? '$qty x ${formatMoney(item.price!)}'
+            : qty,
       if (item.hasCoupon) 'coupon',
       if (tax?.isTaxed(item) ?? false) 'tax',
     ].join(' · ');
@@ -417,18 +573,19 @@ class _ItemTile extends StatelessWidget {
                     ),
                 ],
               ),
-        trailing: IconButton(
-          tooltip: 'Edit',
-          icon: const Icon(Icons.edit_outlined),
-          onPressed: () => _edit(context),
-        ),
+        trailing: item.price == null
+            ? null
+            : Text(
+                formatMoney(item.price! * item.quantity),
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
       ),
     );
   }
 }
 
-/// Subtotal, tax (at the list's chosen rate and rules) and total, plus what is
-/// still to buy. Hidden when nothing has a price.
+/// Out-of-Milk-style bottom bar: cart and list totals (with tax at the list's
+/// rate and rules) on the left, item counts on the right.
 class _TotalBar extends StatelessWidget {
   const _TotalBar({required this.rows, required this.tax});
   final List<ShoppingItem> rows;
@@ -436,15 +593,17 @@ class _TotalBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (rows.isEmpty) return const SizedBox.shrink();
     final t = computeTotals(rows, tax);
-    if (!t.hasPrices) return const SizedBox.shrink();
     final theme = Theme.of(context);
     final ctx = tax;
+    final inCart = rows.where((i) => i.checked).length;
     // A rate is chosen but nothing priced is taxed: say why tax is 0.
-    final noneTaxed = ctx != null && !t.anyTaxed;
+    final noneTaxed = ctx != null && t.hasPrices && !t.anyTaxed;
     final rulesName = ctx == null || ctx.rules.id == 'everything'
         ? 'this rate'
         : '${ctx.rules.title} rules';
+    final bold = theme.textTheme.titleSmall;
     return Material(
       color: theme.colorScheme.surfaceContainer,
       child: SafeArea(
@@ -463,34 +622,64 @@ class _TotalBar extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Flexible(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Cart total: ${formatMoney(t.cartTotal)}',
+                                style: bold,
+                              ),
+                              Text(
+                                'List total: ${formatMoney(t.total)}',
+                                style: bold,
+                              ),
+                              if (ctx != null && t.hasPrices)
+                                Text(
+                                  'Tax ${formatPercent(ctx.percent)}%: '
+                                  '${formatMoney(t.tax)}',
+                                  style: theme.textTheme.bodySmall,
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Flexible(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerRight,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text('Items in cart: $inCart', style: bold),
+                              Text(
+                                'Items in list: ${rows.length}',
+                                style: bold,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                   if (noneTaxed)
                     Padding(
-                      padding: const EdgeInsets.only(bottom: 4),
+                      padding: const EdgeInsets.only(top: 4),
                       child: Text(
-                        'None of the priced items are taxed under $rulesName, so '
-                        'no tax is added. Tap an item to see why or change it.',
+                        'None of the priced items are taxed under $rulesName, '
+                        'so no tax is added. Tap an item to see why or change '
+                        'it.',
                         style: theme.textTheme.bodySmall,
                       ),
                     ),
-                  Wrap(
-                    alignment: WrapAlignment.spaceBetween,
-                    spacing: 16,
-                    runSpacing: 4,
-                    children: [
-                      if (ctx != null)
-                        Text('Subtotal ${formatMoney(t.subtotal)}'),
-                      if (ctx != null)
-                        Text(
-                          'Tax ${formatPercent(ctx.percent)}% '
-                          '${formatMoney(t.tax)}',
-                        ),
-                      Text(
-                        'Total ${formatMoney(t.total)}',
-                        style: theme.textTheme.titleSmall,
-                      ),
-                      Text('Still to buy ${formatMoney(t.remaining)}'),
-                    ],
-                  ),
                 ],
               ),
             ),

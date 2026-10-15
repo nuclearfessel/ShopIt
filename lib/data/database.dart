@@ -485,18 +485,48 @@ class AppDatabase extends _$AppDatabase {
     );
   }
 
-  Future<void> clearChecked(String listId) {
+  /// Soft-deletes every checked item on the list and returns their ids, so
+  /// the caller can offer an undo via [restoreItems].
+  Future<List<String>> clearChecked(String listId) async {
     final now = DateTime.now();
-    return (update(shoppingItems)..where(
-          (t) =>
-              t.listId.equals(listId) &
-              t.checked.equals(true) &
-              t.deletedAt.isNull(),
-        ))
-        .write(
-          ShoppingItemsCompanion(deletedAt: Value(now), updatedAt: Value(now)),
-        );
+    final match = select(shoppingItems)
+      ..where(
+        (t) =>
+            t.listId.equals(listId) &
+            t.checked.equals(true) &
+            t.deletedAt.isNull(),
+      );
+    final ids = [for (final i in await match.get()) i.id];
+    if (ids.isEmpty) return ids;
+    await (update(shoppingItems)..where((t) => t.id.isIn(ids))).write(
+      ShoppingItemsCompanion(deletedAt: Value(now), updatedAt: Value(now)),
+    );
+    return ids;
   }
+
+  /// Brings back items deleted by [clearChecked] (still checked).
+  Future<void> restoreItems(List<String> ids) =>
+      (update(shoppingItems)..where((t) => t.id.isIn(ids))).write(
+        ShoppingItemsCompanion(
+          deletedAt: const Value(null),
+          updatedAt: Value(DateTime.now()),
+        ),
+      );
+
+  /// Unchecks every checked item on the list (puts them back to be bought).
+  Future<void> uncheckAll(String listId) =>
+      (update(shoppingItems)..where(
+            (t) =>
+                t.listId.equals(listId) &
+                t.checked.equals(true) &
+                t.deletedAt.isNull(),
+          ))
+          .write(
+            ShoppingItemsCompanion(
+              checked: const Value(false),
+              updatedAt: Value(DateTime.now()),
+            ),
+          );
 
   // ---- Pantry ----
   /// Soonest expiry first; items without an expiry date sort last.

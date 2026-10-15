@@ -12,54 +12,59 @@ void main() {
     expect(lists.map((l) => l.name), ['Groceries']);
   });
 
-  test('shopping items: add, check, sort, soft-delete, clear checked',
-      () async {
-    final list = (await db.watchLists().first).single;
-    await db.addShoppingItem(list.id, 'Milk');
-    await db.addShoppingItem(list.id, 'Apples');
+  test(
+    'shopping items: add, check, sort, soft-delete, clear checked',
+    () async {
+      final list = (await db.watchLists().first).single;
+      await db.addShoppingItem(list.id, 'Milk');
+      await db.addShoppingItem(list.id, 'Apples');
 
-    var items = await db.watchShoppingItems(list.id).first;
-    expect(items.map((i) => i.name), ['Apples', 'Milk']);
+      var items = await db.watchShoppingItems(list.id).first;
+      expect(items.map((i) => i.name), ['Apples', 'Milk']);
 
-    await db.setChecked(items.first.id, true);
-    items = await db.watchShoppingItems(list.id).first;
-    expect(items.map((i) => i.name), ['Milk', 'Apples']); // checked sinks
+      await db.setChecked(items.first.id, true);
+      items = await db.watchShoppingItems(list.id).first;
+      expect(items.map((i) => i.name), ['Milk', 'Apples']); // checked sinks
 
-    await db.clearChecked(list.id);
-    items = await db.watchShoppingItems(list.id).first;
-    expect(items.map((i) => i.name), ['Milk']);
+      await db.clearChecked(list.id);
+      items = await db.watchShoppingItems(list.id).first;
+      expect(items.map((i) => i.name), ['Milk']);
 
-    await db.deleteShoppingItem(items.single.id);
-    expect(await db.watchShoppingItems(list.id).first, isEmpty);
-    // soft delete: the rows still exist for future sync
-    expect(await db.select(db.shoppingItems).get(), hasLength(2));
-  });
+      await db.deleteShoppingItem(items.single.id);
+      expect(await db.watchShoppingItems(list.id).first, isEmpty);
+      // soft delete: the rows still exist for future sync
+      expect(await db.select(db.shoppingItems).get(), hasLength(2));
+    },
+  );
 
   test('deleting a list hides its items', () async {
     await db.addList('Party');
-    final party =
-        (await db.watchLists().first).firstWhere((l) => l.name == 'Party');
+    final party = (await db.watchLists().first).firstWhere(
+      (l) => l.name == 'Party',
+    );
     await db.addShoppingItem(party.id, 'Chips');
     await db.deleteList(party.id);
     expect((await db.watchLists().first).map((l) => l.name), ['Groceries']);
     expect(await db.watchShoppingItems(party.id).first, isEmpty);
   });
 
-  test('delete all lists empties shopping but keeps pantry, then can restart',
-      () async {
-    final list = (await db.watchLists().first).single;
-    await db.addList('Party');
-    await db.addShoppingItem(list.id, 'Milk', category: 'Dairy & Eggs');
-    await db.addPantryItem('Rice');
+  test(
+    'delete all lists empties shopping but keeps pantry, then can restart',
+    () async {
+      final list = (await db.watchLists().first).single;
+      await db.addList('Party');
+      await db.addShoppingItem(list.id, 'Milk', category: 'Dairy & Eggs');
+      await db.addPantryItem('Rice');
 
-    await db.deleteAllLists();
-    expect(await db.watchLists().first, isEmpty);
-    expect(await db.watchShoppingItems(list.id).first, isEmpty);
-    expect(await db.watchPantry().first, hasLength(1));
+      await db.deleteAllLists();
+      expect(await db.watchLists().first, isEmpty);
+      expect(await db.watchShoppingItems(list.id).first, isEmpty);
+      expect(await db.watchPantry().first, hasLength(1));
 
-    await db.addList('Fresh start');
-    expect((await db.watchLists().first).map((l) => l.name), ['Fresh start']);
-  });
+      await db.addList('Fresh start');
+      expect((await db.watchLists().first).map((l) => l.name), ['Fresh start']);
+    },
+  );
 
   test('item details can be edited and cleared', () async {
     final list = (await db.watchLists().first).single;
@@ -68,52 +73,68 @@ void main() {
     expect(milk.price, isNull);
     expect(milk.note, '');
 
-    await db.updateShoppingItem(milk.id,
-        name: 'Oat milk',
-        quantity: 2,
-        unit: 'cartons',
-        category: 'Dairy & Eggs',
-        price: 1.75,
-        note: 'Barista edition');
+    await db.updateShoppingItem(
+      milk.id,
+      name: 'Oat milk',
+      quantity: 2,
+      unit: 'cartons',
+      category: 'Dairy & Eggs',
+      price: 1.75,
+      note: 'Barista edition',
+    );
     var m = (await db.watchShoppingItems(list.id).first).single;
-    expect((m.name, m.quantity, m.unit, m.price, m.note),
-        ('Oat milk', 2.0, 'cartons', 1.75, 'Barista edition'));
+    expect(
+      (m.name, m.quantity, m.unit, m.price, m.note),
+      ('Oat milk', 2.0, 'cartons', 1.75, 'Barista edition'),
+    );
 
-    await db.updateShoppingItem(m.id,
-        name: m.name,
-        quantity: m.quantity,
-        unit: m.unit,
-        category: m.category,
-        price: null,
-        note: '');
+    await db.updateShoppingItem(
+      m.id,
+      name: m.name,
+      quantity: m.quantity,
+      unit: m.unit,
+      category: m.category,
+      price: null,
+      note: '',
+    );
     m = (await db.watchShoppingItems(list.id).first).single;
     expect(m.price, isNull);
 
-    await db.addPantryItem('Rice',
-        expiryDate: DateTime(2030, 1, 1), location: 'Shelf');
+    await db.addPantryItem(
+      'Rice',
+      expiryDate: DateTime(2030, 1, 1),
+      location: 'Shelf',
+    );
     final rice = (await db.watchPantry().first).single;
-    await db.updatePantryItem(rice.id,
-        name: 'Basmati rice',
-        quantity: 3,
-        unit: 'kg',
-        category: 'Pasta, Rice & Grains',
-        location: 'Cupboard',
-        expiryDate: null,
-        note: 'Open bag on top');
+    await db.updatePantryItem(
+      rice.id,
+      name: 'Basmati rice',
+      quantity: 3,
+      unit: 'kg',
+      category: 'Pasta, Rice & Grains',
+      location: 'Cupboard',
+      expiryDate: null,
+      note: 'Open bag on top',
+    );
     final r = (await db.watchPantry().first).single;
-    expect((r.name, r.location, r.expiryDate, r.note),
-        ('Basmati rice', 'Cupboard', null, 'Open bag on top'));
+    expect(
+      (r.name, r.location, r.expiryDate, r.note),
+      ('Basmati rice', 'Cupboard', null, 'Open bag on top'),
+    );
   });
 
-  test('items can be moved and copied between lists, keeping their details',
-      () async {
-    final groceries = (await db.watchLists().first).single;
-    await db.addList('Party');
-    final party =
-        (await db.watchLists().first).firstWhere((l) => l.name == 'Party');
-    await db.addShoppingItem(groceries.id, 'Chips', category: 'Snacks');
-    final chips = (await db.watchShoppingItems(groceries.id).first).single;
-    await db.updateShoppingItem(chips.id,
+  test(
+    'items can be moved and copied between lists, keeping their details',
+    () async {
+      final groceries = (await db.watchLists().first).single;
+      await db.addList('Party');
+      final party = (await db.watchLists().first).firstWhere(
+        (l) => l.name == 'Party',
+      );
+      await db.addShoppingItem(groceries.id, 'Chips', category: 'Snacks');
+      final chips = (await db.watchShoppingItems(groceries.id).first).single;
+      await db.updateShoppingItem(
+        chips.id,
         name: 'Chips',
         quantity: 3,
         unit: 'bag',
@@ -121,60 +142,136 @@ void main() {
         price: 2.5,
         note: 'Salted',
         taxable: true,
-        hasCoupon: true);
-    final edited = (await db.watchShoppingItems(groceries.id).first).single;
-    expect((edited.taxable, edited.hasCoupon), (true, true));
+        hasCoupon: true,
+      );
+      final edited = (await db.watchShoppingItems(groceries.id).first).single;
+      expect((edited.taxable, edited.hasCoupon), (true, true));
 
-    await db.copyShoppingItem(edited, party.id);
-    var copy = (await db.watchShoppingItems(party.id).first).single;
-    expect((copy.name, copy.quantity, copy.price, copy.hasCoupon),
-        ('Chips', 3.0, 2.5, true));
-    expect(copy.id, isNot(edited.id));
-    expect(await db.watchShoppingItems(groceries.id).first, hasLength(1));
+      await db.copyShoppingItem(edited, party.id);
+      var copy = (await db.watchShoppingItems(party.id).first).single;
+      expect(
+        (copy.name, copy.quantity, copy.price, copy.hasCoupon),
+        ('Chips', 3.0, 2.5, true),
+      );
+      expect(copy.id, isNot(edited.id));
+      expect(await db.watchShoppingItems(groceries.id).first, hasLength(1));
 
-    await db.moveShoppingItem(edited.id, party.id);
-    expect(await db.watchShoppingItems(groceries.id).first, isEmpty);
-    expect(await db.watchShoppingItems(party.id).first, hasLength(2));
-  });
+      await db.moveShoppingItem(edited.id, party.id);
+      expect(await db.watchShoppingItems(groceries.id).first, isEmpty);
+      expect(await db.watchShoppingItems(party.id).first, hasLength(2));
+    },
+  );
 
-  test('tax rates: user-defined, chosen per list, deleting resets lists', () async {
-    final list = (await db.watchLists().first).single;
-    expect(list.taxRateId, isNull);
-    expect(await db.watchTaxRates().first, isEmpty); // none built in
+  test(
+    'tax rates: user-defined, chosen per list, deleting resets lists',
+    () async {
+      final list = (await db.watchLists().first).single;
+      expect(list.taxRateId, isNull);
+      expect(await db.watchTaxRates().first, isEmpty); // none built in
 
-    final id = await db.addTaxRate('Home', 8.25);
-    await db.setListTaxRate(list.id, id);
-    expect((await db.watchLists().first).single.taxRateId, id);
+      final id = await db.addTaxRate('Home', 8.25);
+      await db.setListTaxRate(list.id, id);
+      expect((await db.watchLists().first).single.taxRateId, id);
 
-    await db.updateTaxRate(id, 'Home (county)', 8.5);
-    final rate = (await db.watchTaxRates().first).single;
-    expect((rate.name, rate.percent), ('Home (county)', 8.5));
+      await db.updateTaxRate(id, 'Home (county)', 8.5);
+      final rate = (await db.watchTaxRates().first).single;
+      expect((rate.name, rate.percent), ('Home (county)', 8.5));
 
-    await db.deleteTaxRate(id);
-    expect(await db.watchTaxRates().first, isEmpty);
-    expect((await db.watchLists().first).single.taxRateId, isNull);
-  });
+      await db.deleteTaxRate(id);
+      expect(await db.watchTaxRates().first, isEmpty);
+      expect((await db.watchLists().first).single.taxRateId, isNull);
+    },
+  );
 
-  test('new items are taxable by default; bulk toggle works per list', () async {
-    final list = (await db.watchLists().first).single;
-    await db.addList('Other');
-    final other =
-        (await db.watchLists().first).firstWhere((l) => l.name == 'Other');
-    await db.addShoppingItem(list.id, 'Milk', category: 'Dairy & Eggs');
-    await db.addShoppingItem(list.id, 'Bread', category: 'Bakery');
-    await db.addShoppingItem(other.id, 'Chips', category: 'Snacks');
-    expect((await db.watchShoppingItems(list.id).first).every((i) => i.taxable),
-        isTrue);
+  test(
+    'new items are taxable by default; bulk toggle works per list',
+    () async {
+      final list = (await db.watchLists().first).single;
+      await db.addList('Other');
+      final other = (await db.watchLists().first).firstWhere(
+        (l) => l.name == 'Other',
+      );
+      await db.addShoppingItem(list.id, 'Milk', category: 'Dairy & Eggs');
+      await db.addShoppingItem(list.id, 'Bread', category: 'Bakery');
+      await db.addShoppingItem(other.id, 'Chips', category: 'Snacks');
+      expect(
+        (await db.watchShoppingItems(list.id).first).every((i) => i.taxable),
+        isTrue,
+      );
 
-    await db.setAllTaxable(list.id, false);
-    expect((await db.watchShoppingItems(list.id).first).any((i) => i.taxable),
-        isFalse);
-    // The other list is untouched.
-    expect((await db.watchShoppingItems(other.id).first).single.taxable, isTrue);
+      await db.setAllTaxable(list.id, false);
+      expect(
+        (await db.watchShoppingItems(list.id).first).any((i) => i.taxable),
+        isFalse,
+      );
+      // The other list is untouched.
+      expect(
+        (await db.watchShoppingItems(other.id).first).single.taxable,
+        isTrue,
+      );
 
-    await db.setAllTaxable(list.id, true);
-    expect((await db.watchShoppingItems(list.id).first).every((i) => i.taxable),
-        isTrue);
+      await db.setAllTaxable(list.id, true);
+      expect(
+        (await db.watchShoppingItems(list.id).first).every((i) => i.taxable),
+        isTrue,
+      );
+    },
+  );
+
+  test(
+    'cart actions: uncheck all, delete all returns ids, undo restores',
+    () async {
+      final list = (await db.watchLists().first).single;
+      await db.addShoppingItem(list.id, 'Milk', category: 'Dairy & Eggs');
+      await db.addShoppingItem(list.id, 'Bread', category: 'Bakery');
+      await db.addShoppingItem(list.id, 'Eggs', category: 'Dairy & Eggs');
+      var items = await db.watchShoppingItems(list.id).first;
+      final milk = items.firstWhere((i) => i.name == 'Milk');
+      final bread = items.firstWhere((i) => i.name == 'Bread');
+      await db.setChecked(milk.id, true);
+      await db.setChecked(bread.id, true);
+
+      // Uncheck all puts them back on the list, nothing is deleted.
+      await db.uncheckAll(list.id);
+      items = await db.watchShoppingItems(list.id).first;
+      expect(items, hasLength(3));
+      expect(items.any((i) => i.checked), isFalse);
+
+      // Delete all removes only the checked items and reports them.
+      await db.setChecked(milk.id, true);
+      await db.setChecked(bread.id, true);
+      final ids = await db.clearChecked(list.id);
+      expect(ids.toSet(), {milk.id, bread.id});
+      items = await db.watchShoppingItems(list.id).first;
+      expect(items.map((i) => i.name), ['Eggs']);
+      expect(await db.clearChecked(list.id), isEmpty); // nothing left to delete
+
+      // Undo brings them back, still checked.
+      await db.restoreItems(ids);
+      items = await db.watchShoppingItems(list.id).first;
+      expect(items, hasLength(3));
+      expect(items.where((i) => i.checked).map((i) => i.name).toSet(), {
+        'Milk',
+        'Bread',
+      });
+    },
+  );
+
+  test('cart actions only touch the given list', () async {
+    final a = (await db.watchLists().first).single;
+    await db.addList('B');
+    final b = (await db.watchLists().first).firstWhere((l) => l.name == 'B');
+    await db.addShoppingItem(a.id, 'Milk', category: 'Dairy & Eggs');
+    await db.addShoppingItem(b.id, 'Chips', category: 'Snacks');
+    for (final l in [a, b]) {
+      final i = (await db.watchShoppingItems(l.id).first).single;
+      await db.setChecked(i.id, true);
+    }
+    await db.clearChecked(a.id);
+    expect(await db.watchShoppingItems(a.id).first, isEmpty);
+    expect((await db.watchShoppingItems(b.id).first).single.checked, isTrue);
+    await db.uncheckAll(b.id);
+    expect((await db.watchShoppingItems(b.id).first).single.checked, isFalse);
   });
 
   test('catalog is seeded with ordered categories', () async {
@@ -205,7 +302,8 @@ void main() {
     expect(beef, containsAll(['Beef', 'Ribeye steak', 'Brisket']));
 
     // No duplicate names in one result list.
-    final names = (await db.searchCatalog('sausage')).map((i) => i.name.toLowerCase());
+    final names = (await db.searchCatalog('sausage'))
+        .map((i) => i.name.toLowerCase());
     expect(names.toSet().length, names.length);
   });
 
@@ -222,10 +320,14 @@ void main() {
   test('pantry sorts by soonest expiry, undated last', () async {
     final now = DateTime.now();
     await db.addPantryItem('Rice');
-    await db.addPantryItem('Yogurt',
-        expiryDate: now.add(const Duration(days: 2)));
-    await db.addPantryItem('Milk',
-        expiryDate: now.add(const Duration(days: 1)));
+    await db.addPantryItem(
+      'Yogurt',
+      expiryDate: now.add(const Duration(days: 2)),
+    );
+    await db.addPantryItem(
+      'Milk',
+      expiryDate: now.add(const Duration(days: 1)),
+    );
     final items = await db.watchPantry().first;
     expect(items.map((i) => i.name), ['Milk', 'Yogurt', 'Rice']);
 
@@ -233,7 +335,9 @@ void main() {
     expect((await db.watchPantry().first).first.quantity, 3);
 
     await db.deletePantryItem(items.first.id);
-    expect(
-        (await db.watchPantry().first).map((i) => i.name), ['Yogurt', 'Rice']);
+    expect((await db.watchPantry().first).map((i) => i.name), [
+      'Yogurt',
+      'Rice',
+    ]);
   });
 }

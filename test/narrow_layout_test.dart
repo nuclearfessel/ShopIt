@@ -9,37 +9,48 @@ import 'package:shop_it/data/providers.dart';
 final _t = DateTime(2026, 1, 1);
 const _longName = 'Extra mature cheddar cheese block family size';
 
-final _list =
-    ShoppingList(id: 'l1', updatedAt: _t, name: 'Groceries', taxRateId: 'r1');
+final _list = ShoppingList(
+  id: 'l1',
+  updatedAt: _t,
+  name: 'Groceries',
+  taxRateId: 'r1',
+);
 
 final _rate = TaxRate(
-    id: 'r1', updatedAt: _t, name: 'Home, a long region name', percent: 8.25,
-    ruleSet: 'US-WA', groceryPercent: null);
+  id: 'r1',
+  updatedAt: _t,
+  name: 'Home, a long region name',
+  percent: 8.25,
+  ruleSet: 'US-WA',
+  groceryPercent: null,
+);
 
 ShoppingItem _item(String id, String name, {bool checked = false}) =>
     ShoppingItem(
-        id: id,
-        updatedAt: _t,
-        listId: 'l1',
-        name: name,
-        quantity: 1,
-        unit: '',
-        checked: checked,
-        category: 'Dairy & Eggs',
-        price: 3.5,
-        taxable: true,
-        hasCoupon: true,
-        taxManual: false,
-        note: 'Brand X, the blue one, check for a coupon first');
+      id: id,
+      updatedAt: _t,
+      listId: 'l1',
+      name: name,
+      quantity: 1,
+      unit: '',
+      checked: checked,
+      category: 'Dairy & Eggs',
+      price: 3.5,
+      taxable: true,
+      hasCoupon: true,
+      taxManual: false,
+      note: 'Brand X, the blue one, check for a coupon first',
+    );
 
 CatalogItem _cat(String name, {String parent = ''}) => CatalogItem(
-    id: name,
-    updatedAt: _t,
-    name: name,
-    category: 'Produce',
-    defaultUnit: '',
-    isCustom: false,
-    parentName: parent);
+  id: name,
+  updatedAt: _t,
+  name: name,
+  category: 'Produce',
+  defaultUnit: '',
+  isCustom: false,
+  parentName: parent,
+);
 
 /// Scrolls the (last) list until [finder] is built; rows far below the fold
 /// aren't built by the lazy list.
@@ -48,6 +59,9 @@ Future<void> _reveal(WidgetTester tester, Finder finder) async {
     await tester.drag(find.byType(ListView).last, const Offset(0, -250));
     await tester.pump();
   }
+  // Built is not enough on short windows: bring it fully on screen.
+  await tester.ensureVisible(finder.first);
+  await tester.pump();
 }
 
 /// Renders the app at several window widths and fails on any layout overflow.
@@ -59,39 +73,50 @@ void main() {
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.reset);
 
-      await tester.pumpWidget(ProviderScope(
-        overrides: [
-          // Never opened: the providers below replace every query.
-          databaseProvider.overrideWithValue(AppDatabase.memory()),
-          taxRatesProvider.overrideWith((_) => Stream.value([_rate])),
-          listsProvider.overrideWith((_) => Stream.value([_list])),
-          categoriesProvider.overrideWith((_) => Stream.value(
-              [Category(name: 'Dairy & Eggs', sortOrder: 0)])),
-          shoppingItemsProvider.overrideWith((ref, id) => Stream.value([
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            // Never opened: the providers below replace every query.
+            databaseProvider.overrideWithValue(AppDatabase.memory()),
+            taxRatesProvider.overrideWith((_) => Stream.value([_rate])),
+            listsProvider.overrideWith((_) => Stream.value([_list])),
+            categoriesProvider.overrideWith(
+              (_) =>
+                  Stream.value([Category(name: 'Dairy & Eggs', sortOrder: 0)]),
+            ),
+            shoppingItemsProvider.overrideWith(
+              (ref, id) => Stream.value([
                 _item('a', _longName),
                 _item('b', 'Milk'),
                 _item('c', 'Eggs', checked: true),
-              ])),
-          pantryProvider.overrideWith((_) => Stream.value([
+              ]),
+            ),
+            pantryProvider.overrideWith(
+              (_) => Stream.value([
                 PantryItem(
-                    id: 'p1',
-                    updatedAt: _t,
-                    name: _longName,
-                    quantity: 12.5,
-                    unit: 'family packets',
-                    expiryDate: DateTime.now().add(const Duration(days: 2)),
-                    location: 'Fridge, top shelf, at the back',
-                    category: 'Dairy & Eggs',
-                    note: 'Opened last week, use for the pasta bake'),
-              ])),
-          catalogSearchProvider.overrideWith((ref, q) async => [
+                  id: 'p1',
+                  updatedAt: _t,
+                  name: _longName,
+                  quantity: 12.5,
+                  unit: 'family packets',
+                  expiryDate: DateTime.now().add(const Duration(days: 2)),
+                  location: 'Fridge, top shelf, at the back',
+                  category: 'Dairy & Eggs',
+                  note: 'Opened last week, use for the pasta bake',
+                ),
+              ]),
+            ),
+            catalogSearchProvider.overrideWith(
+              (ref, q) async => [
                 _cat('Onions'),
                 _cat('Yellow onions', parent: 'Onions'),
                 _cat('Caramelised extra sweet spring onions', parent: 'Onions'),
-              ]),
-        ],
-        child: const ShopItApp(windowChrome: false),
-      ));
+              ],
+            ),
+          ],
+          child: const ShopItApp(windowChrome: false),
+        ),
+      );
       await tester.pump(const Duration(milliseconds: 300));
       expect(tester.takeException(), isNull, reason: 'shopping screen');
 
@@ -109,21 +134,52 @@ void main() {
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull, reason: 'shopping item editor');
       // The title is dropped on very narrow windows to make room for the buttons.
-      expect(find.text('Edit item'), width >= 330 ? findsOneWidget : findsNothing);
+      expect(
+        find.text('Edit item'),
+        width >= 330 ? findsOneWidget : findsNothing,
+      );
       expect(find.text('Save'), findsOneWidget);
       if (width >= 700) {
         // Side navigation visible: a dialog centered in the window.
         final c = tester.getCenter(find.byType(Dialog));
-        expect(c.dx, closeTo(width / 2, 1), reason: 'dialog centered horizontally');
+        expect(
+          c.dx,
+          closeTo(width / 2, 1),
+          reason: 'dialog centered horizontally',
+        );
         expect(c.dy, closeTo(350, 1), reason: 'dialog centered vertically');
       } else {
-        expect(find.byType(Dialog), findsNothing, reason: 'bottom sheet when narrow');
+        expect(
+          find.byType(Dialog),
+          findsNothing,
+          reason: 'bottom sheet when narrow',
+        );
       }
       await tester.tap(find.text('Cancel'));
       await tester.pumpAndSettle();
 
       // Sales tax dialog (and the tax lines in the totals bar).
       expect(find.textContaining('Tax 8.25%'), findsOneWidget);
+      // Out-of-Milk-style cart section and totals bar.
+      await _reveal(tester, find.textContaining('IN YOUR CART'));
+      expect(find.textContaining('IN YOUR CART'), findsOneWidget);
+      expect(find.textContaining('Cart total:'), findsOneWidget);
+      expect(find.textContaining('Items in list: 3'), findsOneWidget);
+      expect(
+        find.textContaining('\$'),
+        findsWidgets,
+        reason: 'currency symbol',
+      );
+      if (width >= 360) {
+        expect(find.text('Uncheck all'), findsOneWidget);
+        expect(find.text('Delete all'), findsOneWidget);
+        // compact: nowhere near a full-width button
+        final r = tester.getRect(find.text('Delete all'));
+        expect(r.height, lessThan(40));
+      } else {
+        expect(find.byTooltip('Uncheck all'), findsOneWidget);
+        expect(find.byTooltip('Delete all'), findsOneWidget);
+      }
       await tester.tap(find.byTooltip('List options'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Sales tax rate...'));
@@ -143,8 +199,10 @@ void main() {
       await tester.tap(find.text(_longName));
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull, reason: 'pantry item editor');
-      expect(find.text('Edit pantry item'),
-          width >= 330 ? findsOneWidget : findsNothing);
+      expect(
+        find.text('Edit pantry item'),
+        width >= 330 ? findsOneWidget : findsNothing,
+      );
       expect(find.text('Save'), findsOneWidget);
       await tester.tap(find.text('Cancel'));
       await tester.pumpAndSettle();

@@ -37,7 +37,10 @@ TaxContext _ctx(String ruleId, double percent, {double? grocery}) => TaxContext(
 
 void main() {
   test('no prices means no totals', () {
-    expect(computeTotals([_item(null)], _ctx('everything', 8)).hasPrices, false);
+    expect(
+      computeTotals([_item(null)], _ctx('everything', 8)).hasPrices,
+      false,
+    );
     expect(computeTotals(const [], null).hasPrices, isFalse);
   });
 
@@ -85,8 +88,20 @@ void main() {
   test('a manual override beats the rules, both ways', () {
     final seattle = _ctx('US-WA', 10);
     final t = computeTotals([
-      _item(10, name: 'Milk', category: 'Dairy & Eggs', manual: true, taxable: true),
-      _item(10, name: 'Cola', category: 'Beverages', manual: true, taxable: false),
+      _item(
+        10,
+        name: 'Milk',
+        category: 'Dairy & Eggs',
+        manual: true,
+        taxable: true,
+      ),
+      _item(
+        10,
+        name: 'Cola',
+        category: 'Beverages',
+        manual: true,
+        taxable: false,
+      ),
     ], seattle);
     expect(t.tax, 1.0); // only the milk, taxed by hand
   });
@@ -103,22 +118,41 @@ void main() {
 
   test('reduced-grocery states tax groceries only at the grocery rate', () {
     final tn = _ctx('US-TN', 9.75, grocery: 4);
-    expect(computeTotals([_item(50, name: 'Eggs', category: 'Dairy & Eggs')], tn).tax, 2.0);
+    expect(
+      computeTotals([
+        _item(50, name: 'Eggs', category: 'Dairy & Eggs'),
+      ], tn).tax,
+      2.0,
+    );
     // Without a grocery rate entered, groceries are untaxed.
     expect(
-      computeTotals([_item(50, name: 'Eggs', category: 'Dairy & Eggs')], _ctx('US-TN', 9.75)).tax,
+      computeTotals([
+        _item(50, name: 'Eggs', category: 'Dairy & Eggs'),
+      ], _ctx('US-TN', 9.75)).tax,
       0.0,
     );
   });
 
-  test('"still to buy" excludes checked items and includes their tax share', () {
+  test('cart total covers only checked items, tax included', () {
     final ctx = _ctx('everything', 10);
     final t = computeTotals([
-      _item(10, checked: true),
-      _item(20),
+      _item(10, checked: true), // in the cart: 11.00 with tax
+      _item(20), // still to buy
     ], ctx);
-    expect(t.subtotal, 30);
-    expect(t.tax, 3);
-    expect(t.remaining, 22);
+    expect(t.cartTotal, 11.0);
+    expect(t.total, 33.0);
+    expect(t.remaining, 22.0);
+    expect(computeTotals([_item(20)], ctx).cartTotal, 0.0);
   });
+
+  test(
+    '"still to buy" excludes checked items and includes their tax share',
+    () {
+      final ctx = _ctx('everything', 10);
+      final t = computeTotals([_item(10, checked: true), _item(20)], ctx);
+      expect(t.subtotal, 30);
+      expect(t.tax, 3);
+      expect(t.remaining, 22);
+    },
+  );
 }

@@ -1,4 +1,7 @@
+import 'dart:io' show Platform;
+
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../../data/catalog_seed.dart';
 
@@ -34,7 +37,18 @@ class ItemEdit {
 String formatQuantity(double q) =>
     q == q.roundToDouble() ? q.toInt().toString() : q.toString();
 
-String formatMoney(double v) => v.toStringAsFixed(2);
+/// A plain number with two decimals, for text fields ("3.50").
+String formatDecimal(double v) => v.toStringAsFixed(2);
+
+/// A price for display, with the currency symbol and separators ("$1,234.50").
+/// Uses the system locale's currency, falling back to US dollars.
+String formatMoney(double v) {
+  try {
+    return NumberFormat.simpleCurrency(locale: Platform.localeName).format(v);
+  } on Object {
+    return NumberFormat.simpleCurrency(locale: 'en_US').format(v);
+  }
+}
 
 /// Result of the editor. Move and copy carry the edit too, so any unsaved
 /// changes are kept.
@@ -161,7 +175,7 @@ class _ItemEditorSheetState extends State<_ItemEditorSheet> {
   late final _price = TextEditingController(
     text: widget.initial.price == null
         ? ''
-        : formatMoney(widget.initial.price!),
+        : formatDecimal(widget.initial.price!),
   );
   late final _note = TextEditingController(text: widget.initial.note);
   late final _location = TextEditingController(text: widget.initial.location);

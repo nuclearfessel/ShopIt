@@ -9,19 +9,21 @@ double _rate(String state, String name, String category, {double? grocery}) =>
 
 void main() {
   group('classification', () {
-    test('Washington list: prepared food, soda, water, alcohol, supplements, ice',
-        () {
-      expect(_c('Rotisserie chicken', 'Deli'), TaxClass.preparedFood);
-      expect(_c('Prepared salad', 'Deli'), TaxClass.preparedFood);
-      expect(_c('Cola', 'Beverages'), TaxClass.softDrink);
-      expect(_c('Energy drinks', 'Beverages'), TaxClass.softDrink);
-      expect(_c('Bottled water', 'Beverages'), TaxClass.bottledWater);
-      expect(_c('Sparkling water', 'Beverages'), TaxClass.bottledWater);
-      expect(_c('Red wine', 'Alcohol'), TaxClass.alcohol);
-      expect(_c('Vodka', 'Alcohol'), TaxClass.alcohol);
-      expect(_c('Multivitamins', 'Health & Pharmacy'), TaxClass.supplement);
-      expect(_c('Ice cubes', 'Frozen'), TaxClass.ice);
-    });
+    test(
+      'Washington list: prepared food, soda, water, alcohol, supplements, ice',
+      () {
+        expect(_c('Rotisserie chicken', 'Deli'), TaxClass.preparedFood);
+        expect(_c('Prepared salad', 'Deli'), TaxClass.preparedFood);
+        expect(_c('Cola', 'Beverages'), TaxClass.softDrink);
+        expect(_c('Energy drinks', 'Beverages'), TaxClass.softDrink);
+        expect(_c('Bottled water', 'Beverages'), TaxClass.bottledWater);
+        expect(_c('Sparkling water', 'Beverages'), TaxClass.bottledWater);
+        expect(_c('Red wine', 'Alcohol'), TaxClass.alcohol);
+        expect(_c('Vodka', 'Alcohol'), TaxClass.alcohol);
+        expect(_c('Multivitamins', 'Health & Pharmacy'), TaxClass.supplement);
+        expect(_c('Ice cubes', 'Frozen'), TaxClass.ice);
+      },
+    );
 
     test('things that are food stay food', () {
       expect(_c('Milk', 'Dairy & Eggs'), TaxClass.food);
@@ -126,7 +128,11 @@ void main() {
 
     test('reduced-grocery states ask for a grocery rate', () {
       for (final st in ['AL', 'IL', 'MS', 'MO', 'TN', 'UT', 'VA']) {
-        expect(TaxRuleSet.fromId('US-$st').groceryRateNeeded, isTrue, reason: st);
+        expect(
+          TaxRuleSet.fromId('US-$st').groceryRateNeeded,
+          isTrue,
+          reason: st,
+        );
       }
       expect(TaxRuleSet.fromId('US-WA').groceryRateNeeded, isFalse);
     });
