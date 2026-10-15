@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -162,7 +163,7 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
                 data: (rows) => rows.isEmpty
                     ? const Center(child: Text('Nothing to buy'))
                     : ListView(children: [
-                        ..._grouped(rows, categoryOrder, db),
+                        ..._grouped(rows, categoryOrder, db, all, current.id),
                       ]),
               ),
             ),
@@ -176,8 +177,8 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
 
 /// Unchecked items under category headers in store-walking order, followed by
 /// a "Checked" section.
-List<Widget> _grouped(
-    List<ShoppingItem> rows, Map<String, int> order, AppDatabase db) {
+List<Widget> _grouped(List<ShoppingItem> rows, Map<String, int> order,
+    AppDatabase db, List<ShoppingList> lists, String listId) {
   final open = rows.where((i) => !i.checked);
   final done = rows.where((i) => i.checked);
   final byCategory = <String, List<ShoppingItem>>{};
@@ -189,11 +190,11 @@ List<Widget> _grouped(
   return [
     for (final n in names) ...[
       _Header(n),
-      for (final i in byCategory[n]!) _ItemTile(item: i, db: db),
+      for (final i in byCategory[n]!) _ItemTile(item: i, db: db, lists: lists, listId: listId),
     ],
     if (done.isNotEmpty) ...[
       const _Header('Checked'),
-      for (final i in done) _ItemTile(item: i, db: db),
+      for (final i in done) _ItemTile(item: i, db: db, lists: lists, listId: listId),
     ],
   ];
 }
@@ -214,9 +215,15 @@ class _Header extends StatelessWidget {
 }
 
 class _ItemTile extends StatelessWidget {
-  const _ItemTile({required this.item, required this.db});
+  const _ItemTile(
+      {required this.item,
+      required this.db,
+      required this.lists,
+      required this.listId});
   final ShoppingItem item;
   final AppDatabase db;
+  final List<ShoppingList> lists;
+  final String listId;
 
   Future<void> _edit(BuildContext context) async {
     final result = await showItemEditor(
@@ -230,19 +237,42 @@ class _ItemTile extends StatelessWidget {
         category: item.category,
         price: item.price,
         note: item.note,
+        taxable: item.taxable,
+        hasCoupon: item.hasCoupon,
       ),
+      lists: [for (final l in lists) (id: l.id, name: l.name)],
+      currentListId: listId,
     );
+    Future<void> save(ItemEdit edit) => db.updateShoppingItem(item.id,
+        name: edit.name,
+        quantity: edit.quantity,
+        unit: edit.unit,
+        category: edit.category,
+        price: edit.price,
+        note: edit.note,
+        taxable: edit.taxable,
+        hasCoupon: edit.hasCoupon);
     switch (result) {
       case ItemSaved(:final edit):
-        await db.updateShoppingItem(item.id,
-            name: edit.name,
-            quantity: edit.quantity,
-            unit: edit.unit,
-            category: edit.category,
-            price: edit.price,
-            note: edit.note);
+        await save(edit);
       case ItemDeleted():
         await db.deleteShoppingItem(item.id);
+      case ItemMoved(:final edit, :final listId):
+        await save(edit);
+        await db.moveShoppingItem(item.id, listId);
+      case ItemCopied(:final edit, :final listId):
+        await save(edit);
+        await db.copyShoppingItem(
+            item.copyWith(
+                name: edit.name,
+                quantity: edit.quantity,
+                unit: edit.unit,
+                category: edit.category,
+                price: Value(edit.price),
+                note: edit.note,
+                taxable: edit.taxable,
+                hasCoupon: edit.hasCoupon),
+            listId);
       case null:
         break;
     }
@@ -254,6 +284,8 @@ class _ItemTile extends StatelessWidget {
       if (item.quantity != 1 || item.unit.isNotEmpty)
         '${formatQuantity(item.quantity)} ${item.unit}'.trim(),
       if (item.price != null) formatMoney(item.price! * item.quantity),
+      if (item.hasCoupon) 'coupon',
+      if (item.taxable) 'tax',
     ].join(' · ');
     return Dismissible(
       key: ValueKey(item.id),

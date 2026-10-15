@@ -436,6 +436,36 @@ class $ShoppingItemsTable extends ShoppingItems
     requiredDuringInsert: false,
     defaultValue: const Constant(''),
   );
+  static const VerificationMeta _taxableMeta = const VerificationMeta(
+    'taxable',
+  );
+  @override
+  late final GeneratedColumn<bool> taxable = GeneratedColumn<bool>(
+    'taxable',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("taxable" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _hasCouponMeta = const VerificationMeta(
+    'hasCoupon',
+  );
+  @override
+  late final GeneratedColumn<bool> hasCoupon = GeneratedColumn<bool>(
+    'has_coupon',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("has_coupon" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -449,6 +479,8 @@ class $ShoppingItemsTable extends ShoppingItems
     category,
     price,
     note,
+    taxable,
+    hasCoupon,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -529,6 +561,18 @@ class $ShoppingItemsTable extends ShoppingItems
         note.isAcceptableOrUnknown(data['note']!, _noteMeta),
       );
     }
+    if (data.containsKey('taxable')) {
+      context.handle(
+        _taxableMeta,
+        taxable.isAcceptableOrUnknown(data['taxable']!, _taxableMeta),
+      );
+    }
+    if (data.containsKey('has_coupon')) {
+      context.handle(
+        _hasCouponMeta,
+        hasCoupon.isAcceptableOrUnknown(data['has_coupon']!, _hasCouponMeta),
+      );
+    }
     return context;
   }
 
@@ -582,6 +626,14 @@ class $ShoppingItemsTable extends ShoppingItems
         DriftSqlType.string,
         data['${effectivePrefix}note'],
       )!,
+      taxable: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}taxable'],
+      )!,
+      hasCoupon: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}has_coupon'],
+      )!,
     );
   }
 
@@ -605,6 +657,10 @@ class ShoppingItem extends DataClass implements Insertable<ShoppingItem> {
   /// Price of one unit; the line total is price * quantity.
   final double? price;
   final String note;
+
+  /// "Item has sales tax" and "I have a coupon" flags from the item editor.
+  final bool taxable;
+  final bool hasCoupon;
   const ShoppingItem({
     required this.id,
     required this.updatedAt,
@@ -617,6 +673,8 @@ class ShoppingItem extends DataClass implements Insertable<ShoppingItem> {
     required this.category,
     this.price,
     required this.note,
+    required this.taxable,
+    required this.hasCoupon,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -636,6 +694,8 @@ class ShoppingItem extends DataClass implements Insertable<ShoppingItem> {
       map['price'] = Variable<double>(price);
     }
     map['note'] = Variable<String>(note);
+    map['taxable'] = Variable<bool>(taxable);
+    map['has_coupon'] = Variable<bool>(hasCoupon);
     return map;
   }
 
@@ -656,6 +716,8 @@ class ShoppingItem extends DataClass implements Insertable<ShoppingItem> {
           ? const Value.absent()
           : Value(price),
       note: Value(note),
+      taxable: Value(taxable),
+      hasCoupon: Value(hasCoupon),
     );
   }
 
@@ -676,6 +738,8 @@ class ShoppingItem extends DataClass implements Insertable<ShoppingItem> {
       category: serializer.fromJson<String>(json['category']),
       price: serializer.fromJson<double?>(json['price']),
       note: serializer.fromJson<String>(json['note']),
+      taxable: serializer.fromJson<bool>(json['taxable']),
+      hasCoupon: serializer.fromJson<bool>(json['hasCoupon']),
     );
   }
   @override
@@ -693,6 +757,8 @@ class ShoppingItem extends DataClass implements Insertable<ShoppingItem> {
       'category': serializer.toJson<String>(category),
       'price': serializer.toJson<double?>(price),
       'note': serializer.toJson<String>(note),
+      'taxable': serializer.toJson<bool>(taxable),
+      'hasCoupon': serializer.toJson<bool>(hasCoupon),
     };
   }
 
@@ -708,6 +774,8 @@ class ShoppingItem extends DataClass implements Insertable<ShoppingItem> {
     String? category,
     Value<double?> price = const Value.absent(),
     String? note,
+    bool? taxable,
+    bool? hasCoupon,
   }) => ShoppingItem(
     id: id ?? this.id,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -720,6 +788,8 @@ class ShoppingItem extends DataClass implements Insertable<ShoppingItem> {
     category: category ?? this.category,
     price: price.present ? price.value : this.price,
     note: note ?? this.note,
+    taxable: taxable ?? this.taxable,
+    hasCoupon: hasCoupon ?? this.hasCoupon,
   );
   ShoppingItem copyWithCompanion(ShoppingItemsCompanion data) {
     return ShoppingItem(
@@ -734,6 +804,8 @@ class ShoppingItem extends DataClass implements Insertable<ShoppingItem> {
       category: data.category.present ? data.category.value : this.category,
       price: data.price.present ? data.price.value : this.price,
       note: data.note.present ? data.note.value : this.note,
+      taxable: data.taxable.present ? data.taxable.value : this.taxable,
+      hasCoupon: data.hasCoupon.present ? data.hasCoupon.value : this.hasCoupon,
     );
   }
 
@@ -750,7 +822,9 @@ class ShoppingItem extends DataClass implements Insertable<ShoppingItem> {
           ..write('checked: $checked, ')
           ..write('category: $category, ')
           ..write('price: $price, ')
-          ..write('note: $note')
+          ..write('note: $note, ')
+          ..write('taxable: $taxable, ')
+          ..write('hasCoupon: $hasCoupon')
           ..write(')'))
         .toString();
   }
@@ -768,6 +842,8 @@ class ShoppingItem extends DataClass implements Insertable<ShoppingItem> {
     category,
     price,
     note,
+    taxable,
+    hasCoupon,
   );
   @override
   bool operator ==(Object other) =>
@@ -783,7 +859,9 @@ class ShoppingItem extends DataClass implements Insertable<ShoppingItem> {
           other.checked == this.checked &&
           other.category == this.category &&
           other.price == this.price &&
-          other.note == this.note);
+          other.note == this.note &&
+          other.taxable == this.taxable &&
+          other.hasCoupon == this.hasCoupon);
 }
 
 class ShoppingItemsCompanion extends UpdateCompanion<ShoppingItem> {
@@ -798,6 +876,8 @@ class ShoppingItemsCompanion extends UpdateCompanion<ShoppingItem> {
   final Value<String> category;
   final Value<double?> price;
   final Value<String> note;
+  final Value<bool> taxable;
+  final Value<bool> hasCoupon;
   final Value<int> rowid;
   const ShoppingItemsCompanion({
     this.id = const Value.absent(),
@@ -811,6 +891,8 @@ class ShoppingItemsCompanion extends UpdateCompanion<ShoppingItem> {
     this.category = const Value.absent(),
     this.price = const Value.absent(),
     this.note = const Value.absent(),
+    this.taxable = const Value.absent(),
+    this.hasCoupon = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   ShoppingItemsCompanion.insert({
@@ -825,6 +907,8 @@ class ShoppingItemsCompanion extends UpdateCompanion<ShoppingItem> {
     this.category = const Value.absent(),
     this.price = const Value.absent(),
     this.note = const Value.absent(),
+    this.taxable = const Value.absent(),
+    this.hasCoupon = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : listId = Value(listId),
        name = Value(name);
@@ -840,6 +924,8 @@ class ShoppingItemsCompanion extends UpdateCompanion<ShoppingItem> {
     Expression<String>? category,
     Expression<double>? price,
     Expression<String>? note,
+    Expression<bool>? taxable,
+    Expression<bool>? hasCoupon,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -854,6 +940,8 @@ class ShoppingItemsCompanion extends UpdateCompanion<ShoppingItem> {
       if (category != null) 'category': category,
       if (price != null) 'price': price,
       if (note != null) 'note': note,
+      if (taxable != null) 'taxable': taxable,
+      if (hasCoupon != null) 'has_coupon': hasCoupon,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -870,6 +958,8 @@ class ShoppingItemsCompanion extends UpdateCompanion<ShoppingItem> {
     Value<String>? category,
     Value<double?>? price,
     Value<String>? note,
+    Value<bool>? taxable,
+    Value<bool>? hasCoupon,
     Value<int>? rowid,
   }) {
     return ShoppingItemsCompanion(
@@ -884,6 +974,8 @@ class ShoppingItemsCompanion extends UpdateCompanion<ShoppingItem> {
       category: category ?? this.category,
       price: price ?? this.price,
       note: note ?? this.note,
+      taxable: taxable ?? this.taxable,
+      hasCoupon: hasCoupon ?? this.hasCoupon,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -924,6 +1016,12 @@ class ShoppingItemsCompanion extends UpdateCompanion<ShoppingItem> {
     if (note.present) {
       map['note'] = Variable<String>(note.value);
     }
+    if (taxable.present) {
+      map['taxable'] = Variable<bool>(taxable.value);
+    }
+    if (hasCoupon.present) {
+      map['has_coupon'] = Variable<bool>(hasCoupon.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -944,6 +1042,8 @@ class ShoppingItemsCompanion extends UpdateCompanion<ShoppingItem> {
           ..write('category: $category, ')
           ..write('price: $price, ')
           ..write('note: $note, ')
+          ..write('taxable: $taxable, ')
+          ..write('hasCoupon: $hasCoupon, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -2588,6 +2688,8 @@ typedef $$ShoppingItemsTableCreateCompanionBuilder =
       Value<String> category,
       Value<double?> price,
       Value<String> note,
+      Value<bool> taxable,
+      Value<bool> hasCoupon,
       Value<int> rowid,
     });
 typedef $$ShoppingItemsTableUpdateCompanionBuilder =
@@ -2603,6 +2705,8 @@ typedef $$ShoppingItemsTableUpdateCompanionBuilder =
       Value<String> category,
       Value<double?> price,
       Value<String> note,
+      Value<bool> taxable,
+      Value<bool> hasCoupon,
       Value<int> rowid,
     });
 
@@ -2691,6 +2795,16 @@ class $$ShoppingItemsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<bool> get taxable => $composableBuilder(
+    column: $table.taxable,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get hasCoupon => $composableBuilder(
+    column: $table.hasCoupon,
+    builder: (column) => ColumnFilters(column),
+  );
+
   $$ShoppingListsTableFilterComposer get listId {
     final $$ShoppingListsTableFilterComposer composer = $composerBuilder(
       composer: this,
@@ -2774,6 +2888,16 @@ class $$ShoppingItemsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get taxable => $composableBuilder(
+    column: $table.taxable,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get hasCoupon => $composableBuilder(
+    column: $table.hasCoupon,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$ShoppingListsTableOrderingComposer get listId {
     final $$ShoppingListsTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -2836,6 +2960,12 @@ class $$ShoppingItemsTableAnnotationComposer
 
   GeneratedColumn<String> get note =>
       $composableBuilder(column: $table.note, builder: (column) => column);
+
+  GeneratedColumn<bool> get taxable =>
+      $composableBuilder(column: $table.taxable, builder: (column) => column);
+
+  GeneratedColumn<bool> get hasCoupon =>
+      $composableBuilder(column: $table.hasCoupon, builder: (column) => column);
 
   $$ShoppingListsTableAnnotationComposer get listId {
     final $$ShoppingListsTableAnnotationComposer composer = $composerBuilder(
@@ -2900,6 +3030,8 @@ class $$ShoppingItemsTableTableManager
                 Value<String> category = const Value.absent(),
                 Value<double?> price = const Value.absent(),
                 Value<String> note = const Value.absent(),
+                Value<bool> taxable = const Value.absent(),
+                Value<bool> hasCoupon = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ShoppingItemsCompanion(
                 id: id,
@@ -2913,6 +3045,8 @@ class $$ShoppingItemsTableTableManager
                 category: category,
                 price: price,
                 note: note,
+                taxable: taxable,
+                hasCoupon: hasCoupon,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -2928,6 +3062,8 @@ class $$ShoppingItemsTableTableManager
                 Value<String> category = const Value.absent(),
                 Value<double?> price = const Value.absent(),
                 Value<String> note = const Value.absent(),
+                Value<bool> taxable = const Value.absent(),
+                Value<bool> hasCoupon = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ShoppingItemsCompanion.insert(
                 id: id,
@@ -2941,6 +3077,8 @@ class $$ShoppingItemsTableTableManager
                 category: category,
                 price: price,
                 note: note,
+                taxable: taxable,
+                hasCoupon: hasCoupon,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

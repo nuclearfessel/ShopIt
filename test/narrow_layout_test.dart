@@ -22,6 +22,8 @@ ShoppingItem _item(String id, String name, {bool checked = false}) =>
         checked: checked,
         category: 'Dairy & Eggs',
         price: 3.5,
+        taxable: true,
+        hasCoupon: true,
         note: 'Brand X, the blue one, check for a coupon first');
 
 CatalogItem _cat(String name, {String parent = ''}) => CatalogItem(
@@ -99,7 +101,9 @@ void main() {
       await tester.tap(find.text('Milk'));
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull, reason: 'shopping item editor');
-      expect(find.text('Edit item'), findsOneWidget);
+      // The title is dropped on very narrow windows to make room for the buttons.
+      expect(find.text('Edit item'), width >= 330 ? findsOneWidget : findsNothing);
+      expect(find.text('Save'), findsOneWidget);
       if (width >= 700) {
         // Side navigation visible: a dialog centered in the window.
         final c = tester.getCenter(find.byType(Dialog));
@@ -121,7 +125,9 @@ void main() {
       await tester.tap(find.text(_longName));
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull, reason: 'pantry item editor');
-      expect(find.text('Edit pantry item'), findsOneWidget);
+      expect(find.text('Edit pantry item'),
+          width >= 330 ? findsOneWidget : findsNothing);
+      expect(find.text('Save'), findsOneWidget);
       await tester.tap(find.text('Cancel'));
       await tester.pumpAndSettle();
 

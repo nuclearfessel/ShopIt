@@ -105,6 +105,38 @@ void main() {
         ('Basmati rice', 'Cupboard', null, 'Open bag on top'));
   });
 
+  test('items can be moved and copied between lists, keeping their details',
+      () async {
+    final groceries = (await db.watchLists().first).single;
+    await db.addList('Party');
+    final party =
+        (await db.watchLists().first).firstWhere((l) => l.name == 'Party');
+    await db.addShoppingItem(groceries.id, 'Chips', category: 'Snacks');
+    final chips = (await db.watchShoppingItems(groceries.id).first).single;
+    await db.updateShoppingItem(chips.id,
+        name: 'Chips',
+        quantity: 3,
+        unit: 'bag',
+        category: 'Snacks',
+        price: 2.5,
+        note: 'Salted',
+        taxable: true,
+        hasCoupon: true);
+    final edited = (await db.watchShoppingItems(groceries.id).first).single;
+    expect((edited.taxable, edited.hasCoupon), (true, true));
+
+    await db.copyShoppingItem(edited, party.id);
+    var copy = (await db.watchShoppingItems(party.id).first).single;
+    expect((copy.name, copy.quantity, copy.price, copy.hasCoupon),
+        ('Chips', 3.0, 2.5, true));
+    expect(copy.id, isNot(edited.id));
+    expect(await db.watchShoppingItems(groceries.id).first, hasLength(1));
+
+    await db.moveShoppingItem(edited.id, party.id);
+    expect(await db.watchShoppingItems(groceries.id).first, isEmpty);
+    expect(await db.watchShoppingItems(party.id).first, hasLength(2));
+  });
+
   test('catalog is seeded with ordered categories', () async {
     final cats = await db.watchCategories().first;
     expect(cats.first.name, 'Produce');

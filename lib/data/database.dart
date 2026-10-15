@@ -39,6 +39,10 @@ class ShoppingItems extends Table with SyncColumns {
   /// Price of one unit; the line total is price * quantity.
   RealColumn get price => real().nullable()();
   TextColumn get note => text().withDefault(const Constant(''))();
+
+  /// "Item has sales tax" and "I have a coupon" flags from the item editor.
+  BoolColumn get taxable => boolean().withDefault(const Constant(false))();
+  BoolColumn get hasCoupon => boolean().withDefault(const Constant(false))();
 }
 
 class PantryItems extends Table with SyncColumns {
@@ -82,7 +86,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.memory() : super(NativeDatabase.memory());
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -113,6 +117,11 @@ class AppDatabase extends _$AppDatabase {
             await m.addColumn(shoppingItems, shoppingItems.price);
             await m.addColumn(shoppingItems, shoppingItems.note);
             await m.addColumn(pantryItems, pantryItems.note);
+          }
+          if (from < 5) {
+            // v5: sales tax and coupon flags.
+            await m.addColumn(shoppingItems, shoppingItems.taxable);
+            await m.addColumn(shoppingItems, shoppingItems.hasCoupon);
           }
         },
       );
@@ -260,7 +269,9 @@ class AppDatabase extends _$AppDatabase {
           required String unit,
           required String category,
           double? price,
-          required String note}) =>
+          required String note,
+          bool taxable = false,
+          bool hasCoupon = false}) =>
       (update(shoppingItems)..where((t) => t.id.equals(id))).write(
           ShoppingItemsCompanion(
               name: Value(name),
@@ -269,7 +280,28 @@ class AppDatabase extends _$AppDatabase {
               category: Value(category),
               price: Value(price),
               note: Value(note),
+              taxable: Value(taxable),
+              hasCoupon: Value(hasCoupon),
               updatedAt: Value(DateTime.now())));
+
+  /// Moves an item to another list.
+  Future<void> moveShoppingItem(String id, String listId) =>
+      (update(shoppingItems)..where((t) => t.id.equals(id))).write(
+          ShoppingItemsCompanion(
+              listId: Value(listId), updatedAt: Value(DateTime.now())));
+
+  /// Copies an item (unchecked) onto [listId], which may be the same list.
+  Future<void> copyShoppingItem(ShoppingItem item, String listId) =>
+      into(shoppingItems).insert(ShoppingItemsCompanion.insert(
+          listId: listId,
+          name: item.name,
+          quantity: Value(item.quantity),
+          unit: Value(item.unit),
+          category: Value(item.category),
+          price: Value(item.price),
+          note: Value(item.note),
+          taxable: Value(item.taxable),
+          hasCoupon: Value(item.hasCoupon)));
 
   Future<void> deleteShoppingItem(String id) {
     final now = DateTime.now();

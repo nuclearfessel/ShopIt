@@ -144,8 +144,8 @@ class _PantryTile extends StatelessWidget {
             note: edit.note);
       case ItemDeleted():
         await db.deletePantryItem(item.id);
-      case null:
-        break;
+      case ItemMoved() || ItemCopied() || null:
+        break; // move/copy only apply to shopping items
     }
   }
 }
