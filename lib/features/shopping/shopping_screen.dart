@@ -481,6 +481,7 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
                     ? Tip(
                         'Choose a list',
                         child: DropdownButton<String>(
+                          icon: const KeylineIcon(KeylineIcons.chevronDown),
                           isExpanded: true,
                           value: current.id,
                           items: [

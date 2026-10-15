@@ -351,6 +351,7 @@ class _ItemEditorSheetState extends State<_ItemEditorSheet> {
     return Tip(
       'Choose a unit',
       child: DropdownButtonFormField<String>(
+        icon: const KeylineIcon(KeylineIcons.chevronDown),
         initialValue: _unit,
         isExpanded: true,
         decoration: const InputDecoration(
@@ -543,6 +544,7 @@ class _ItemEditorSheetState extends State<_ItemEditorSheet> {
                     Tip(
                       'Choose a category',
                       child: DropdownButtonFormField<String>(
+                        icon: const KeylineIcon(KeylineIcons.chevronDown),
                         initialValue: _category.isEmpty ? null : _category,
                         isExpanded: true,
                         decoration: const InputDecoration(

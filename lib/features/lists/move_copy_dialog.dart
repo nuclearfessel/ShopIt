@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../data/database.dart';
+import '../../ui/keyline/keyline_icon.dart';
 import '../../ui/tip.dart';
 
 /// What a move or copy did, so the caller can say so and offer Undo.
@@ -177,6 +178,7 @@ class _MoveCopyDialogState extends State<MoveCopyDialog> {
               Tip(
                 'Choose where the items go',
                 child: DropdownButtonFormField<String>(
+                  icon: const KeylineIcon(KeylineIcons.chevronDown),
                   initialValue: _target,
                   isExpanded: true,
                   decoration: const InputDecoration(

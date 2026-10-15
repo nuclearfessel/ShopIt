@@ -313,6 +313,7 @@ class _PantryBody extends ConsumerWidget {
                 ? Tip(
                     'Choose a pantry list',
                     child: DropdownButton<String>(
+                      icon: const KeylineIcon(KeylineIcons.chevronDown),
                       isExpanded: true,
                       value: current.id,
                       items: [
@@ -625,6 +626,7 @@ Future<void> _showAddDialog(
               Tip(
                 'Choose a category',
                 child: DropdownButtonFormField<String>(
+                  icon: const KeylineIcon(KeylineIcons.chevronDown),
                   initialValue: category.isEmpty ? null : category,
                   key: ValueKey(category),
                   decoration: const InputDecoration(labelText: 'Category'),

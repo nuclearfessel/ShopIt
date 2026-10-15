@@ -369,6 +369,7 @@ Future<String?> _editRate(
                   Tip(
                     'Choose which items are taxed',
                     child: DropdownButtonFormField<String>(
+                      icon: const KeylineIcon(KeylineIcons.chevronDown),
                       initialValue: ruleId,
                       isExpanded: true,
                       decoration: const InputDecoration(
