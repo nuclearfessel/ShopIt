@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/database.dart';
 import '../../data/providers.dart';
+import '../../ui/tip.dart';
 
 /// Matching catalog items for [query], shown as tappable rows. A group such as
 /// "Onions" is followed by its indented types/cuts. Renders nothing for an
@@ -46,11 +47,14 @@ class CatalogSuggestions extends ConsumerWidget {
                   left: i.parentName.isEmpty ? 16 : 36,
                   right: 16,
                 ),
-                title: Text(
-                  i.name,
-                  style: i.parentName.isEmpty
-                      ? const TextStyle(fontWeight: FontWeight.w600)
-                      : null,
+                title: Tip(
+                  'Use "${i.name}"',
+                  child: Text(
+                    i.name,
+                    style: i.parentName.isEmpty
+                        ? const TextStyle(fontWeight: FontWeight.w600)
+                        : null,
+                  ),
                 ),
                 trailing: Text(
                   i.parentName.isEmpty ? i.category : i.parentName,

@@ -6,6 +6,7 @@ import '../../data/providers.dart';
 import '../../data/tax_rules.dart';
 import '../../services/tax_lookup.dart';
 import '../../ui/keyline/keyline_icon.dart';
+import '../../ui/tip.dart';
 
 String formatPercent(double p) {
   final text = p.toStringAsFixed(3);
@@ -123,7 +124,10 @@ class _TaxRatesSectionState extends ConsumerState<TaxRatesSection> {
           : KeylineIcon(
               isSelected ? KeylineIcons.circleCheck : KeylineIcons.circle,
             ),
-      title: Text(title, overflow: TextOverflow.ellipsis),
+      title: Tip(
+        widget.listId == null ? 'Edit this rate' : 'Use this rate for the list',
+        child: Text(title, overflow: TextOverflow.ellipsis),
+      ),
       subtitle: subtitle == null ? null : Text(subtitle),
       trailing: trailing,
       onTap: onTap,
@@ -186,22 +190,28 @@ class _TaxRatesSectionState extends ConsumerState<TaxRatesSection> {
         Wrap(
           spacing: 4,
           children: [
-            TextButton.icon(
-              onPressed: _busy
-                  ? null
-                  : () async {
-                      final id = await _editRate(context, db);
-                      if (id != null && listId != null) {
-                        await db.setListTaxRate(listId, id);
-                      }
-                    },
-              icon: const KeylineIcon(KeylineIcons.plus),
-              label: const Text('Add a tax rate'),
+            Tip(
+              'Add a new tax rate',
+              child: TextButton.icon(
+                onPressed: _busy
+                    ? null
+                    : () async {
+                        final id = await _editRate(context, db);
+                        if (id != null && listId != null) {
+                          await db.setListTaxRate(listId, id);
+                        }
+                      },
+                icon: const KeylineIcon(KeylineIcons.plus),
+                label: const Text('Add a tax rate'),
+              ),
             ),
-            TextButton.icon(
-              onPressed: _busy ? null : _useLocation,
-              icon: const KeylineIcon(KeylineIcons.locateFixed),
-              label: const Text('Use my location'),
+            Tip(
+              'Find the tax rate for where you are',
+              child: TextButton.icon(
+                onPressed: _busy ? null : _useLocation,
+                icon: const KeylineIcon(KeylineIcons.locateFixed),
+                label: const Text('Use my location'),
+              ),
             ),
           ],
         ),
@@ -220,9 +230,12 @@ class _TaxRatesSectionState extends ConsumerState<TaxRatesSection> {
             color: theme.colorScheme.onSurface.withValues(alpha: 0.55),
           ),
         ),
-        TextButton(
-          onPressed: _busy ? null : () => _askForKey(context),
-          child: const Text('Ziptax API key...'),
+        Tip(
+          'Enter or remove your Ziptax API key',
+          child: TextButton(
+            onPressed: _busy ? null : () => _askForKey(context),
+            child: const Text('Ziptax API key...'),
+          ),
         ),
       ],
     );
@@ -257,17 +270,26 @@ Future<String?> _askForKey(BuildContext context) async {
         ],
       ),
       actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(ctx),
-          child: const Text('Cancel'),
+        Tip(
+          'Close without saving',
+          child: TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
         ),
-        TextButton(
-          onPressed: () => Navigator.pop(ctx, ''),
-          child: const Text('Remove key'),
+        Tip(
+          'Forget the saved Ziptax key',
+          child: TextButton(
+            onPressed: () => Navigator.pop(ctx, ''),
+            child: const Text('Remove key'),
+          ),
         ),
-        FilledButton(
-          onPressed: () => Navigator.pop(ctx, controller.text.trim()),
-          child: const Text('Save'),
+        Tip(
+          'Save your changes',
+          child: FilledButton(
+            onPressed: () => Navigator.pop(ctx, controller.text.trim()),
+            child: const Text('Save'),
+          ),
         ),
       ],
     ),
@@ -344,20 +366,26 @@ Future<String?> _editRate(
                     ),
                   ),
                   const SizedBox(height: 12),
-                  DropdownButtonFormField<String>(
-                    initialValue: ruleId,
-                    isExpanded: true,
-                    decoration: const InputDecoration(
-                      labelText: 'What is taxed',
+                  Tip(
+                    'Choose which items are taxed',
+                    child: DropdownButtonFormField<String>(
+                      initialValue: ruleId,
+                      isExpanded: true,
+                      decoration: const InputDecoration(
+                        labelText: 'What is taxed',
+                      ),
+                      items: [
+                        for (final r in TaxRuleSet.all)
+                          DropdownMenuItem(
+                            value: r.id,
+                            child: Text(
+                              r.title,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                      ],
+                      onChanged: (v) => setState(() => ruleId = v ?? ruleId),
                     ),
-                    items: [
-                      for (final r in TaxRuleSet.all)
-                        DropdownMenuItem(
-                          value: r.id,
-                          child: Text(r.title, overflow: TextOverflow.ellipsis),
-                        ),
-                    ],
-                    onChanged: (v) => setState(() => ruleId = v ?? ruleId),
                   ),
                   const SizedBox(height: 6),
                   Text(rules.description, style: theme.textTheme.bodySmall),
@@ -401,48 +429,56 @@ Future<String?> _editRate(
             ),
           ),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel'),
+            Tip(
+              'Close without saving',
+              child: TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancel'),
+              ),
             ),
-            FilledButton(
-              onPressed: () async {
-                final n = name.text.trim();
-                final p = double.tryParse(
-                  percent.text.trim().replaceAll(',', '.'),
-                );
-                final gText = grocery.text.trim().replaceAll(',', '.');
-                final g = gText.isEmpty ? null : double.tryParse(gText);
-                if (n.isEmpty) return;
-                if (p == null || p < 0 || p > 100) {
-                  setState(() => error = 'Enter a number from 0 to 100');
-                  return;
-                }
-                if (gText.isNotEmpty && (g == null || g < 0 || g > 100)) {
-                  setState(() => groceryError = 'Enter a number from 0 to 100');
-                  return;
-                }
-                String id;
-                if (existing == null) {
-                  id = await db.addTaxRate(
-                    n,
-                    p,
-                    ruleSet: ruleId,
-                    groceryPercent: g,
+            Tip(
+              'Save your changes',
+              child: FilledButton(
+                onPressed: () async {
+                  final n = name.text.trim();
+                  final p = double.tryParse(
+                    percent.text.trim().replaceAll(',', '.'),
                   );
-                } else {
-                  await db.updateTaxRate(
-                    existing.id,
-                    n,
-                    p,
-                    ruleSet: ruleId,
-                    groceryPercent: g,
-                  );
-                  id = existing.id;
-                }
-                if (ctx.mounted) Navigator.pop(ctx, id);
-              },
-              child: const Text('Save'),
+                  final gText = grocery.text.trim().replaceAll(',', '.');
+                  final g = gText.isEmpty ? null : double.tryParse(gText);
+                  if (n.isEmpty) return;
+                  if (p == null || p < 0 || p > 100) {
+                    setState(() => error = 'Enter a number from 0 to 100');
+                    return;
+                  }
+                  if (gText.isNotEmpty && (g == null || g < 0 || g > 100)) {
+                    setState(
+                      () => groceryError = 'Enter a number from 0 to 100',
+                    );
+                    return;
+                  }
+                  String id;
+                  if (existing == null) {
+                    id = await db.addTaxRate(
+                      n,
+                      p,
+                      ruleSet: ruleId,
+                      groceryPercent: g,
+                    );
+                  } else {
+                    await db.updateTaxRate(
+                      existing.id,
+                      n,
+                      p,
+                      ruleSet: ruleId,
+                      groceryPercent: g,
+                    );
+                    id = existing.id;
+                  }
+                  if (ctx.mounted) Navigator.pop(ctx, id);
+                },
+                child: const Text('Save'),
+              ),
             ),
           ],
         );

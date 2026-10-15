@@ -8,6 +8,7 @@ import '../catalog/catalog_suggestions.dart';
 import '../catalog/item_editor.dart';
 import '../settings/settings_dialog.dart';
 import '../../ui/keyline/keyline_icon.dart';
+import '../../ui/tip.dart';
 
 class PantryScreen extends ConsumerWidget {
   const PantryScreen({super.key});
@@ -84,27 +85,30 @@ class _PantryTile extends StatelessWidget {
             if (item.location.isNotEmpty) item.location,
             if (expiry != null) 'Expires ${_date(expiry)}',
           ].join(' · ');
-          final text = Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                item.name,
-                style: theme.textTheme.bodyLarge?.copyWith(color: color),
-              ),
-              if (details.isNotEmpty)
+          final text = Tip(
+            'Edit item',
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
                 Text(
-                  details,
-                  style: theme.textTheme.bodySmall?.copyWith(color: color),
+                  item.name,
+                  style: theme.textTheme.bodyLarge?.copyWith(color: color),
                 ),
-              if (item.note.isNotEmpty)
-                Text(
-                  item.note,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall,
-                ),
-            ],
+                if (details.isNotEmpty)
+                  Text(
+                    details,
+                    style: theme.textTheme.bodySmall?.copyWith(color: color),
+                  ),
+                if (item.note.isNotEmpty)
+                  Text(
+                    item.note,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall,
+                  ),
+              ],
+            ),
           );
           final stepper = Row(
             mainAxisSize: MainAxisSize.min,
@@ -225,15 +229,18 @@ Future<void> _showAddDialog(BuildContext context, AppDatabase db) {
                   if (unit.text.isEmpty) unit.text = i.defaultUnit;
                 }),
               ),
-              DropdownButtonFormField<String>(
-                initialValue: category.isEmpty ? null : category,
-                key: ValueKey(category),
-                decoration: const InputDecoration(labelText: 'Category'),
-                items: [
-                  for (final c in catalogSeed.keys)
-                    DropdownMenuItem(value: c, child: Text(c)),
-                ],
-                onChanged: (v) => setState(() => category = v ?? ''),
+              Tip(
+                'Choose a category',
+                child: DropdownButtonFormField<String>(
+                  initialValue: category.isEmpty ? null : category,
+                  key: ValueKey(category),
+                  decoration: const InputDecoration(labelText: 'Category'),
+                  items: [
+                    for (final c in catalogSeed.keys)
+                      DropdownMenuItem(value: c, child: Text(c)),
+                  ],
+                  onChanged: (v) => setState(() => category = v ?? ''),
+                ),
               ),
               Row(
                 children: [
@@ -269,18 +276,21 @@ Future<void> _showAddDialog(BuildContext context, AppDatabase db) {
                           : 'Expires ${_date(expiry!)}',
                     ),
                   ),
-                  TextButton(
-                    onPressed: () async {
-                      final now = DateTime.now();
-                      final d = await showDatePicker(
-                        context: ctx,
-                        initialDate: expiry ?? now,
-                        firstDate: now.subtract(const Duration(days: 365)),
-                        lastDate: now.add(const Duration(days: 365 * 10)),
-                      );
-                      if (d != null) setState(() => expiry = d);
-                    },
-                    child: const Text('Set date'),
+                  Tip(
+                    'Choose an expiry date',
+                    child: TextButton(
+                      onPressed: () async {
+                        final now = DateTime.now();
+                        final d = await showDatePicker(
+                          context: ctx,
+                          initialDate: expiry ?? now,
+                          firstDate: now.subtract(const Duration(days: 365)),
+                          lastDate: now.add(const Duration(days: 365 * 10)),
+                        );
+                        if (d != null) setState(() => expiry = d);
+                      },
+                      child: const Text('Set date'),
+                    ),
                   ),
                 ],
               ),
@@ -288,25 +298,31 @@ Future<void> _showAddDialog(BuildContext context, AppDatabase db) {
           ),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+          Tip(
+            'Close without adding',
+            child: TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
           ),
-          FilledButton(
-            onPressed: () {
-              final n = name.text.trim();
-              if (n.isEmpty) return;
-              db.addPantryItem(
-                n,
-                quantity: double.tryParse(qty.text.trim()) ?? 1,
-                unit: unit.text.trim(),
-                expiryDate: expiry,
-                location: location.text.trim(),
-                category: category.isEmpty ? 'Other' : category,
-              );
-              Navigator.pop(ctx);
-            },
-            child: const Text('Add'),
+          Tip(
+            'Add to your pantry',
+            child: FilledButton(
+              onPressed: () {
+                final n = name.text.trim();
+                if (n.isEmpty) return;
+                db.addPantryItem(
+                  n,
+                  quantity: double.tryParse(qty.text.trim()) ?? 1,
+                  unit: unit.text.trim(),
+                  expiryDate: expiry,
+                  location: location.text.trim(),
+                  category: category.isEmpty ? 'Other' : category,
+                );
+                Navigator.pop(ctx);
+              },
+              child: const Text('Add'),
+            ),
           ),
         ],
       ),

@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../data/catalog_seed.dart';
 import '../../ui/keyline/keyline_icon.dart';
+import '../../ui/tip.dart';
 
 /// Values edited in [showItemEditor]. Fields that don't apply to an item kind
 /// (price/tax/coupon for pantry items, expiry/location for shopping items)
@@ -251,7 +252,10 @@ class _ItemEditorSheetState extends State<_ItemEditorSheet> {
           for (final l in choices)
             SimpleDialogOption(
               onPressed: () => Navigator.pop(ctx, l.id),
-              child: Text(l.name),
+              child: Tip(
+                '${move ? 'Move' : 'Copy'} it to "${l.name}"',
+                child: Text(l.name),
+              ),
             ),
         ],
       ),
@@ -320,17 +324,20 @@ class _ItemEditorSheetState extends State<_ItemEditorSheet> {
 
   Widget _unitDropdown() {
     final units = [..._units, if (!_units.contains(_unit)) _unit];
-    return DropdownButtonFormField<String>(
-      initialValue: _unit,
-      isExpanded: true,
-      decoration: const InputDecoration(
-        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+    return Tip(
+      'Choose a unit',
+      child: DropdownButtonFormField<String>(
+        initialValue: _unit,
+        isExpanded: true,
+        decoration: const InputDecoration(
+          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        ),
+        items: [
+          for (final u in units)
+            DropdownMenuItem(value: u, child: Text(u.isEmpty ? 'No unit' : u)),
+        ],
+        onChanged: (v) => setState(() => _unit = v ?? ''),
       ),
-      items: [
-        for (final u in units)
-          DropdownMenuItem(value: u, child: Text(u.isEmpty ? 'No unit' : u)),
-      ],
-      onChanged: (v) => setState(() => _unit = v ?? ''),
     );
   }
 
@@ -384,14 +391,20 @@ class _ItemEditorSheetState extends State<_ItemEditorSheet> {
                   return Row(
                     children: [
                       narrow
-                          ? TextButton(
-                              onPressed: () => Navigator.pop(context),
-                              child: const Text('Cancel'),
+                          ? Tip(
+                              'Discard your changes',
+                              child: TextButton(
+                                onPressed: () => Navigator.pop(context),
+                                child: const Text('Cancel'),
+                              ),
                             )
-                          : TextButton.icon(
-                              onPressed: () => Navigator.pop(context),
-                              icon: const KeylineIcon(KeylineIcons.x),
-                              label: const Text('Cancel'),
+                          : Tip(
+                              'Discard your changes',
+                              child: TextButton.icon(
+                                onPressed: () => Navigator.pop(context),
+                                icon: const KeylineIcon(KeylineIcons.x),
+                                label: const Text('Cancel'),
+                              ),
                             ),
                       Expanded(
                         child: narrow
@@ -403,7 +416,13 @@ class _ItemEditorSheetState extends State<_ItemEditorSheet> {
                                 style: theme.textTheme.titleLarge,
                               ),
                       ),
-                      FilledButton(onPressed: _save, child: const Text('Save')),
+                      Tip(
+                        'Save your changes',
+                        child: FilledButton(
+                          onPressed: _save,
+                          child: const Text('Save'),
+                        ),
+                      ),
                     ],
                   );
                 },
@@ -451,20 +470,23 @@ class _ItemEditorSheetState extends State<_ItemEditorSheet> {
                     ),
                     gap,
                     _label('Category'),
-                    DropdownButtonFormField<String>(
-                      initialValue: _category.isEmpty ? null : _category,
-                      isExpanded: true,
-                      decoration: const InputDecoration(
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 12,
+                    Tip(
+                      'Choose a category',
+                      child: DropdownButtonFormField<String>(
+                        initialValue: _category.isEmpty ? null : _category,
+                        isExpanded: true,
+                        decoration: const InputDecoration(
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 12,
+                          ),
                         ),
+                        items: [
+                          for (final c in categories)
+                            DropdownMenuItem(value: c, child: Text(c)),
+                        ],
+                        onChanged: (v) => setState(() => _category = v ?? ''),
                       ),
-                      items: [
-                        for (final c in categories)
-                          DropdownMenuItem(value: c, child: Text(c)),
-                      ],
-                      onChanged: (v) => setState(() => _category = v ?? ''),
                     ),
                     if (widget.showPrice) ...[
                       gap,
@@ -501,24 +523,32 @@ class _ItemEditorSheetState extends State<_ItemEditorSheet> {
                           ),
                         ],
                       ),
-                      CheckboxListTile(
-                        contentPadding: EdgeInsets.zero,
-                        dense: true,
-                        controlAffinity: ListTileControlAffinity.trailing,
-                        title: const Text('Item has sales tax'),
-                        subtitle: widget.taxHint == null
-                            ? null
-                            : Text(widget.taxHint!),
-                        value: _taxable,
-                        onChanged: (v) => setState(() => _taxable = v ?? false),
+                      Tip(
+                        'Add sales tax to this item',
+                        child: CheckboxListTile(
+                          contentPadding: EdgeInsets.zero,
+                          dense: true,
+                          controlAffinity: ListTileControlAffinity.trailing,
+                          title: const Text('Item has sales tax'),
+                          subtitle: widget.taxHint == null
+                              ? null
+                              : Text(widget.taxHint!),
+                          value: _taxable,
+                          onChanged: (v) =>
+                              setState(() => _taxable = v ?? false),
+                        ),
                       ),
-                      CheckboxListTile(
-                        contentPadding: EdgeInsets.zero,
-                        dense: true,
-                        controlAffinity: ListTileControlAffinity.trailing,
-                        title: const Text('I have a coupon for this item'),
-                        value: _coupon,
-                        onChanged: (v) => setState(() => _coupon = v ?? false),
+                      Tip(
+                        'Note that you have a coupon for this item',
+                        child: CheckboxListTile(
+                          contentPadding: EdgeInsets.zero,
+                          dense: true,
+                          controlAffinity: ListTileControlAffinity.trailing,
+                          title: const Text('I have a coupon for this item'),
+                          value: _coupon,
+                          onChanged: (v) =>
+                              setState(() => _coupon = v ?? false),
+                        ),
                       ),
                     ],
                     if (widget.showPantryFields) ...[
@@ -546,12 +576,15 @@ class _ItemEditorSheetState extends State<_ItemEditorSheet> {
                                         setState(() => _expiry = null),
                                   ),
                           ),
-                          child: Text(
-                            _expiry == null ? 'Not set' : _dateText(_expiry!),
-                            style: valueStyle?.copyWith(
-                              color: _expiry == null
-                                  ? scheme.onSurface.withValues(alpha: 0.4)
-                                  : null,
+                          child: Tip(
+                            'Choose an expiry date',
+                            child: Text(
+                              _expiry == null ? 'Not set' : _dateText(_expiry!),
+                              style: valueStyle?.copyWith(
+                                color: _expiry == null
+                                    ? scheme.onSurface.withValues(alpha: 0.4)
+                                    : null,
+                              ),
                             ),
                           ),
                         ),
@@ -579,21 +612,32 @@ class _ItemEditorSheetState extends State<_ItemEditorSheet> {
               child: Wrap(
                 alignment: WrapAlignment.spaceEvenly,
                 children: [
-                  TextButton.icon(
-                    onPressed: () => Navigator.pop(context, ItemDeleted()),
-                    icon: const KeylineIcon(KeylineIcons.bin),
-                    label: const Text('Delete'),
+                  Tip(
+                    'Delete this item',
+                    child: TextButton.icon(
+                      onPressed: () => Navigator.pop(context, ItemDeleted()),
+                      icon: const KeylineIcon(KeylineIcons.bin),
+                      label: const Text('Delete'),
+                    ),
                   ),
                   if (canMoveCopy) ...[
-                    TextButton.icon(
-                      onPressed: canMove ? () => _chooseList(move: true) : null,
-                      icon: const KeylineIcon(KeylineIcons.folderArrowRight),
-                      label: const Text('Move'),
+                    Tip(
+                      'Move this item to another list',
+                      child: TextButton.icon(
+                        onPressed: canMove
+                            ? () => _chooseList(move: true)
+                            : null,
+                        icon: const KeylineIcon(KeylineIcons.folderArrowRight),
+                        label: const Text('Move'),
+                      ),
                     ),
-                    TextButton.icon(
-                      onPressed: () => _chooseList(move: false),
-                      icon: const KeylineIcon(KeylineIcons.copy),
-                      label: const Text('Copy'),
+                    Tip(
+                      'Copy this item to a list',
+                      child: TextButton.icon(
+                        onPressed: () => _chooseList(move: false),
+                        icon: const KeylineIcon(KeylineIcons.copy),
+                        label: const Text('Copy'),
+                      ),
                     ),
                   ],
                 ],

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app/theme_mode.dart';
 import '../shopping/tax_rates_dialog.dart';
 import '../../ui/keyline/keyline_icon.dart';
+import '../../ui/tip.dart';
 
 /// App settings: light/dark theme and the sales tax rates.
 ///
@@ -84,9 +85,12 @@ class SettingsDialog extends ConsumerWidget {
         ),
       ),
       actions: [
-        FilledButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Done'),
+        Tip(
+          'Close settings',
+          child: FilledButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Done'),
+          ),
         ),
       ],
     );

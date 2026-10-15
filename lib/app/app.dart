@@ -9,6 +9,7 @@ import 'theme_mode.dart';
 import 'title_bar.dart';
 import '../features/shopping/shopping_screen.dart';
 import '../ui/keyline/keyline_icon.dart';
+import '../ui/tip.dart';
 
 GoRouter _createRouter() => GoRouter(
   initialLocation: '/shopping',
@@ -152,12 +153,7 @@ class _ShopItAppState extends ConsumerState<ShopItApp> {
     routerConfig: _router,
     // On Windows the native title bar is hidden; draw our own.
     builder: (context, child) => widget.windowChrome && Platform.isWindows
-        ? Column(
-            children: [
-              const AppTitleBar(),
-              Expanded(child: child ?? const SizedBox.shrink()),
-            ],
-          )
+        ? WindowFrame(child: child ?? const SizedBox.shrink())
         : child ?? const SizedBox.shrink(),
   );
 }
@@ -189,8 +185,11 @@ class AppShell extends StatelessWidget {
               destinations: [
                 for (final d in _destinations)
                   NavigationRailDestination(
-                    icon: KeylineIcon(d.$1),
-                    selectedIcon: KeylineIcon(d.$2),
+                    icon: Tip('Go to ${d.$3}', child: KeylineIcon(d.$1)),
+                    selectedIcon: Tip(
+                      'Go to ${d.$3}',
+                      child: KeylineIcon(d.$2),
+                    ),
                     label: Text(d.$3),
                   ),
               ],
@@ -212,6 +211,7 @@ class AppShell extends StatelessWidget {
               icon: KeylineIcon(d.$1),
               selectedIcon: KeylineIcon(d.$2),
               label: d.$3,
+              tooltip: 'Go to ${d.$3}',
             ),
         ],
       ),

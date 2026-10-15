@@ -5,6 +5,66 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:path_drawing/path_drawing.dart';
 import 'package:shop_it/ui/keyline/keyline_icon.dart';
 
+import 'support/harness.dart';
+
+const _white = (r: 255, g: 255, b: 255);
+
+/// Renders [icon] in a tight [box] x [box] white square and returns its pixels.
+Future<Shot> _render(
+  WidgetTester tester,
+  Widget icon, {
+  double box = 48,
+  double pixelRatio = 1,
+}) async {
+  tester.view.devicePixelRatio = pixelRatio;
+  tester.view.physicalSize = Size(box * pixelRatio * 2, box * pixelRatio * 2);
+  addTearDown(tester.view.reset);
+  final key = GlobalKey();
+  await tester.pumpWidget(
+    Directionality(
+      textDirection: TextDirection.ltr,
+      child: Center(
+        child: RepaintBoundary(
+          key: key,
+          child: ColoredBox(
+            color: Colors.white,
+            // A tight box, as some parents impose.
+            child: SizedBox(width: box, height: box, child: icon),
+          ),
+        ),
+      ),
+    ),
+  );
+  await tester.pump();
+  return capture(tester, key, pixelRatio: pixelRatio);
+}
+
+/// Bounding box of the non-white pixels: (left, top, right, bottom), inclusive.
+({int l, int t, int r, int b}) _inkBounds(Shot s) {
+  var l = s.width, t = s.height, r = -1, b = -1;
+  for (var y = 0; y < s.height; y++) {
+    for (var x = 0; x < s.width; x++) {
+      if (s.ink(x, y, _white) > 0.12) {
+        if (x < l) l = x;
+        if (x > r) r = x;
+        if (y < t) t = y;
+        if (y > b) b = y;
+      }
+    }
+  }
+  return (l: l, t: t, r: r, b: b);
+}
+
+double _totalInk(Shot s) {
+  var sum = 0.0;
+  for (var y = 0; y < s.height; y++) {
+    for (var x = 0; x < s.width; x++) {
+      sum += s.ink(x, y, _white);
+    }
+  }
+  return sum;
+}
+
 void main() {
   group('the icon set', () {
     test('contains the whole Keyline stroke set', () {
@@ -46,120 +106,138 @@ void main() {
   });
 
   group('the widget', () {
-    testWidgets('takes its size and colour from the icon theme', (
-      tester,
-    ) async {
-      await tester.pumpWidget(
-        Directionality(
-          textDirection: TextDirection.ltr,
-          child: Center(
-            child: IconTheme(
-              data: const IconThemeData(color: Color(0xFF86AA12), size: 40),
-              child: const KeylineIcon(KeylineIcons.settings),
-            ),
-          ),
+    testWidgets('takes its colour from the icon theme', (tester) async {
+      final shot = await _render(
+        tester,
+        const IconTheme(
+          data: IconThemeData(color: Color(0xFFFF0000), size: 24),
+          child: KeylineIcon(KeylineIcons.x),
         ),
       );
-      expect(tester.getSize(find.byType(KeylineIcon)), const Size(40, 40));
-      final paint = tester.renderObject(
-        find.descendant(
-          of: find.byType(KeylineIcon),
-          matching: find.byType(CustomPaint),
-        ),
-      );
-      expect(paint, paints..path(color: const Color(0xFF86AA12)));
+      // Somewhere the strokes cross, the pixel is solid red.
+      var solidRed = false;
+      for (var y = 0; y < shot.height && !solidRed; y++) {
+        for (var x = 0; x < shot.width; x++) {
+          final p = shot.at(x, y);
+          if (p.r > 235 && p.g < 40 && p.b < 40) {
+            solidRed = true;
+            break;
+          }
+        }
+      }
+      expect(solidRed, isTrue);
     });
 
-    testWidgets('explicit size and colour win; stroke weight is applied', (
-      tester,
-    ) async {
-      await tester.pumpWidget(
-        const Directionality(
-          textDirection: TextDirection.ltr,
-          child: Center(
-            child: KeylineIcon(
-              KeylineIcons.x,
-              size: 20,
-              color: Color(0xFFFF0000),
-              strokeWidth: 1.25,
-            ),
+    testWidgets('an explicit colour wins over the icon theme', (tester) async {
+      final shot = await _render(
+        tester,
+        const IconTheme(
+          data: IconThemeData(color: Color(0xFFFF0000)),
+          child: KeylineIcon(
+            KeylineIcons.x,
+            size: 24,
+            color: Color(0xFF0000FF),
           ),
         ),
       );
-      expect(tester.getSize(find.byType(KeylineIcon)), const Size(20, 20));
-      final paint = tester.renderObject(
-        find.descendant(
-          of: find.byType(KeylineIcon),
-          matching: find.byType(CustomPaint),
+      var blue = false, red = false;
+      for (var y = 0; y < shot.height; y++) {
+        for (var x = 0; x < shot.width; x++) {
+          final p = shot.at(x, y);
+          if (p.b > 235 && p.r < 40 && p.g < 40) blue = true;
+          if (p.r > 200 && p.b < 100) red = true;
+        }
+      }
+      expect(blue, isTrue);
+      expect(red, isFalse);
+    });
+
+    testWidgets('a heavier stroke weight draws more ink', (tester) async {
+      final thin = await _render(
+        tester,
+        const KeylineIcon(
+          KeylineIcons.settings,
+          size: 40,
+          color: Colors.black,
+          strokeWidth: 1,
         ),
       );
-      expect(
-        paint,
-        paints..path(color: const Color(0xFFFF0000), strokeWidth: 1.25),
+      final thick = await _render(
+        tester,
+        const KeylineIcon(
+          KeylineIcons.settings,
+          size: 40,
+          color: Colors.black,
+          strokeWidth: 3,
+        ),
       );
+      expect(_totalInk(thick), greaterThan(_totalInk(thin) * 1.8));
     });
 
     testWidgets('a larger forced box does not stretch the drawing', (
       tester,
     ) async {
-      await tester.pumpWidget(
-        const Directionality(
-          textDirection: TextDirection.ltr,
-          child: Center(
-            child: SizedBox(
-              width: 48,
-              height: 48,
-              child: KeylineIcon(KeylineIcons.x, size: 16),
-            ),
-          ),
-        ),
+      // The parent forces 48x48, but the icon is 16 and stays centred.
+      final shot = await _render(
+        tester,
+        const KeylineIcon(KeylineIcons.x, size: 16, color: Colors.black),
       );
-      // Tight 48x48 box from the parent, but the drawing is 16x16 and centred.
-      final painted = tester.getSize(
-        find.descendant(
-          of: find.byType(KeylineIcon),
-          matching: find.byType(CustomPaint),
-        ),
-      );
-      expect(painted, const Size(16, 16));
-      expect(
-        tester.getCenter(
-          find.descendant(
-            of: find.byType(KeylineIcon),
-            matching: find.byType(CustomPaint),
-          ),
-        ),
-        tester.getCenter(find.byType(SizedBox).first),
-      );
+      final b = _inkBounds(shot);
+      expect(b.r - b.l + 1, lessThanOrEqualTo(16));
+      expect(b.b - b.t + 1, lessThanOrEqualTo(16));
+      expect((b.l + b.r) / 2, closeTo(23.5, 1.5));
+      expect((b.t + b.b) / 2, closeTo(23.5, 1.5));
     });
 
-    testWidgets('solid shapes are filled, outlines are stroked', (
+    testWidgets('solid shapes are filled and outlines are stroked', (
       tester,
     ) async {
-      // "accessibility" has a filled dot as well as outlined paths.
-      await tester.pumpWidget(
-        const Directionality(
-          textDirection: TextDirection.ltr,
-          child: Center(
-            child: KeylineIcon(
-              KeylineIcons.accessibility,
-              color: Color(0xFF00AA00),
-            ),
-          ),
+      // "accessibility" has a filled dot (the head) at (12, 6.5) as well as
+      // outlined paths.
+      final shot = await _render(
+        tester,
+        const KeylineIcon(
+          KeylineIcons.accessibility,
+          size: 24,
+          color: Colors.black,
         ),
+        box: 24,
       );
-      final paint = tester.renderObject(
-        find.descendant(
-          of: find.byType(KeylineIcon),
-          matching: find.byType(CustomPaint),
-        ),
+      expect(shot.ink(12, 6, _white), greaterThan(0.9)); // the filled dot
+      expect(shot.ink(2, 2, _white), lessThan(0.05)); // empty corner
+      expect(_totalInk(shot), greaterThan(20)); // the outline is drawn too
+    });
+
+    testWidgets('edges are smooth: many shades, not a handful', (tester) async {
+      // A diagonal-heavy icon at a small size, where coarse anti-aliasing shows
+      // as stair-steps. Count the distinct shades along the edges.
+      final shot = await _render(
+        tester,
+        const KeylineIcon(KeylineIcons.x, size: 24, color: Colors.black),
+        box: 24,
       );
-      expect(
-        paint,
-        paints
-          ..path(style: PaintingStyle.stroke)
-          ..path(style: PaintingStyle.fill),
-      );
+      final shades = <int>{};
+      for (var y = 0; y < shot.height; y++) {
+        for (var x = 0; x < shot.width; x++) {
+          final p = shot.at(x, y);
+          if (p.r > 5 && p.r < 250) shades.add(p.r);
+        }
+      }
+      // Coarse 4x anti-aliasing gives only 3 shades between empty and solid.
+      expect(shades.length, greaterThan(5));
+    });
+
+    testWidgets('draws at the screen\'s pixel size on a sharper display', (
+      tester,
+    ) async {
+      const icon = KeylineIcon(KeylineIcons.x, size: 16, color: Colors.black);
+      final normal = _inkBounds(await _render(tester, icon));
+      final sharp = _inkBounds(await _render(tester, icon, pixelRatio: 2));
+      // Same icon, twice the physical pixels (captured at 2x).
+      final normalWidth = normal.r - normal.l + 1;
+      final sharpWidth = sharp.r - sharp.l + 1;
+      expect(normalWidth, greaterThan(4));
+      expect(sharpWidth / normalWidth, closeTo(2, 0.35));
     });
   });
 

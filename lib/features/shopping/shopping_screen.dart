@@ -11,6 +11,7 @@ import '../catalog/item_editor.dart';
 import '../settings/settings_dialog.dart';
 import 'tax_rates_dialog.dart';
 import '../../ui/keyline/keyline_icon.dart';
+import '../../ui/tip.dart';
 
 class ShoppingScreen extends ConsumerStatefulWidget {
   const ShoppingScreen({super.key});
@@ -106,10 +107,13 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
                 children: [
                   const Text('No lists yet'),
                   const SizedBox(height: 12),
-                  FilledButton.icon(
-                    onPressed: _newList,
-                    icon: const KeylineIcon(KeylineIcons.listPlus),
-                    label: const Text('Create a list'),
+                  Tip(
+                    'Create your first list',
+                    child: FilledButton.icon(
+                      onPressed: _newList,
+                      icon: const KeylineIcon(KeylineIcons.listPlus),
+                      label: const Text('Create a list'),
+                    ),
                   ),
                 ],
               ),
@@ -181,26 +185,47 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
                   }
                 },
                 itemBuilder: (_) => [
-                  const PopupMenuItem(value: 'new', child: Text('New list')),
-                  const PopupMenuItem(
+                  PopupMenuItem(
+                    value: 'new',
+                    child: Tip(
+                      'Start another shopping list',
+                      child: const Text('New list'),
+                    ),
+                  ),
+                  PopupMenuItem(
                     value: 'taxAuto',
-                    child: Text('Use automatic tax rules'),
+                    child: Tip(
+                      'Let each item follow the tax rules again',
+                      child: const Text('Use automatic tax rules'),
+                    ),
                   ),
-                  const PopupMenuItem(
+                  PopupMenuItem(
                     value: 'taxAll',
-                    child: Text('Mark all items taxable'),
+                    child: Tip(
+                      'Tax every item on this list',
+                      child: const Text('Mark all items taxable'),
+                    ),
                   ),
-                  const PopupMenuItem(
+                  PopupMenuItem(
                     value: 'taxNone',
-                    child: Text('Mark all items not taxable'),
+                    child: Tip(
+                      'Tax no item on this list',
+                      child: const Text('Mark all items not taxable'),
+                    ),
                   ),
-                  const PopupMenuItem(
+                  PopupMenuItem(
                     value: 'delete',
-                    child: Text('Delete this list'),
+                    child: Tip(
+                      'Delete this list and its items',
+                      child: const Text('Delete this list'),
+                    ),
                   ),
-                  const PopupMenuItem(
+                  PopupMenuItem(
                     value: 'deleteAll',
-                    child: Text('Delete all lists'),
+                    child: Tip(
+                      'Delete every list and start from scratch',
+                      child: const Text('Delete all lists'),
+                    ),
                   ),
                 ],
               ),
@@ -210,18 +235,38 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
             children: [
               Padding(
                 padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
-                child: DropdownButton<String>(
-                  isExpanded: true,
-                  value: current.id,
-                  items: [
-                    for (final l in all)
-                      DropdownMenuItem(
-                        value: l.id,
-                        child: Text(l.name, overflow: TextOverflow.ellipsis),
+                // A pull-down only makes sense with more than one list to pick
+                // from; with a single list just show its name.
+                child: all.length > 1
+                    ? Tip(
+                        'Choose a list',
+                        child: DropdownButton<String>(
+                          isExpanded: true,
+                          value: current.id,
+                          items: [
+                            for (final l in all)
+                              DropdownMenuItem(
+                                value: l.id,
+                                child: Text(
+                                  l.name,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                          ],
+                          onChanged: (v) => setState(() => _listId = v),
+                        ),
+                      )
+                    : Align(
+                        alignment: Alignment.centerLeft,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          child: Text(
+                            current.name,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                        ),
                       ),
-                  ],
-                  onChanged: (v) => setState(() => _listId = v),
-                ),
               ),
               Padding(
                 padding: const EdgeInsets.all(12),
@@ -233,6 +278,7 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
                     prefixIcon: const KeylineIcon(KeylineIcons.search),
                     border: const OutlineInputBorder(),
                     suffixIcon: IconButton(
+                      tooltip: 'Add item',
                       icon: const KeylineIcon(KeylineIcons.plus),
                       onPressed: () => _submit(current.id),
                     ),
@@ -428,18 +474,30 @@ class _CartSection extends StatelessWidget {
                           onPressed: onDeleteAll,
                         ),
                       ] else ...[
-                        TextButton.icon(
-                          style: small,
-                          onPressed: onUncheckAll,
-                          icon: const KeylineIcon(KeylineIcons.listX, size: 16),
-                          label: const Text('Uncheck all'),
+                        Tip(
+                          'Put everything in your cart back on the list',
+                          child: TextButton.icon(
+                            style: small,
+                            onPressed: onUncheckAll,
+                            icon: const KeylineIcon(
+                              KeylineIcons.listX,
+                              size: 16,
+                            ),
+                            label: const Text('Uncheck all'),
+                          ),
                         ),
                         const SizedBox(width: 4),
-                        TextButton.icon(
-                          style: small,
-                          onPressed: onDeleteAll,
-                          icon: const KeylineIcon(KeylineIcons.bin2, size: 16),
-                          label: const Text('Delete all'),
+                        Tip(
+                          'Delete everything in your cart',
+                          child: TextButton.icon(
+                            style: small,
+                            onPressed: onDeleteAll,
+                            icon: const KeylineIcon(
+                              KeylineIcons.bin2,
+                              size: 16,
+                            ),
+                            label: const Text('Delete all'),
+                          ),
                         ),
                       ],
                     ],
@@ -562,15 +620,21 @@ class _ItemTile extends StatelessWidget {
       onDismissed: (_) => db.deleteShoppingItem(item.id),
       child: ListTile(
         onTap: () => _edit(context),
-        leading: Checkbox(
-          value: item.checked,
-          onChanged: (v) => db.setChecked(item.id, v ?? false),
+        leading: Tip(
+          item.checked ? 'Move back to the list' : 'Put in your cart',
+          child: Checkbox(
+            value: item.checked,
+            onChanged: (v) => db.setChecked(item.id, v ?? false),
+          ),
         ),
-        title: Text(
-          item.name,
-          style: item.checked
-              ? const TextStyle(decoration: TextDecoration.lineThrough)
-              : null,
+        title: Tip(
+          'Edit item',
+          child: Text(
+            item.name,
+            style: item.checked
+                ? const TextStyle(decoration: TextDecoration.lineThrough)
+                : null,
+          ),
         ),
         subtitle: (details.isEmpty && item.note.isEmpty)
             ? null
@@ -717,13 +781,19 @@ Future<bool> _confirm(
       title: Text(title),
       content: Text(message),
       actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(ctx, false),
-          child: const Text('Cancel'),
+        Tip(
+          'Close without changing anything',
+          child: TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
         ),
-        FilledButton(
-          onPressed: () => Navigator.pop(ctx, true),
-          child: const Text('Delete'),
+        Tip(
+          'Delete it',
+          child: FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete'),
+          ),
         ),
       ],
     ),
@@ -744,13 +814,19 @@ Future<String?> _askName(BuildContext context, String title) {
         onSubmitted: (v) => Navigator.pop(ctx, v.trim()),
       ),
       actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(ctx),
-          child: const Text('Cancel'),
+        Tip(
+          'Close without changing anything',
+          child: TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
         ),
-        FilledButton(
-          onPressed: () => Navigator.pop(ctx, c.text.trim()),
-          child: const Text('Create'),
+        Tip(
+          'Create the list',
+          child: FilledButton(
+            onPressed: () => Navigator.pop(ctx, c.text.trim()),
+            child: const Text('Create'),
+          ),
         ),
       ],
     ),

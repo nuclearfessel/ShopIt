@@ -7,6 +7,9 @@ import 'package:shop_it/app/theme_mode.dart';
 import 'package:shop_it/data/database.dart';
 import 'package:shop_it/data/providers.dart';
 import 'package:shop_it/features/settings/settings_dialog.dart';
+import 'package:shop_it/ui/keyline/keyline_icon.dart';
+
+import 'support/harness.dart' show capture;
 
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
@@ -41,6 +44,7 @@ void main() {
   });
 
   group('switching in the settings dialog', () {
+    final boundary = GlobalKey();
     Future<ProviderContainer> pumpApp(
       WidgetTester tester, {
       Brightness platform = Brightness.light,
@@ -51,20 +55,23 @@ void main() {
       addTearDown(tester.view.reset);
       addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
       await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            databaseProvider.overrideWithValue(AppDatabase.memory()),
-            listsProvider.overrideWith(
-              (_) => Stream.value(const <ShoppingList>[]),
-            ),
-            taxRatesProvider.overrideWith(
-              (_) => Stream.value(const <TaxRate>[]),
-            ),
-            pantryProvider.overrideWith(
-              (_) => Stream.value(const <PantryItem>[]),
-            ),
-          ],
-          child: const ShopItApp(windowChrome: false),
+        RepaintBoundary(
+          key: boundary,
+          child: ProviderScope(
+            overrides: [
+              databaseProvider.overrideWithValue(AppDatabase.memory()),
+              listsProvider.overrideWith(
+                (_) => Stream.value(const <ShoppingList>[]),
+              ),
+              taxRatesProvider.overrideWith(
+                (_) => Stream.value(const <TaxRate>[]),
+              ),
+              pantryProvider.overrideWith(
+                (_) => Stream.value(const <PantryItem>[]),
+              ),
+            ],
+            child: const ShopItApp(windowChrome: false),
+          ),
         ),
       );
       await tester.pump(const Duration(milliseconds: 300));
@@ -117,19 +124,42 @@ void main() {
       tester,
     ) async {
       await pumpApp(tester, platform: Brightness.dark);
-      PaintPattern gearIs(Color c) => paints..path(color: c);
-      RenderObject gear() => tester.renderObject(
-        find.descendant(
-          of: find.byTooltip('Settings'),
-          matching: find.byType(CustomPaint),
-        ),
-      );
+
+      // The pixel in the gear closest to the expected lime.
+      Future<int> distanceFrom(Color lime) async {
+        final shot = await capture(tester, boundary);
+        final rect = tester.getRect(
+          find.descendant(
+            of: find.byTooltip('Settings'),
+            matching: find.byType(KeylineIcon),
+          ),
+        );
+        var best = 1 << 30;
+        for (var y = rect.top.floor(); y < rect.bottom.ceil(); y++) {
+          for (var x = rect.left.floor(); x < rect.right.ceil(); x++) {
+            final p = shot.at(x, y);
+            final d =
+                (p.r - (lime.r * 255).round()).abs() +
+                (p.g - (lime.g * 255).round()).abs() +
+                (p.b - (lime.b * 255).round()).abs();
+            if (d < best) best = d;
+          }
+        }
+        return best;
+      }
+
+      // Edge pixels blend with the background, so compare against the other
+      // lime rather than expecting it to be far away.
       expect(shown(tester), Brightness.dark);
-      expect(gear(), gearIs(keyLimeOnDark));
+      final darkRight = await distanceFrom(keyLimeOnDark);
+      expect(darkRight, lessThan(40));
+      expect(darkRight, lessThan(await distanceFrom(keyLimeOnLight)));
 
       await choose(tester, 'Light');
       expect(shown(tester), Brightness.light);
-      expect(gear(), gearIs(keyLimeOnLight));
+      final lightRight = await distanceFrom(keyLimeOnLight);
+      expect(lightRight, lessThan(40));
+      expect(lightRight, lessThan(await distanceFrom(keyLimeOnDark)));
     });
 
     testWidgets('a forced theme ignores the system setting', (tester) async {
