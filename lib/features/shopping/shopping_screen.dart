@@ -22,6 +22,7 @@ import 'tax_rates_dialog.dart';
 import '../../ui/keyline/keyline_icon.dart';
 import '../../ui/category_header.dart';
 import '../../ui/dialogs.dart';
+import '../../ui/choice_field.dart';
 import '../../ui/tip.dart';
 import '../../ui/undo_snack_bar.dart';
 
@@ -480,20 +481,10 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
                 child: all.length > 1
                     ? Tip(
                         'Choose a list',
-                        child: DropdownButton<String>(
-                          icon: const KeylineIcon(KeylineIcons.chevronDown),
-                          isExpanded: true,
+                        child: ChoiceField<String>(
                           value: current.id,
-                          items: [
-                            for (final l in all)
-                              DropdownMenuItem(
-                                value: l.id,
-                                child: Text(
-                                  l.name,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                          ],
+                          choices: [for (final l in all) Choice(l.id, l.name)],
+                          textStyle: Theme.of(context).textTheme.titleMedium,
                           onChanged: (v) => setState(() => _listId = v),
                         ),
                       )

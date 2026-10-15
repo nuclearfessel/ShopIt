@@ -2,6 +2,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shop_it/ui/choice_field.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shop_it/app/title_bar.dart';
 
@@ -53,7 +54,8 @@ bool _isControl(Widget w) {
   if (w is SimpleDialogOption) return w.onPressed != null;
   if (w is PopupMenuItem) return w.enabled;
   if (w is PopupMenuButton) return true;
-  if (w is DropdownButton) return (w as dynamic).onChanged != null;
+  if (w is MenuItemButton) return w.onPressed != null;
+  if (w is ChoiceField) return true;
   if (w is SegmentedButton) return true;
   if (w is NavigationDestination) return true;
   return false;

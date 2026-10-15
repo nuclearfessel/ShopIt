@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../data/catalog_seed.dart';
 import '../../ui/keyline/keyline_icon.dart';
+import '../../ui/choice_field.dart';
 import '../../ui/tip.dart';
 
 /// Values edited in [showItemEditor]. Fields that don't apply to an item kind
@@ -350,18 +351,13 @@ class _ItemEditorSheetState extends State<_ItemEditorSheet> {
     final units = [..._units, if (!_units.contains(_unit)) _unit];
     return Tip(
       'Choose a unit',
-      child: DropdownButtonFormField<String>(
-        icon: const KeylineIcon(KeylineIcons.chevronDown),
-        initialValue: _unit,
-        isExpanded: true,
+      child: ChoiceField<String>(
+        value: _unit,
         decoration: const InputDecoration(
           contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         ),
-        items: [
-          for (final u in units)
-            DropdownMenuItem(value: u, child: Text(u.isEmpty ? 'No unit' : u)),
-        ],
-        onChanged: (v) => setState(() => _unit = v ?? ''),
+        choices: [for (final u in units) Choice(u, u.isEmpty ? 'No unit' : u)],
+        onChanged: (v) => setState(() => _unit = v),
       ),
     );
   }
@@ -543,21 +539,16 @@ class _ItemEditorSheetState extends State<_ItemEditorSheet> {
                     _label('Category'),
                     Tip(
                       'Choose a category',
-                      child: DropdownButtonFormField<String>(
-                        icon: const KeylineIcon(KeylineIcons.chevronDown),
-                        initialValue: _category.isEmpty ? null : _category,
-                        isExpanded: true,
+                      child: ChoiceField<String>(
+                        value: _category.isEmpty ? null : _category,
                         decoration: const InputDecoration(
                           contentPadding: EdgeInsets.symmetric(
                             horizontal: 14,
                             vertical: 12,
                           ),
                         ),
-                        items: [
-                          for (final c in categories)
-                            DropdownMenuItem(value: c, child: Text(c)),
-                        ],
-                        onChanged: (v) => setState(() => _category = v ?? ''),
+                        choices: [for (final c in categories) Choice(c, c)],
+                        onChanged: (v) => setState(() => _category = v),
                       ),
                     ),
                     if (widget.showPrice) ...[

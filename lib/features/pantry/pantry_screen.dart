@@ -10,6 +10,7 @@ import '../../data/providers.dart';
 import '../../ui/category_header.dart';
 import '../../ui/dialogs.dart';
 import '../../ui/keyline/keyline_icon.dart';
+import '../../ui/choice_field.dart';
 import '../../ui/tip.dart';
 import '../../ui/undo_snack_bar.dart';
 import '../catalog/catalog_suggestions.dart';
@@ -312,23 +313,11 @@ class _PantryBody extends ConsumerWidget {
             child: lists.length > 1
                 ? Tip(
                     'Choose a pantry list',
-                    child: DropdownButton<String>(
-                      icon: const KeylineIcon(KeylineIcons.chevronDown),
-                      isExpanded: true,
+                    child: ChoiceField<String>(
                       value: current.id,
-                      items: [
-                        for (final l in lists)
-                          DropdownMenuItem(
-                            value: l.id,
-                            child: Text(
-                              l.name,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                      ],
-                      onChanged: (v) {
-                        if (v != null) onSelect(v);
-                      },
+                      choices: [for (final l in lists) Choice(l.id, l.name)],
+                      textStyle: Theme.of(context).textTheme.titleMedium,
+                      onChanged: onSelect,
                     ),
                   )
                 : Align(
@@ -625,17 +614,15 @@ Future<void> _showAddDialog(
               ),
               Tip(
                 'Choose a category',
-                child: DropdownButtonFormField<String>(
-                  icon: const KeylineIcon(KeylineIcons.chevronDown),
-                  initialValue: category.isEmpty ? null : category,
-                  key: ValueKey(category),
+                child: ChoiceField<String>(
+                  value: category.isEmpty ? null : category,
                   decoration: const InputDecoration(labelText: 'Category'),
-                  items: [
+                  choices: [
                     for (final c
                         in categories.isEmpty ? catalogSeed.keys : categories)
-                      DropdownMenuItem(value: c, child: Text(c)),
+                      Choice(c, c),
                   ],
-                  onChanged: (v) => setState(() => category = v ?? ''),
+                  onChanged: (v) => setState(() => category = v),
                 ),
               ),
               Row(

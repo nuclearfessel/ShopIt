@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shop_it/data/database.dart';
+import 'package:shop_it/ui/choice_field.dart';
 
 import 'support/harness.dart';
 
@@ -17,6 +18,11 @@ FilledButton _move(WidgetTester t) =>
     t.widget(find.widgetWithText(FilledButton, 'Move'));
 OutlinedButton _copy(WidgetTester t) =>
     t.widget(find.widgetWithText(OutlinedButton, 'Copy'));
+
+final _dialogPicker = find.descendant(
+  of: find.byType(AlertDialog),
+  matching: find.byType(ChoiceField<String>),
+);
 
 void main() {
   group('database: moving and copying', () {
@@ -193,7 +199,7 @@ void main() {
       // ...and neither is a destination alone
       await tester.tap(find.widgetWithText(CheckboxListTile, 'Milk'));
       await tester.pump();
-      await tester.tap(find.byType(DropdownButtonFormField<String>));
+      await tester.tap(_dialogPicker);
       await tester.pumpAndSettle();
       await tester.tap(find.text('Party').last);
       await tester.pumpAndSettle();
@@ -227,7 +233,7 @@ void main() {
         items: items,
       );
       await _openMoveCopy(tester);
-      await tester.tap(find.byType(DropdownButtonFormField<String>));
+      await tester.tap(_dialogPicker);
       await tester.pumpAndSettle();
       for (final name in ['Party', 'Costco', 'Pantry']) {
         expect(find.text(name), findsWidgets, reason: name);
@@ -235,14 +241,9 @@ void main() {
       // The dialog's own pull-down offers the other lists and the pantry, but
       // not the list you are on.
       final offered = tester
-          .widget<DropdownButton<String>>(
-            find.descendant(
-              of: find.byType(DropdownButtonFormField<String>),
-              matching: find.byType(DropdownButton<String>),
-            ),
-          )
-          .items!
-          .map((i) => (i.child as Text).data)
+          .widget<ChoiceField<String>>(_dialogPicker)
+          .choices
+          .map((c) => c.label)
           .toList();
       expect(offered, ['Party', 'Costco', 'Pantry']);
     });
@@ -252,7 +253,7 @@ void main() {
     ) async {
       await pumpShopIt(tester, items: items);
       await _openMoveCopy(tester);
-      await tester.tap(find.byType(DropdownButtonFormField<String>));
+      await tester.tap(_dialogPicker);
       await tester.pumpAndSettle();
       expect(find.text('Pantry'), findsWidgets);
     });

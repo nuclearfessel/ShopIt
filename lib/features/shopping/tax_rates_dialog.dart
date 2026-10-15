@@ -6,6 +6,7 @@ import '../../data/providers.dart';
 import '../../data/tax_rules.dart';
 import '../../services/tax_lookup.dart';
 import '../../ui/keyline/keyline_icon.dart';
+import '../../ui/choice_field.dart';
 import '../../ui/tip.dart';
 
 String formatPercent(double p) {
@@ -368,24 +369,15 @@ Future<String?> _editRate(
                   const SizedBox(height: 12),
                   Tip(
                     'Choose which items are taxed',
-                    child: DropdownButtonFormField<String>(
-                      icon: const KeylineIcon(KeylineIcons.chevronDown),
-                      initialValue: ruleId,
-                      isExpanded: true,
+                    child: ChoiceField<String>(
+                      value: ruleId,
                       decoration: const InputDecoration(
                         labelText: 'What is taxed',
                       ),
-                      items: [
-                        for (final r in TaxRuleSet.all)
-                          DropdownMenuItem(
-                            value: r.id,
-                            child: Text(
-                              r.title,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
+                      choices: [
+                        for (final r in TaxRuleSet.all) Choice(r.id, r.title),
                       ],
-                      onChanged: (v) => setState(() => ruleId = v ?? ruleId),
+                      onChanged: (v) => setState(() => ruleId = v),
                     ),
                   ),
                   const SizedBox(height: 6),

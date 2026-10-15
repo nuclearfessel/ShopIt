@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shop_it/ui/choice_field.dart';
 
 import 'support/harness.dart';
 
@@ -7,7 +8,7 @@ void main() {
   testWidgets('one list: just its name, no pull-down', (tester) async {
     await pumpShopIt(tester, lists: [fakeList('l1', 'Grocery list')]);
     expect(find.text('Grocery list'), findsOneWidget);
-    expect(find.byType(DropdownButton<String>), findsNothing);
+    expect(find.byType(ChoiceField<String>), findsNothing);
     expect(find.byTooltip('Choose a list'), findsNothing);
     // Left-aligned with the search field below it, not floating in the middle.
     final nameLeft = tester.getTopLeft(find.text('Grocery list')).dx;
@@ -22,7 +23,7 @@ void main() {
       lists: [fakeList('l1', 'A very long shopping list name that overflows')],
     );
     expect(tester.takeException(), isNull);
-    expect(find.byType(DropdownButton<String>), findsNothing);
+    expect(find.byType(ChoiceField<String>), findsNothing);
   });
 
   testWidgets('two lists: a pull-down to switch between them', (tester) async {
@@ -34,13 +35,13 @@ void main() {
         fakeItem('b', 'Chips', listId: 'l2', category: 'Snacks'),
       ],
     );
-    expect(find.byType(DropdownButton<String>), findsOneWidget);
+    expect(find.byType(ChoiceField<String>), findsOneWidget);
     expect(find.byTooltip('Choose a list'), findsOneWidget);
     expect(find.text('Milk'), findsOneWidget);
     expect(find.text('Chips'), findsNothing);
 
     // Open the pull-down and pick the other list.
-    await tester.tap(find.byType(DropdownButton<String>));
+    await tester.tap(find.byType(ChoiceField<String>));
     await tester.pumpAndSettle();
     expect(find.text('Party'), findsOneWidget);
     await tester.tap(find.text('Party').last);
@@ -53,12 +54,12 @@ void main() {
     tester,
   ) async {
     await pumpShopIt(tester, lists: [fakeList('l1', 'Only')]);
-    expect(find.byType(DropdownButton<String>), findsNothing);
+    expect(find.byType(ChoiceField<String>), findsNothing);
     await tester.pumpWidget(const SizedBox.shrink()); // a fresh app next
     await pumpShopIt(
       tester,
       lists: [fakeList('l1', 'Only'), fakeList('l2', 'Second')],
     );
-    expect(find.byType(DropdownButton<String>), findsOneWidget);
+    expect(find.byType(ChoiceField<String>), findsOneWidget);
   });
 }

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../data/database.dart';
-import '../../ui/keyline/keyline_icon.dart';
+import '../../ui/choice_field.dart';
 import '../../ui/tip.dart';
 
 /// What a move or copy did, so the caller can say so and offer Undo.
@@ -177,20 +177,14 @@ class _MoveCopyDialogState extends State<MoveCopyDialog> {
               const SizedBox(height: 8),
               Tip(
                 'Choose where the items go',
-                child: DropdownButtonFormField<String>(
-                  icon: const KeylineIcon(KeylineIcons.chevronDown),
-                  initialValue: _target,
-                  isExpanded: true,
+                child: ChoiceField<String>(
+                  value: _target,
                   decoration: const InputDecoration(
                     labelText: 'To',
                     isDense: true,
                   ),
-                  items: [
-                    for (final d in widget.destinations)
-                      DropdownMenuItem(
-                        value: d.id,
-                        child: Text(d.label, overflow: TextOverflow.ellipsis),
-                      ),
+                  choices: [
+                    for (final d in widget.destinations) Choice(d.id, d.label),
                   ],
                   onChanged: (v) => setState(() => _target = v),
                 ),

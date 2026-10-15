@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shop_it/data/database.dart';
+import 'package:shop_it/ui/choice_field.dart';
 
 import 'support/harness.dart';
 
@@ -15,6 +16,11 @@ Future<void> _gotoPantry(WidgetTester tester) async {
   await tester.tap(find.byTooltip('Go to Pantry'));
   await tester.pumpAndSettle();
 }
+
+final _dialogPicker = find.descendant(
+  of: find.byType(AlertDialog),
+  matching: find.byType(ChoiceField<String>),
+);
 
 void main() {
   group('database: pantry lists', () {
@@ -309,7 +315,7 @@ void main() {
       await _gotoPantry(tester);
       expect(find.text('Yogurt'), findsOneWidget);
       expect(find.text('Paint'), findsNothing);
-      await tester.tap(find.byType(DropdownButton<String>));
+      await tester.tap(find.byType(ChoiceField<String>));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Garage').last);
       await tester.pumpAndSettle();
@@ -420,17 +426,12 @@ void main() {
       await _gotoPantry(tester);
       await _openMenu(tester, 'Move/Copy items');
       expect(find.text('Move or copy items'), findsOneWidget);
-      await tester.tap(find.byType(DropdownButtonFormField<String>));
+      await tester.tap(_dialogPicker);
       await tester.pumpAndSettle();
       final offered = tester
-          .widget<DropdownButton<String>>(
-            find.descendant(
-              of: find.byType(DropdownButtonFormField<String>),
-              matching: find.byType(DropdownButton<String>),
-            ),
-          )
-          .items!
-          .map((i) => (i.child as Text).data)
+          .widget<ChoiceField<String>>(_dialogPicker)
+          .choices
+          .map((c) => c.label)
           .toList();
       expect(offered, ['Grocery list', 'Party', 'Garage']);
     });
