@@ -59,6 +59,7 @@ def main():
     for d, px in {"mdpi": 48, "hdpi": 72, "xhdpi": 96, "xxhdpi": 144, "xxxhdpi": 192}.items():
         m.resize((px, px), Image.LANCZOS).save(
             f"android/app/src/main/res/mipmap-{d}/ic_launcher.png")
+    m.resize((96, 96), Image.LANCZOS).save("assets/app_icon.png")
     m.resize((512, 512), Image.LANCZOS).save("tool/icon_preview.png")
 
 

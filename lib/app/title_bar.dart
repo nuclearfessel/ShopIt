@@ -59,10 +59,11 @@ class _AppTitleBarState extends State<AppTitleBar> with WindowListener {
                     padding: const EdgeInsets.only(left: 16),
                     child: Row(
                       children: [
-                        KeylineIcon(
-                          KeylineIcons.shoppingBasket,
-                          size: 20,
-                          color: lime,
+                        Image.asset(
+                          'assets/app_icon.png',
+                          width: 22,
+                          height: 22,
+                          filterQuality: FilterQuality.medium,
                         ),
                         const SizedBox(width: 10),
                         Text(

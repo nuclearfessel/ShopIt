@@ -72,6 +72,9 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
+  assets:
+    - assets/app_icon.png
+
   # Roboto (Apache 2.0, copied from the Flutter SDK) so the typeface is the same
   # on Windows and Android instead of Windows' Segoe UI.
   fonts:
