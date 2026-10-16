@@ -20,16 +20,16 @@ void main() {
   ];
 
   group('category display follows the list settings', () {
-    testWidgets('categories on: headers in the default order', (tester) async {
+    testWidgets('categories on: headers in alphabetical order', (tester) async {
       await pumpShopIt(tester, items: items);
       expect(_headers(tester).where((h) => h != 'IN YOUR CART'), [
-        'PRODUCE',
         'BAKERY',
         'DAIRY & EGGS',
+        'PRODUCE',
       ]);
     });
 
-    testWidgets('a manual order for the list wins', (tester) async {
+    testWidgets('legacy manual order rows are ignored', (tester) async {
       await pumpShopIt(
         tester,
         items: items,
@@ -38,17 +38,7 @@ void main() {
           _order('l1', 'Produce', 1),
         ],
       );
-      // Ordered ones first, in the user's order; the rest keep the default.
-      expect(_headers(tester), ['DAIRY & EGGS', 'PRODUCE', 'BAKERY']);
-    });
-
-    testWidgets('a manual order for another list is ignored', (tester) async {
-      await pumpShopIt(
-        tester,
-        items: items,
-        categoryOrder: [_order('other', 'Dairy & Eggs', 0)],
-      );
-      expect(_headers(tester), ['PRODUCE', 'BAKERY', 'DAIRY & EGGS']);
+      expect(_headers(tester), ['BAKERY', 'DAIRY & EGGS', 'PRODUCE']);
     });
 
     testWidgets('categories off: one plain alphabetical list', (tester) async {
@@ -72,7 +62,7 @@ void main() {
         items: [fakeItem('a', 'Milk', category: 'Dairy & Eggs')],
         lists: [fakeList('l1', 'Grocery list', showEmptyCategories: true)],
       );
-      expect(_headers(tester), ['PRODUCE', 'BAKERY', 'DAIRY & EGGS', 'OTHER']);
+      expect(_headers(tester), ['BAKERY', 'DAIRY & EGGS', 'OTHER', 'PRODUCE']);
     });
 
     testWidgets('without it, empty categories stay hidden', (tester) async {
@@ -92,12 +82,12 @@ void main() {
         lists: [fakeList('l1', 'Grocery list', showEmptyCategories: true)],
       );
       expect(find.text('Nothing to buy'), findsNothing);
-      expect(_headers(tester), ['PRODUCE', 'BAKERY', 'DAIRY & EGGS', 'OTHER']);
+      expect(_headers(tester), ['BAKERY', 'DAIRY & EGGS', 'OTHER', 'PRODUCE']);
     });
   });
 
   group('the list menu', () {
-    testWidgets('has Out-of-Milk-style entries', (tester) async {
+    testWidgets('has the expected menu entries', (tester) async {
       await pumpShopIt(tester);
       await tester.tap(find.byTooltip('List options'));
       await tester.pumpAndSettle();

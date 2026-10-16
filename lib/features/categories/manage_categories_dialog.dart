@@ -10,9 +10,9 @@ import '../../ui/keyline/keyline_icon.dart';
 import '../../ui/tip.dart';
 import 'category_color_dialog.dart';
 
-/// "Manage categories": every category the user has, in the order they appear
-/// on this list. Drag to reorder (this list only), tap the colour dot to
-/// recolour (every list), add new ones, or delete (removes it everywhere).
+/// "Manage categories": every category, listed alphabetically. Tap the colour
+/// dot to recolour (every list), add new ones, or delete (removes it
+/// everywhere). New categories slot into alphabetical order automatically.
 class ManageCategoriesDialog extends ConsumerStatefulWidget {
   const ManageCategoriesDialog({
     super.key,
@@ -51,10 +51,7 @@ class _ManageCategoriesDialogState
     final db = ref.read(databaseProvider);
     final theme = Theme.of(context);
     final all = ref.watch(categoriesProvider).value ?? const <Category>[];
-    final manual =
-        ref.watch(listCategoryOrderProvider(widget.listId)).value ??
-        const <ListCategoryOrder>[];
-    final names = orderedCategoryNames(all, manual);
+    final names = orderedCategoryNames(all);
     final byName = {for (final c in all) c.name: c};
 
     Future<void> recolor(Category c) async {
@@ -88,9 +85,8 @@ class _ManageCategoriesDialogState
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Drag a category by its handle to reorder it on '
-                '"${widget.listName}". Tap a color dot to change its color on '
-                'every list.',
+                'Categories stay in alphabetical order on every list. Tap a '
+                'color dot to change its color everywhere.',
                 style: theme.textTheme.bodySmall,
               ),
               const SizedBox(height: 8),
@@ -121,39 +117,14 @@ class _ManageCategoriesDialogState
                     460.0,
                   ),
                 ),
-                child: ReorderableListView(
+                child: ListView(
                   shrinkWrap: true,
-                  buildDefaultDragHandles: false,
-                  onReorderItem: (oldIndex, newIndex) {
-                    final next = [...names];
-                    next.insert(newIndex, next.removeAt(oldIndex));
-                    db.setListCategoryOrder(widget.listId, next);
-                  },
                   children: [
-                    for (var i = 0; i < names.length; i++)
-                      _row(
-                        context,
-                        i,
-                        byName[names[i]],
-                        names[i],
-                        recolor,
-                        remove,
-                      ),
+                    for (final name in names)
+                      _row(context, byName[name], name, recolor, remove),
                   ],
                 ),
               ),
-              if (manual.isNotEmpty)
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Tip(
-                    'Go back to the default category order for this list',
-                    child: TextButton(
-                      onPressed: () =>
-                          db.setListCategoryOrder(widget.listId, const []),
-                      child: const Text('Reset order'),
-                    ),
-                  ),
-                ),
             ],
           ),
         ),
@@ -172,7 +143,6 @@ class _ManageCategoriesDialogState
 
   Widget _row(
     BuildContext context,
-    int index,
     Category? category,
     String name,
     Future<void> Function(Category) recolor,
@@ -186,13 +156,6 @@ class _ManageCategoriesDialogState
       key: ValueKey(name),
       dense: true,
       contentPadding: EdgeInsets.zero,
-      leading: Tip(
-        'Drag to reorder',
-        child: ReorderableDragStartListener(
-          index: index,
-          child: const KeylineIcon(KeylineIcons.gripVertical),
-        ),
-      ),
       title: Row(
         children: [
           Tip(

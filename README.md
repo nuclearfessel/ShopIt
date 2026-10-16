@@ -8,12 +8,12 @@ Shop-it is a shopping and pantry list app for Windows and Android. The same list
 
 ## Download
 
-**Current version: 0.0.6**
+**Current version: 0.0.7**
 
 | Platform | Package |
 | --- | --- |
-| Windows | [Shop-it-Setup-0.0.6.exe](https://github.com/nuclearfessel/Shop-it/releases/download/v0.0.6/Shop-it-Setup-0.0.6.exe) |
-| Android | [Shop-it-0.0.6.apk](https://github.com/nuclearfessel/Shop-it/releases/download/v0.0.6/Shop-it-0.0.6.apk) |
+| Windows | [Shop-it-Setup-0.0.7.exe](https://github.com/nuclearfessel/Shop-it/releases/download/v0.0.7/Shop-it-Setup-0.0.7.exe) |
+| Android | [Shop-it-0.0.7.apk](https://github.com/nuclearfessel/Shop-it/releases/download/v0.0.7/Shop-it-0.0.7.apk) |
 
 On Windows, run the installer. On Android, allow installs from the APK, then open it. Older packages stay in [Releases](https://github.com/nuclearfessel/Shop-it/releases) until a newer build replaces them; only the three newest releases are kept.
 

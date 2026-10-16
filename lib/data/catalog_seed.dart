@@ -2,11 +2,11 @@
 ///
 /// Structure: category -> item -> variants (types, cuts, flavours). Items with
 /// variants are searchable as a group: searching "onion" lists "Onions" and all
-/// of its types. Categories are in typical store walking order, which is how
-/// the shopping list is grouped. Written for Shop-it, not copied from any other
-/// app. The seed is inserted on database creation and by the migrations to
-/// schema v2/v3, so changing it later needs a new migration to reach existing
-/// installs.
+/// of its types. Categories are shown alphabetically in the app (the map order
+/// here is only for editing the seed). Written for Shop-it, not copied from any
+/// other app. The seed is inserted on database creation and by the migrations
+/// to schema v2/v3, so changing it later needs a new migration to reach
+/// existing installs.
 const Map<String, Map<String, List<String>>> catalogSeed = {
   'Produce': {
     'Onions': [

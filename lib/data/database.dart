@@ -107,7 +107,7 @@ class PantryItems extends Table with SyncColumns {
   TextColumn get level => text().withDefault(const Constant('full'))();
 }
 
-/// Store-aisle categories; [sortOrder] is the walking order used to group lists.
+/// Categories; [sortOrder] mirrors alphabetical order used to group lists.
 class Categories extends Table {
   TextColumn get name => text()();
   IntColumn get sortOrder => integer()();
@@ -171,7 +171,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.memory() : super(NativeDatabase.memory());
 
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => 10;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -263,37 +263,58 @@ class AppDatabase extends _$AppDatabase {
           ),
         );
       }
+      if (from < 10) {
+        // v10: categories are always alphabetical on every list.
+        await delete(listCategoryOrders).go();
+        await _resortCategoriesAlphabetically();
+      }
     },
   );
 
-  Future<void> _seedCatalog() => batch((b) {
-    var order = 0;
-    for (final cat in catalogSeed.entries) {
-      b.insert(
-        categories,
-        CategoriesCompanion.insert(name: cat.key, sortOrder: order++),
-      );
-      for (final item in cat.value.entries) {
+  Future<void> _seedCatalog() async {
+    final names = catalogSeed.keys.toList()
+      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    await batch((b) {
+      var order = 0;
+      for (final name in names) {
+        final items = catalogSeed[name]!;
         b.insert(
-          catalogItems,
-          CatalogItemsCompanion.insert(name: item.key, category: cat.key),
+          categories,
+          CategoriesCompanion.insert(name: name, sortOrder: order++),
         );
-        b.insertAll(catalogItems, [
-          for (final variant in item.value)
-            CatalogItemsCompanion.insert(
-              name: variant,
-              category: cat.key,
-              parentName: Value(item.key),
-            ),
-        ]);
+        for (final item in items.entries) {
+          b.insert(
+            catalogItems,
+            CatalogItemsCompanion.insert(name: item.key, category: name),
+          );
+          b.insertAll(catalogItems, [
+            for (final variant in item.value)
+              CatalogItemsCompanion.insert(
+                name: variant,
+                category: name,
+                parentName: Value(item.key),
+              ),
+          ]);
+        }
       }
+    });
+  }
+
+  /// Rewrites [categories.sortOrder] so it matches A–Z by name.
+  Future<void> _resortCategoriesAlphabetically() async {
+    final all = await select(categories).get();
+    all.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+    for (var i = 0; i < all.length; i++) {
+      if (all[i].sortOrder == i) continue;
+      await (update(categories)..where((t) => t.name.equals(all[i].name)))
+          .write(CategoriesCompanion(sortOrder: Value(i)));
     }
-  });
+  }
 
   // ---- Catalog ----
   Stream<List<Category>> watchCategories() => (select(
     categories,
-  )..orderBy([(t) => OrderingTerm.asc(t.sortOrder)])).watch();
+  )..orderBy([(t) => OrderingTerm.asc(t.name)])).watch();
 
   /// Case-insensitive search over item names and their group names.
   ///
@@ -739,16 +760,16 @@ class AppDatabase extends _$AppDatabase {
   // ---- Categories ----
 
   /// Adds a category (ignored if one with that name exists, ignoring case).
+  /// New names are inserted into alphabetical order automatically.
   Future<void> addCategory(String name) async {
     final clean = name.trim();
     if (clean.isEmpty) return;
     final all = await select(categories).get();
     if (all.any((c) => c.name.toLowerCase() == clean.toLowerCase())) return;
-    final next = all.isEmpty
-        ? 0
-        : all.map((c) => c.sortOrder).reduce((a, b) => a > b ? a : b) + 1;
-    await into(categories)
-        .insert(CategoriesCompanion.insert(name: clean, sortOrder: next));
+    await into(categories).insert(
+      CategoriesCompanion.insert(name: clean, sortOrder: all.length),
+    );
+    await _resortCategoriesAlphabetically();
   }
 
   /// Deletes a category everywhere. Items in it become uncategorised and the

@@ -1,21 +1,14 @@
 import 'database.dart';
 
-/// Where each category sorts on one list: the user's own order for that list
-/// first (by position), then every other category in the default order.
-Map<String, int> categoryOrderMap(
-  List<Category> all,
-  List<ListCategoryOrder> manual,
-) => {
-  for (final c in all) c.name: 1000 + c.sortOrder,
-  for (final o in manual) o.category: o.position,
-};
+/// Alphabetical rank for each category name (case-insensitive).
+Map<String, int> categoryOrderMap(List<Category> all) {
+  final names = orderedCategoryNames(all);
+  return {for (var i = 0; i < names.length; i++) names[i]: i};
+}
 
-/// All category names, in the order they appear on one list.
-List<String> orderedCategoryNames(
-  List<Category> all,
-  List<ListCategoryOrder> manual,
-) {
-  final order = categoryOrderMap(all, manual);
-  return [for (final c in all) c.name]
-    ..sort((a, b) => (order[a] ?? 1 << 20).compareTo(order[b] ?? 1 << 20));
+/// All category names in alphabetical order (case-insensitive).
+List<String> orderedCategoryNames(List<Category> all) {
+  final names = [for (final c in all) c.name];
+  names.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+  return names;
 }

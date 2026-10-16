@@ -122,11 +122,8 @@ class _PantryBody extends ConsumerWidget {
         ref.watch(listsProvider).value ?? const <ShoppingList>[];
     final allCategories =
         ref.watch(categoriesProvider).value ?? const <Category>[];
-    final manual =
-        ref.watch(listCategoryOrderProvider(current.id)).value ??
-        const <ListCategoryOrder>[];
-    final order = categoryOrderMap(allCategories, manual);
-    final categories = orderedCategoryNames(allCategories, manual);
+    final order = categoryOrderMap(allCategories);
+    final categories = orderedCategoryNames(allCategories);
     final colors = {
       for (final c in allCategories)
         if (c.color != null) c.name: Color(c.color!),
@@ -262,7 +259,7 @@ class _PantryBody extends ConsumerWidget {
               ),
               tipMenuItem(
                 value: 'categories',
-                tip: 'Add, reorder, recolor or delete categories',
+                tip: 'Add, recolor or delete categories',
                 label: 'Manage categories',
               ),
               tipMenuItem(

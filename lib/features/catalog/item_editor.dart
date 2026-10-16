@@ -369,7 +369,8 @@ class _ItemEditorSheetState extends State<_ItemEditorSheet> {
     final categories = {
       ...(widget.categories ?? catalogSeed.keys),
       if (_category.isNotEmpty) _category,
-    };
+    }.toList()
+      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
     final price = _priceValue;
     final valueStyle = theme.textTheme.bodyLarge?.copyWith(fontSize: 14);
     final outline = OutlineInputBorder(borderRadius: BorderRadius.circular(12));

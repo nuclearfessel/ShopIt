@@ -80,12 +80,15 @@ void main() {
       await db.addCategory('Gluten free');
       await db.addCategory('gluten FREE');
       await db.addCategory('   ');
-      final names = (await db.watchCategories().first).map((c) => c.name);
+      final names = (await db.watchCategories().first).map((c) => c.name).toList();
       expect(names.where((n) => n.toLowerCase() == 'gluten free'), [
         'Gluten free',
       ]);
-      // added at the end of the default order
-      expect(names.last, 'Gluten free');
+      // slotted into alphabetical order (after Frozen, before Health…)
+      expect(names, contains('Gluten free'));
+      final i = names.indexOf('Gluten free');
+      expect(names[i - 1].toLowerCase().compareTo('gluten free'), lessThan(0));
+      expect(names[i + 1].toLowerCase().compareTo('gluten free'), greaterThan(0));
     });
 
     test('a category colour can be set and cleared', () async {
@@ -130,27 +133,21 @@ void main() {
       );
     });
 
-    test('a list keeps its own manual category order', () async {
-      final a = await firstList();
-      await db.addList('B');
-      final b = (await db.watchLists().first).last;
-      await db.setListCategoryOrder(a.id, [
-        'Bakery',
-        'Produce',
-        'Dairy & Eggs',
-      ]);
-      await db.setListCategoryOrder(b.id, ['Produce']);
-      expect(
-        (await db.watchListCategoryOrder(a.id).first).map((o) => o.category),
-        ['Bakery', 'Produce', 'Dairy & Eggs'],
-      );
-      expect(
-        (await db.watchListCategoryOrder(b.id).first).map((o) => o.category),
-        ['Produce'],
-      );
-      // replacing the order replaces it completely
-      await db.setListCategoryOrder(a.id, ['Dairy & Eggs']);
-      expect((await db.watchListCategoryOrder(a.id).first).length, 1);
+    test('new categories land in alphabetical sortOrder', () async {
+      await db.addCategory('Avocados Only');
+      final rows = await db.watchCategories().first;
+      final names = rows.map((c) => c.name).toList();
+      expect(names, contains('Avocados Only'));
+      // sortOrder tracks A–Z position
+      for (var i = 0; i < rows.length; i++) {
+        expect(rows[i].sortOrder, i);
+        if (i > 0) {
+          expect(
+            rows[i - 1].name.toLowerCase().compareTo(rows[i].name.toLowerCase()),
+            lessThanOrEqualTo(0),
+          );
+        }
+      }
     });
 
     test('assigning a category is remembered for next time', () async {

@@ -7,9 +7,6 @@ import 'package:shop_it/ui/category_color.dart';
 
 import 'support/harness.dart';
 
-ListCategoryOrder _o(String category, int position) =>
-    ListCategoryOrder(listId: 'l1', category: category, position: position);
-
 Category _c(String name, int order, {int? color}) =>
     Category(name: name, sortOrder: order, color: color);
 
@@ -22,23 +19,19 @@ Future<void> _openMenu(WidgetTester tester, String entry) async {
 
 void main() {
   group('category order helper', () {
-    final all = [_c('A', 0), _c('B', 1), _c('C', 2), _c('D', 3)];
+    final all = [_c('Dairy', 3), _c('Bakery', 0), _c('Produce', 1), _c('Other', 2)];
 
-    test('without a manual order it is the default order', () {
-      expect(orderedCategoryNames(all, const []), ['A', 'B', 'C', 'D']);
+    test('names are always alphabetical', () {
+      expect(orderedCategoryNames(all), ['Bakery', 'Dairy', 'Other', 'Produce']);
+      expect(categoryOrderMap(all)['Bakery'], 0);
+      expect(categoryOrderMap(all)['Produce'], 3);
     });
 
-    test('manual positions come first, the rest keep the default order', () {
-      expect(orderedCategoryNames(all, [_o('C', 0), _o('A', 1)]), [
-        'C',
-        'A',
-        'B',
-        'D',
+    test('sorting is case-insensitive', () {
+      expect(orderedCategoryNames([_c('banana', 0), _c('Apple', 1)]), [
+        'Apple',
+        'banana',
       ]);
-    });
-
-    test('a manual entry for a deleted category is ignored by names', () {
-      expect(orderedCategoryNames(all, [_o('Zzz', 0)]), ['A', 'B', 'C', 'D']);
     });
   });
 
@@ -193,45 +186,26 @@ void main() {
       for (final n in ['Produce', 'Bakery', 'Other']) {
         expect(find.text(n), findsWidgets, reason: n);
       }
-      expect(find.byTooltip('Drag to reorder'), findsNWidgets(3));
+      expect(find.byTooltip('Drag to reorder'), findsNothing);
       expect(find.byTooltip('Change the color of "Produce"'), findsOneWidget);
       // "Other" is the catch-all and cannot be deleted.
       expect(find.byTooltip('Delete category'), findsNWidgets(2));
       expect(find.byTooltip('Add category'), findsOneWidget);
-      expect(find.byType(ReorderableListView), findsOneWidget);
+      expect(find.byType(ReorderableListView), findsNothing);
     });
 
-    testWidgets('shows them in this list\'s manual order', (tester) async {
+    testWidgets('shows them alphabetically', (tester) async {
       await pumpShopIt(
         tester,
-        categoryOrder: [_o('Bakery', 0)],
         categories: [_c('Produce', 0), _c('Bakery', 1), _c('Other', 2)],
       );
       await _openMenu(tester, 'Manage categories');
       final tops = {
         for (final n in ['Produce', 'Bakery', 'Other'])
-          n: tester
-              .getTopLeft(
-                find
-                    .descendant(
-                      of: find.byType(ReorderableListView),
-                      matching: find.text(n),
-                    )
-                    .first,
-              )
-              .dy,
+          n: tester.getTopLeft(find.text(n).first).dy,
       };
-      expect(tops['Bakery']! < tops['Produce']!, isTrue);
-      expect(tops['Produce']! < tops['Other']!, isTrue);
-      // A manual order exists, so there is a way back to the default.
-      expect(find.text('Reset order'), findsOneWidget);
-    });
-
-    testWidgets('no "Reset order" while the order is the default', (
-      tester,
-    ) async {
-      await pumpShopIt(tester);
-      await _openMenu(tester, 'Manage categories');
+      expect(tops['Bakery']! < tops['Other']!, isTrue);
+      expect(tops['Other']! < tops['Produce']!, isTrue);
       expect(find.text('Reset order'), findsNothing);
     });
 
@@ -283,11 +257,15 @@ void main() {
     testWidgets('deleting asks first and explains what happens', (
       tester,
     ) async {
-      await pumpShopIt(tester);
+      await pumpShopIt(
+        tester,
+        categories: [_c('Produce', 0), _c('Bakery', 1), _c('Other', 2)],
+      );
       await _openMenu(tester, 'Manage categories');
       await tester.tap(find.byTooltip('Delete category').first);
       await tester.pumpAndSettle();
-      expect(find.text('Delete "Produce"?'), findsOneWidget);
+      // Alphabetical: Bakery is the first deletable row.
+      expect(find.text('Delete "Bakery"?'), findsOneWidget);
       expect(find.textContaining('removed from every list'), findsOneWidget);
     });
   });

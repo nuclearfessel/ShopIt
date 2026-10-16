@@ -216,11 +216,8 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
         final taxCtx = rate == null ? null : TaxContext.fromRate(rate);
         final allCategories =
             ref.watch(categoriesProvider).value ?? const <Category>[];
-        final manualOrder =
-            ref.watch(listCategoryOrderProvider(current.id)).value ??
-            const <ListCategoryOrder>[];
-        final categoryOrder = categoryOrderMap(allCategories, manualOrder);
-        final categoryNames = orderedCategoryNames(allCategories, manualOrder);
+        final categoryOrder = categoryOrderMap(allCategories);
+        final categoryNames = orderedCategoryNames(allCategories);
         final categoryColors = {
           for (final c in allCategories)
             if (c.color != null) c.name: Color(c.color!),
@@ -403,7 +400,7 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
                   ),
                   tipMenuItem(
                     value: 'categories',
-                    tip: 'Add, reorder, recolor or delete categories',
+                    tip: 'Add, recolor or delete categories',
                     label: 'Manage categories',
                   ),
                   tipMenuItem(

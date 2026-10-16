@@ -38,7 +38,7 @@ final pantryProvider = StreamProvider.family<List<PantryItem>, String>(
   (ref, listId) => ref.watch(databaseProvider).watchPantry(listId: listId),
 );
 
-/// The manual category order for one list (empty = use the default order).
+/// Legacy per-list category order rows (ignored; categories sort A–Z).
 final listCategoryOrderProvider =
     StreamProvider.family<List<ListCategoryOrder>, String>(
       (ref, listId) =>
