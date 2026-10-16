@@ -107,6 +107,7 @@ void main() {
         'Uncheck all',
         'List settings',
         'Manage lists',
+        'Rename this list',
         'Delete this list',
       ]) {
         // ("Uncheck all" also exists as a button in the cart section.)

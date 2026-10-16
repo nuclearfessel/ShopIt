@@ -16,3 +16,14 @@ class Tip extends StatelessWidget {
     child: child,
   );
 }
+
+/// Compact More-menu row (40 logical px) with a [Tip] on the label.
+PopupMenuItem<String> tipMenuItem({
+  required String value,
+  required String tip,
+  required String label,
+}) => PopupMenuItem<String>(
+  value: value,
+  height: 40,
+  child: Tip(tip, child: Text(label)),
+);

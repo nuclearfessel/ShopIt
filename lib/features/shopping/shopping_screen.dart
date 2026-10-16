@@ -258,6 +258,17 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
                 onSelected: (v) async {
                   if (v == 'new') {
                     await _newList();
+                  } else if (v == 'rename') {
+                    final name = await askNameDialog(
+                      context,
+                      title: 'Rename list',
+                      initial: current.name,
+                      confirmLabel: 'Rename',
+                      confirmTip: 'Save the new name',
+                    );
+                    if (name != null && name != current.name) {
+                      await db.renameList(current.id, name);
+                    }
                   } else if (v == 'delete') {
                     if (await _confirm(
                       context,
@@ -370,103 +381,80 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
                   }
                 },
                 itemBuilder: (_) => [
-                  PopupMenuItem(
+                  tipMenuItem(
                     value: 'new',
-                    child: Tip(
-                      'Start another shopping list',
-                      child: const Text('New list'),
-                    ),
+                    tip: 'Start another shopping list',
+                    label: 'New list',
                   ),
-                  PopupMenuItem(
+                  tipMenuItem(
                     value: 'moveCopy',
-                    child: Tip(
-                      'Move or copy items to another list or the pantry',
-                      child: const Text('Move/Copy items'),
-                    ),
+                    tip: 'Move or copy items to another list or the pantry',
+                    label: 'Move/Copy items',
                   ),
-                  PopupMenuItem(
+                  tipMenuItem(
                     value: 'checkAll',
-                    child: Tip(
-                      'Put every item on this list in your cart',
-                      child: const Text('Check all'),
-                    ),
+                    tip: 'Put every item on this list in your cart',
+                    label: 'Check all',
                   ),
-                  PopupMenuItem(
+                  tipMenuItem(
                     value: 'uncheckAll',
-                    child: Tip(
-                      'Put everything in your cart back on the list',
-                      child: const Text('Uncheck all'),
-                    ),
+                    tip: 'Put everything in your cart back on the list',
+                    label: 'Uncheck all',
                   ),
-                  PopupMenuItem(
+                  tipMenuItem(
                     value: 'categories',
-                    child: Tip(
-                      'Add, reorder, recolor or delete categories',
-                      child: const Text('Manage categories'),
-                    ),
+                    tip: 'Add, reorder, recolor or delete categories',
+                    label: 'Manage categories',
                   ),
-                  PopupMenuItem(
+                  tipMenuItem(
                     value: 'listSettings',
-                    child: Tip(
-                      'Categories and sorting for this list',
-                      child: const Text('List settings'),
-                    ),
+                    tip: 'Categories and sorting for this list',
+                    label: 'List settings',
                   ),
-                  PopupMenuItem(
+                  tipMenuItem(
                     value: 'manageLists',
-                    child: Tip(
-                      'Rename, reorder or delete your lists',
-                      child: const Text('Manage lists'),
-                    ),
+                    tip: 'Rename, reorder or delete your lists',
+                    label: 'Manage lists',
                   ),
-                  PopupMenuItem(
+                  tipMenuItem(
                     value: 'export',
-                    child: Tip(
-                      'Save this list as a CSV file',
-                      child: const Text('Export list'),
-                    ),
+                    tip: 'Save this list as a CSV file',
+                    label: 'Export list',
                   ),
-                  PopupMenuItem(
+                  tipMenuItem(
                     value: 'import',
-                    child: Tip(
-                      'Make a new list from a CSV file',
-                      child: const Text('Import list'),
-                    ),
+                    tip: 'Make a new list from a CSV file',
+                    label: 'Import list',
                   ),
-                  PopupMenuItem(
+                  tipMenuItem(
                     value: 'taxAuto',
-                    child: Tip(
-                      'Let each item follow the tax rules again',
-                      child: const Text('Use automatic tax rules'),
-                    ),
+                    tip: 'Let each item follow the tax rules again',
+                    label: 'Use automatic tax rules',
                   ),
-                  PopupMenuItem(
+                  tipMenuItem(
                     value: 'taxAll',
-                    child: Tip(
-                      'Tax every item on this list',
-                      child: const Text('Mark all items taxable'),
-                    ),
+                    tip: 'Tax every item on this list',
+                    label: 'Mark all items taxable',
                   ),
-                  PopupMenuItem(
+                  tipMenuItem(
                     value: 'taxNone',
-                    child: Tip(
-                      'Tax no item on this list',
-                      child: const Text('Mark all items not taxable'),
-                    ),
+                    tip: 'Tax no item on this list',
+                    label: 'Mark all items not taxable',
                   ),
-                  PopupMenuItem(
+                  tipMenuItem(
+                    value: 'rename',
+                    tip: 'Rename the list you have open',
+                    label: 'Rename this list',
+                  ),
+                  tipMenuItem(
                     value: 'delete',
-                    child: Tip(
-                      'Delete this list and its items',
-                      child: const Text('Delete this list'),
-                    ),
+                    tip: 'Delete this list and its items',
+                    label: 'Delete this list',
                   ),
-                  PopupMenuItem(
+                  tipMenuItem(
                     value: 'deleteAll',
-                    child: Tip(
-                      'Delete every list and start from scratch',
-                      child: const Text('Delete all lists'),
-                    ),
+                    tip: 'Delete every list and start from scratch',
+                    label: 'Delete all lists',
                   ),
                 ],
               ),

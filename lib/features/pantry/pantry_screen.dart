@@ -245,61 +245,45 @@ class _PantryBody extends ConsumerWidget {
               }
             },
             itemBuilder: (_) => [
-              PopupMenuItem(
+              tipMenuItem(
                 value: 'new',
-                child: Tip(
-                  'Start another pantry list',
-                  child: const Text('Create new list'),
-                ),
+                tip: 'Start another pantry list',
+                label: 'Create new list',
               ),
-              PopupMenuItem(
+              tipMenuItem(
                 value: 'moveCopy',
-                child: Tip(
-                  'Move or copy items to another list or a shopping list',
-                  child: const Text('Move/Copy items'),
-                ),
+                tip: 'Move or copy items to another list or a shopping list',
+                label: 'Move/Copy items',
               ),
-              PopupMenuItem(
+              tipMenuItem(
                 value: 'itemsSetting',
-                child: Tip(
-                  'Show amounts as Low/Full or as numbers',
-                  child: const Text('Items setting'),
-                ),
+                tip: 'Show amounts as Low/Full or as numbers',
+                label: 'Items setting',
               ),
-              PopupMenuItem(
+              tipMenuItem(
                 value: 'categories',
-                child: Tip(
-                  'Add, reorder, recolor or delete categories',
-                  child: const Text('Manage categories'),
-                ),
+                tip: 'Add, reorder, recolor or delete categories',
+                label: 'Manage categories',
               ),
-              PopupMenuItem(
+              tipMenuItem(
                 value: 'manageLists',
-                child: Tip(
-                  'Rename, reorder or delete your pantry lists',
-                  child: const Text('Manage lists'),
-                ),
+                tip: 'Rename, reorder or delete your pantry lists',
+                label: 'Manage lists',
               ),
-              PopupMenuItem(
+              tipMenuItem(
                 value: 'export',
-                child: Tip(
-                  'Save this list as a CSV file',
-                  child: const Text('Export list'),
-                ),
+                tip: 'Save this list as a CSV file',
+                label: 'Export list',
               ),
-              PopupMenuItem(
+              tipMenuItem(
                 value: 'import',
-                child: Tip(
-                  'Make a new pantry list from a CSV file',
-                  child: const Text('Import list'),
-                ),
+                tip: 'Make a new pantry list from a CSV file',
+                label: 'Import list',
               ),
-              PopupMenuItem(
+              tipMenuItem(
                 value: 'delete',
-                child: Tip(
-                  'Delete this pantry list and its items',
-                  child: const Text('Delete this list'),
-                ),
+                tip: 'Delete this pantry list and its items',
+                label: 'Delete this list',
               ),
             ],
           ),
