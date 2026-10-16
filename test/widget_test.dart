@@ -274,10 +274,16 @@ void main() {
     expect((await db.watchShoppingItems(b.id).first).single.checked, isFalse);
   });
 
-  test('catalog is seeded with ordered categories', () async {
+  test('catalog is seeded with alphabetically ordered categories', () async {
     final cats = await db.watchCategories().first;
-    expect(cats.first.name, 'Produce');
-    expect(cats.map((c) => c.name), contains('Dairy & Eggs'));
+    expect(cats.first.name, 'Alcohol');
+    expect(cats.map((c) => c.name), containsAll(['Dairy & Eggs', 'Produce']));
+    for (var i = 1; i < cats.length; i++) {
+      expect(
+        cats[i - 1].name.toLowerCase().compareTo(cats[i].name.toLowerCase()),
+        lessThanOrEqualTo(0),
+      );
+    }
     final milk = await db.searchCatalog('milk');
     expect(milk.map((i) => i.name), contains('Milk'));
     expect(milk.firstWhere((i) => i.name == 'Milk').category, 'Dairy & Eggs');
