@@ -19,6 +19,7 @@ void main() {
     await tester.pump();
     expect(find.text('Milk is already on this list.'), findsOneWidget);
     expect(find.widgetWithText(TextField, 'mil'), findsNothing);
+    expect(find.text('On this list'), findsNothing);
   });
 
   testWidgets('search offers pantry items without adding them', (tester) async {
@@ -46,5 +47,45 @@ void main() {
     await tester.pump();
     expect(find.text('Recent'), findsOneWidget);
     expect(find.text('Chips'), findsOneWidget);
+  });
+
+  testWidgets('suggestions cover the list instead of pushing it down', (
+    tester,
+  ) async {
+    await pumpShopIt(
+      tester,
+      items: [fakeItem('a', 'Milk')],
+      history: [fakeHistory('h1', 'Chips', category: 'Snacks')],
+    );
+    final before = tester.getTopLeft(find.text('Milk'));
+    await tester.tap(find.byType(TextField).first);
+    await tester.pump();
+    expect(find.text('Recent'), findsOneWidget);
+    expect(tester.getTopLeft(find.text('Milk')), before);
+  });
+
+  testWidgets('choosing a recent name closes the menu', (tester) async {
+    await pumpShopIt(
+      tester,
+      items: [fakeItem('a', 'Milk')],
+      history: [fakeHistory('h1', 'Chips', category: 'Snacks')],
+    );
+    await tester.tap(find.byType(TextField).first);
+    await tester.pump();
+    await tester.tap(find.text('Chips'));
+    await tester.pump();
+    expect(find.text('Recent'), findsNothing);
+  });
+
+  testWidgets('choosing a catalog match closes the menu', (tester) async {
+    await pumpShopIt(tester, items: [fakeItem('a', 'Milk')]);
+    await tester.enterText(find.byType(TextField).first, 'oni');
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('Red onions'), findsOneWidget);
+    await tester.tap(find.text('Onions').first);
+    await tester.pump();
+    expect(find.text('Red onions'), findsNothing);
+    expect(find.text('Onions'), findsNothing);
   });
 }

@@ -107,4 +107,23 @@ void main() {
       'Bananas',
     ]);
   });
+
+  test('websocket mailbox clients stay on websocket', () {
+    final websocket = buildCloudMqttClient(
+      endpoint: cloudEndpoints.first,
+      clientId: 'test-ws',
+    );
+    expect(websocket.useWebSocket, isTrue);
+    expect(websocket.secure, isFalse);
+    expect(websocket.port, 8884);
+    expect(websocket.server, startsWith('wss://'));
+
+    final tls = buildCloudMqttClient(
+      endpoint: cloudEndpoints[1],
+      clientId: 'test-tls',
+    );
+    expect(tls.useWebSocket, isFalse);
+    expect(tls.secure, isTrue);
+    expect(tls.port, 8883);
+  });
 }

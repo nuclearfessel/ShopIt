@@ -43,9 +43,11 @@ class _DeviceLinkDialogState extends ConsumerState<DeviceLinkDialog> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'On the same Wi-Fi, turn sharing on here and on the other '
-                'device. Away from that network, pair once with a cloud code '
-                'and the lists still sync while each app is open.',
+                'Turn sharing on here and on the other device. On the same '
+                'Wi-Fi they find each other. When Wi-Fi is off, lists still '
+                'sync over the internet while each app is open. The first '
+                'time they meet, they share a code so that can happen. You '
+                'can also create or enter that code below.',
                 style: muted,
               ),
               const SizedBox(height: 12),
