@@ -130,13 +130,15 @@ List<BeaconSend> beaconSendsFor(
     if (!announcesOnInterface(interface.name)) continue;
     final directed = subnetBroadcast(interface.address);
     if (directed == null) continue;
-    if (!seen.add('${interface.address}>$directed')) continue;
-    sends.add(
-      BeaconSend(
-        from: InternetAddress(interface.address),
-        to: InternetAddress(directed),
-      ),
-    );
+    final from = InternetAddress(interface.address);
+    if (seen.add('${interface.address}>$directed')) {
+      sends.add(BeaconSend(from: from, to: InternetAddress(directed)));
+    }
+    // Some phones only hear this general broadcast, and some only hear the
+    // subnet one. Send both, each from the adapter's own address.
+    if (seen.add('${interface.address}>255.255.255.255')) {
+      sends.add(BeaconSend(from: from, to: InternetAddress('255.255.255.255')));
+    }
   }
   if (sends.isEmpty) {
     sends.add(

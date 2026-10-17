@@ -224,9 +224,11 @@ void main() {
       (name: 'vEthernet (Default Switch)', address: '172.22.224.1'),
       (name: 'Wi-Fi', address: '192.168.1.20'),
     ]);
-    expect(sends, hasLength(1));
-    expect(sends.single.from.address, '192.168.1.20');
-    expect(sends.single.to.address, '192.168.1.255');
+    expect(sends, hasLength(2));
+    expect(sends.first.from.address, '192.168.1.20');
+    expect(sends.first.to.address, '192.168.1.255');
+    expect(sends.last.from.address, '192.168.1.20');
+    expect(sends.last.to.address, '255.255.255.255');
     final fallback = beaconSendsFor(const [
       (name: 'vEthernet (WSL)', address: '172.22.224.1'),
     ]);
