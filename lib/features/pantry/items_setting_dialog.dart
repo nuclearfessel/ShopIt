@@ -6,9 +6,8 @@ import '../../data/providers.dart';
 import '../../ui/keyline/keyline_icon.dart';
 import '../../ui/tip.dart';
 
-/// "Items setting" for a pantry list: show every item's amount as Low/Full or
-/// as an exact number, and apply the choice to all of them at once. (Single
-/// items can still be changed on their own in the item editor.)
+/// How a pantry list shows amounts: low or stocked, or an exact number,
+/// applied to every item at once. A single item can still differ.
 class PantryItemsSettingDialog extends ConsumerStatefulWidget {
   const PantryItemsSettingDialog({super.key, required this.list});
 
@@ -33,7 +32,7 @@ class _PantryItemsSettingDialogState
         _mode == value ? KeylineIcons.circleCheck : KeylineIcons.circle,
       ),
       title: Tip(
-        'Show every item as ${value == 'level' ? 'Low or Full' : 'a number'}',
+        'Show every item as ${value == 'level' ? 'low or stocked' : 'an exact amount'}',
         child: Text(title),
       ),
       subtitle: Text(subtitle),
@@ -41,7 +40,7 @@ class _PantryItemsSettingDialogState
     );
 
     return AlertDialog(
-      title: Text('Items setting for "${widget.list.name}"'),
+      title: Text('Amounts for "${widget.list.name}"'),
       content: SizedBox(
         width: 400,
         child: SingleChildScrollView(
@@ -56,12 +55,12 @@ class _PantryItemsSettingDialogState
               const SizedBox(height: 8),
               option(
                 'level',
-                'Low / Full',
+                'Low or stocked',
                 'Tap to switch an item between Low and Full.',
               ),
               option(
                 'number',
-                'Numerical quantities',
+                'Exact amounts',
                 'Show an exact amount, like 3 cans, and count it up or down.',
               ),
             ],
@@ -85,7 +84,7 @@ class _PantryItemsSettingDialogState
                   .setPantryQuantityMode(widget.list.id, _mode);
               if (context.mounted) Navigator.pop(context);
             },
-            child: const Text('Set all'),
+            child: const Text('Apply to all'),
           ),
         ),
       ],

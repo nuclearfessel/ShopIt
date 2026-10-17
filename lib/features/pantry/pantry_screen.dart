@@ -242,8 +242,8 @@ class _PantryBody extends ConsumerWidget {
               ),
               tipMenuItem(
                 value: 'itemsSetting',
-                tip: 'Show amounts as Low/Full or as numbers',
-                label: 'Items setting',
+                tip: 'Show every item as low or stocked, or as an exact amount',
+                label: 'Amounts',
               ),
               tipMenuItem(
                 value: 'categories',

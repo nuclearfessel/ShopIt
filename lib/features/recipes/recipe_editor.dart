@@ -285,7 +285,7 @@ class _RecipeEditorDialogState extends ConsumerState<RecipeEditorDialog> {
               if (ingredients.isEmpty)
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 8),
-                  child: Text('Add the names you would search for in Shop-it.'),
+                  child: Text('Add the names you would search for in ShopIt.'),
                 ),
               for (final line in ingredients)
                 ListTile(

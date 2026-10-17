@@ -57,7 +57,7 @@ class SyncSnapshot {
   factory SyncSnapshot.fromJson(Map<dynamic, dynamic> json) {
     if (json['v'] != syncSnapshotVersion) {
       throw const SyncException(
-        'The other device is running a different version of Shop-it.',
+        'The other device is running a different version of ShopIt.',
       );
     }
     return SyncSnapshot(

@@ -272,7 +272,7 @@ void main() {
     expect(find.text('Create cloud code'), findsOneWidget);
     expect(
       find.byTooltip(
-        'Share lists with Shop-it on the other device on this Wi-Fi',
+        'Share lists with ShopIt on the other device on this Wi-Fi',
       ),
       findsOneWidget,
     );
@@ -285,7 +285,7 @@ void main() {
       200,
     );
     expect(find.text('ABOUT'), findsOneWidget);
-    expect(find.text('Shop-it'), findsOneWidget);
+    expect(find.text('ShopIt'), findsOneWidget);
     expect(find.text('A shopping and pantry list app.'), findsOneWidget);
     expect(find.widgetWithText(AlertDialog, 'About'), findsNothing);
   });

@@ -133,7 +133,7 @@ class CloudMailboxDoc {
   factory CloudMailboxDoc.fromJson(Map<dynamic, dynamic> json) {
     if (json['v'] != cloudMailboxVersion) {
       throw const SyncException(
-        'The cloud mailbox is from a different version of Shop-it.',
+        'The cloud mailbox is from a different version of ShopIt.',
       );
     }
     final raw = json['devices'];

@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "com.nuclearfessel" "\0"
-            VALUE "FileDescription", "shop_it" "\0"
+            VALUE "FileDescription", "ShopIt" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "shop_it" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2026 com.nuclearfessel. All rights reserved." "\0"
             VALUE "OriginalFilename", "shop_it.exe" "\0"
-            VALUE "ProductName", "shop_it" "\0"
+            VALUE "ProductName", "ShopIt" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

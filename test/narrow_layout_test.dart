@@ -190,7 +190,7 @@ void main() {
 
       // Sales tax dialog (and the tax lines in the totals bar).
       expect(find.textContaining('Tax 8.25%'), findsOneWidget);
-      // Out-of-Milk-style cart section and totals bar.
+      // Cart section and totals bar.
       await _reveal(tester, find.textContaining('IN YOUR CART'));
       expect(find.textContaining('IN YOUR CART'), findsOneWidget);
       expect(find.textContaining('Cart total:'), findsOneWidget);
@@ -281,10 +281,10 @@ void main() {
     });
   }
 
-  test('android never uses the settings dialog', () {
-    expect(settingsUsesDialog(android: true, width: 1200), isFalse);
-    expect(settingsUsesDialog(android: false, width: 700), isTrue);
-    expect(settingsUsesDialog(android: false, width: 699), isFalse);
+  test('a phone never uses the settings dialog', () {
+    expect(settingsUsesDialog(phone: true, width: 1200), isFalse);
+    expect(settingsUsesDialog(phone: false, width: 700), isTrue);
+    expect(settingsUsesDialog(phone: false, width: 699), isFalse);
   });
 
   testWidgets('windows settings switches as the window crosses 700', (

@@ -6,24 +6,31 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:window_manager/window_manager.dart';
 
 import 'app/app.dart';
+import 'app/form_factor.dart';
 import 'app/theme_mode.dart';
 import 'data/database.dart';
 import 'data/providers.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  if (Platform.isAndroid) {
-    await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+  // Phones stay portrait, including the barcode camera. Tablets rotate.
+  if ((Platform.isAndroid || Platform.isIOS) && hostIsPhone()) {
+    await SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+    ]);
   }
-  if (Platform.isWindows) {
+  if (Platform.isWindows || Platform.isMacOS) {
     await windowManager.ensureInitialized();
     await windowManager.waitUntilReadyToShow(
-      const WindowOptions(
-        title: 'Shop-it',
-        size: Size(1000, 720),
+      WindowOptions(
+        title: 'ShopIt',
+        size: const Size(1000, 720),
         // Narrower than this the layouts can't fit.
-        minimumSize: Size(360, 520),
-        titleBarStyle: TitleBarStyle.hidden,
+        minimumSize: const Size(360, 520),
+        // Windows draws its own title bar. Mac keeps the system one.
+        titleBarStyle: Platform.isWindows
+            ? TitleBarStyle.hidden
+            : TitleBarStyle.normal,
       ),
       () async {
         await windowManager.show();

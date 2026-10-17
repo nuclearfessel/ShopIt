@@ -278,7 +278,7 @@ void main() {
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await _settle(tester);
 
-    await openFromMenu('Items setting');
+    await openFromMenu('Amounts');
     _expectAllTipped(tester, 'items setting dialog');
     await tester.tap(find.text('Cancel'));
     await _settle(tester);

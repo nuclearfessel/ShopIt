@@ -113,7 +113,7 @@ void main() {
       expect((await db.watchPantry().first).single.level, 'full');
     });
 
-    test('"Set all" changes every item and what new items use', () async {
+    test('"Apply to all" changes every item and what new items use', () async {
       final list = (await db.watchPantryLists().first).first;
       await db.addPantryItem('Rice');
       await db.addPantryItem('Beans');
@@ -130,7 +130,7 @@ void main() {
       expect(items.every((i) => i.quantityMode == 'level'), isTrue);
     });
 
-    test('"Set all" only touches that list', () async {
+    test('"Apply to all" only touches that list', () async {
       final a = (await db.watchPantryLists().first).first;
       final b = await db.addList('Garage', kind: 'pantry');
       await db.addPantryItem('Rice', listId: a.id);
@@ -388,7 +388,7 @@ void main() {
       expect(selected.toSet(), {'full', 'low'});
     });
 
-    testWidgets('has Out-of-Milk-style menu entries', (tester) async {
+    testWidgets('has the pantry list menu entries', (tester) async {
       await pumpShopIt(tester, pantry: items);
       await _gotoPantry(tester);
       await tester.tap(find.byTooltip('List options'));
@@ -396,7 +396,7 @@ void main() {
       for (final e in [
         'Create new list',
         'Move/Copy items',
-        'Items setting',
+        'Amounts',
         'Manage categories',
         'Manage lists',
         'Delete this list',
@@ -409,7 +409,7 @@ void main() {
       }
     });
 
-    testWidgets('Items setting opens with the list\'s current choice', (
+    testWidgets('Amounts opens with the list\'s current choice', (
       tester,
     ) async {
       await pumpShopIt(
@@ -420,11 +420,11 @@ void main() {
         ],
       );
       await _gotoPantry(tester);
-      await _openMenu(tester, 'Items setting');
-      expect(find.text('Items setting for "Pantry"'), findsOneWidget);
-      expect(find.text('Low / Full'), findsOneWidget);
-      expect(find.text('Numerical quantities'), findsOneWidget);
-      expect(find.text('Set all'), findsOneWidget);
+      await _openMenu(tester, 'Amounts');
+      expect(find.text('Amounts for "Pantry"'), findsOneWidget);
+      expect(find.text('Low or stocked'), findsOneWidget);
+      expect(find.text('Exact amounts'), findsOneWidget);
+      expect(find.text('Apply to all'), findsOneWidget);
     });
 
     testWidgets('Manage lists manages the pantry lists', (tester) async {
@@ -499,7 +499,7 @@ void main() {
       await tester.tap(find.text('Yogurt'));
       await tester.pumpAndSettle();
       expect(find.text('Amount'), findsOneWidget);
-      expect(find.text('Low / Full'), findsOneWidget);
+      expect(find.text('Low or stocked'), findsOneWidget);
       expect(find.text('Number'), findsOneWidget);
       // Low / Full mode: the Low and Full buttons, not the quantity stepper
       // (the pantry row behind the editor has its own Low/Full toggle)

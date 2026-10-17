@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../data/providers.dart';
+import 'form_factor.dart';
 import '../features/pantry/pantry_screen.dart';
 import '../features/recipes/recipes_screen.dart';
 import '../features/settings/device_link_controller.dart';
@@ -160,7 +161,7 @@ class _ShopItAppState extends ConsumerState<ShopItApp> {
     // Keeps a saved link to the other device alive while the app is open.
     ref.watch(deviceLinkProvider);
     return MaterialApp.router(
-      title: 'Shop-it',
+      title: 'ShopIt',
       debugShowCheckedModeBanner: false,
       theme: _buildTheme(Brightness.light),
       darkTheme: _buildTheme(Brightness.dark),
@@ -174,7 +175,7 @@ class _ShopItAppState extends ConsumerState<ShopItApp> {
   }
 }
 
-/// Side rail on wide windows (Windows), bottom bar on narrow ones (Android).
+/// Side rail when the window is not a phone. A phone uses the bottom bar.
 class AppShell extends ConsumerWidget {
   const AppShell({super.key, required this.shell});
   final StatefulNavigationShell shell;
@@ -214,7 +215,7 @@ class AppShell extends ConsumerWidget {
     final lime = Theme.of(context).brightness == Brightness.dark
         ? keyLimeOnDark
         : keyLimeOnLight;
-    final wide = MediaQuery.sizeOf(context).width >= 700;
+    final wide = !isPhoneSize(MediaQuery.sizeOf(context));
     if (wide) {
       return Scaffold(
         body: Row(
