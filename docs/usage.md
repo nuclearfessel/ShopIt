@@ -1,18 +1,36 @@
 # Using Shop-it
 
-Shop-it runs the same way on Windows and Android. Use **Shopping** for what you need to buy and **Pantry** for what you already have. On a wide window those sections are in the left rail; on a phone they are in the bottom bar.
+Shop-it runs the same way on Windows and Android. Use <img src="icons/shopping.png" width="22" height="22" alt=""> **Shopping** for what you need to buy and <img src="icons/pantry.png" width="22" height="22" alt=""> **Pantry** for what you already have. On a wide window those sections are in the left rail; on a phone they are in the bottom bar.
 
-Open **Settings** from the gear icon for appearance, sales tax, sharing, and About.
+Open **Settings** from <img src="icons/settings.png" width="22" height="22" alt="Settings"> for appearance, sales tax, sharing, and About. The list menu is <img src="icons/more.png" width="22" height="22" alt="List options">.
+
+## Icons
+
+| | Control | | Control |
+| --- | --- | --- | --- |
+| <img src="icons/shopping.png" width="28" height="28" alt=""> | Shopping | <img src="icons/pantry.png" width="28" height="28" alt=""> | Pantry |
+| <img src="icons/settings.png" width="28" height="28" alt=""> | Settings | <img src="icons/more.png" width="28" height="28" alt=""> | List options |
+| <img src="icons/search.png" width="28" height="28" alt=""> | Search or add | <img src="icons/plus.png" width="28" height="28" alt=""> | Add the typed name |
+| <img src="icons/pen.png" width="28" height="28" alt=""> | Edit before adding | <img src="icons/history.png" width="28" height="28" alt=""> | History |
+| <img src="icons/new-list.png" width="28" height="28" alt=""> | New list | <img src="icons/uncheck.png" width="28" height="28" alt=""> | Uncheck all |
+| <img src="icons/delete.png" width="28" height="28" alt=""> | Delete checked items | <img src="icons/bin.png" width="28" height="28" alt=""> | Delete one item |
+| <img src="icons/tax.png" width="28" height="28" alt=""> | Sales tax | <img src="icons/locate.png" width="28" height="28" alt=""> | Use my location |
+| <img src="icons/sun.png" width="28" height="28" alt=""> | Light | <img src="icons/moon.png" width="28" height="28" alt=""> | Dark |
+| <img src="icons/monitor.png" width="28" height="28" alt=""> | System theme | | |
 
 ## Shopping
 
-1. Open **Shopping**.
-2. Create a list from the empty screen, or choose **New list** from the list menu.
+<img src="screenshots/search.png" alt="Search showing Milk already on the list, Oat milk from recent history, and catalog matches" width="720" />
+
+1. Open <img src="icons/shopping.png" width="22" height="22" alt=""> **Shopping**.
+2. Create a list from the empty screen, or choose **New list** from <img src="icons/more.png" width="22" height="22" alt="List options">.
 3. If you have more than one list, use the name at the top to switch between them.
-4. Type in **Search or add an item**, then press Enter or tap **+**. Use the pen to set quantity, unit, category, price, tax, and a note before you add.
+4. Type in **Search or add an item**, then press Enter or tap <img src="icons/plus.png" width="22" height="22" alt="Add">. Use <img src="icons/pen.png" width="22" height="22" alt="Edit"> to set quantity, unit, category, price, tax, and a note before you add.
 5. Tap an item to edit it. Check an item to move it into the cart.
 
-From the cart you can uncheck everything or delete the checked items.
+From the cart you can uncheck everything (<img src="icons/uncheck.png" width="22" height="22" alt="Uncheck all">) or delete the checked items (<img src="icons/delete.png" width="22" height="22" alt="Delete all">).
+
+<img src="screenshots/menu.png" alt="List menu open, with Rename this list directly above Delete this list" width="720" />
 
 The list menu covers a new list, move/copy, check and uncheck, categories, list settings, manage lists, CSV import and export, rename, and delete. **Rename this list** sits directly above **Delete this list**. Delete still asks you to confirm.
 
@@ -22,10 +40,10 @@ The field at the top looks through more than the catalog.
 
 - **On this list** — the name is already on the open shopping list. Choosing it does not add a second copy. Shop-it shows that it is already there and moves the list to that item.
 - **In pantry** — you already have it in the pantry. Choosing it does not add it to the shopping list.
-- **Recent** — a name from History that is not already on this list or in the pantry. Choosing it adds the item again.
-- Catalog matches come after those. Press Enter or tap **+** to add something that is not already on the list or in the pantry.
+- **Recent** — a name from History that is not already on this list or in the pantry. Choosing it adds the item again. <img src="icons/history.png" width="22" height="22" alt="History"> still opens the full history.
+- Catalog matches come after those. Press Enter or tap <img src="icons/plus.png" width="22" height="22" alt="Add"> to add something that is not already on the list or in the pantry.
 
-With the field focused and empty, Shop-it shows up to six recent names so repeat groceries are one tap away. The History button is still there if you want the full list.
+With the field focused and empty, Shop-it shows up to six recent names so repeat groceries are one tap away.
 
 ### List settings and categories
 
@@ -41,7 +59,9 @@ Tap a category header to change its color. Manage the full category list from th
 
 ## Pantry
 
-Open **Pantry** for stock you already have. Add items the same way as on a shopping list. An item can use a count or a level (full or low), and it can include a place and an expiry date.
+<img src="screenshots/pantry.png" alt="Pantry with a Use soon strip for expired Milk and Yogurt expiring in two days" width="720" />
+
+Open <img src="icons/pantry.png" width="22" height="22" alt=""> **Pantry** for stock you already have. Add items the same way as on a shopping list, including the <img src="icons/plus.png" width="22" height="22" alt="Add"> button. An item can use a count or a level (full or low), and it can include a place and an expiry date.
 
 **Use soon** appears at the top when something expires within the next seven days, or is already past its date. Each name says **today**, **tomorrow**, **in N days**, or **expired**.
 
@@ -49,12 +69,12 @@ Open **Pantry** for stock you already have. Add items the same way as on a shopp
 
 ## Sales tax
 
-In **Settings**, under sales tax:
+In **Settings** (<img src="icons/settings.png" width="22" height="22" alt="">), under sales tax (<img src="icons/tax.png" width="22" height="22" alt="">):
 
 - Choose **No tax**, or add a saved rate.
-- **Use my location** looks up a rate for where you are. In the US that lookup can use a Ziptax key saved in the same section. Nothing is sent until you tap the button.
+- **Use my location** (<img src="icons/locate.png" width="22" height="22" alt="">) looks up a rate for where you are. In the US that lookup can use a Ziptax key saved in the same section. Nothing is sent until you tap the button.
 
-Open Settings from a shopping list to pick which rate that list uses. Each rate has its own tax rules (what is taxed). New items start taxable. You can turn tax off for one item in the item editor. To change every item on the list, open **List settings** from the list menu.
+Open Settings from a shopping list to pick which rate that list uses. Each rate has its own tax rules (what is taxed). New items start taxable. You can turn tax off for one item in the item editor. To change every item on the list, open **List settings** from <img src="icons/more.png" width="22" height="22" alt="List options">.
 
 ## Sync between phone and computer
 
@@ -92,7 +112,7 @@ If both devices already have a shopping or pantry list with the same name, sync 
 
 ## Appearance and About
 
-In **Settings**, choose **System**, **Light**, or **Dark**.
+In **Settings**, choose <img src="icons/monitor.png" width="22" height="22" alt=""> **System**, <img src="icons/sun.png" width="22" height="22" alt=""> **Light**, or <img src="icons/moon.png" width="22" height="22" alt=""> **Dark**.
 
 **About** is the last section in Settings on both platforms. It shows the app name and version inline—it does not open another dialog.
 

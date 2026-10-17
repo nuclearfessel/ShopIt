@@ -24,7 +24,21 @@ On Windows, run the installer. On Android, allow installs from the APK, then ope
 - **Sales tax** — saved rates, optional location lookup, and per-item control. Marking every item taxable, not taxable, or back on automatic rules is in List settings.
 - **Sync** — share lists on the same Wi-Fi, or over the internet with a household code. Cloud copies are encrypted with that code. Share lists shows the last Wi-Fi sync and the last cloud sync separately.
 
-On a wide window, Shopping and Pantry sit in the left rail. On a phone, they sit in the bottom bar. Open **Settings** from the gear for appearance, tax, sharing, and About.
+On a wide window, Shopping and Pantry sit in the left rail. On a phone, they sit in the bottom bar.
+
+<img src="docs/icons/shopping.png" width="22" height="22" alt=""> Shopping
+&nbsp;&nbsp;
+<img src="docs/icons/pantry.png" width="22" height="22" alt=""> Pantry
+&nbsp;&nbsp;
+<img src="docs/icons/settings.png" width="22" height="22" alt=""> Settings
+&nbsp;&nbsp;
+<img src="docs/icons/more.png" width="22" height="22" alt=""> List options
+&nbsp;&nbsp;
+<img src="docs/icons/search.png" width="22" height="22" alt=""> Search
+&nbsp;&nbsp;
+<img src="docs/icons/history.png" width="22" height="22" alt=""> History
+
+Open **Settings** for appearance, tax, sharing, and About. The illustrated walkthrough in [Using Shop-it](docs/usage.md) shows these controls next to each step.
 
 ## Sync
 
