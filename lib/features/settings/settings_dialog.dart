@@ -109,10 +109,19 @@ class SettingsDialog extends ConsumerWidget {
                   color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                 ),
               ),
-              if (link.error != null) ...[
+              if (link.wifiError != null) ...[
                 const SizedBox(height: 4),
                 Text(
-                  link.error!,
+                  link.wifiError!,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.error,
+                  ),
+                ),
+              ],
+              if (link.cloudError != null) ...[
+                const SizedBox(height: 4),
+                Text(
+                  link.cloudError!,
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.error,
                   ),

@@ -50,9 +50,37 @@ class _DeviceLinkDialogState extends ConsumerState<DeviceLinkDialog> {
               ),
               const SizedBox(height: 12),
               Text(link.summary, style: theme.textTheme.bodyMedium),
-              if (link.lastSync != null) ...[
+              if (link.sharing) ...[
                 const SizedBox(height: 4),
-                Text(_when(link), style: theme.textTheme.bodySmall),
+                Text(
+                  _when('Wi-Fi', link.lastWifiSync),
+                  style: theme.textTheme.bodySmall,
+                ),
+              ],
+              if (link.wifiError != null) ...[
+                const SizedBox(height: 4),
+                Text(
+                  link.wifiError!,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.error,
+                  ),
+                ),
+              ],
+              if (link.cloudLinked) ...[
+                const SizedBox(height: 4),
+                Text(
+                  _when('Cloud', link.lastCloudSync),
+                  style: theme.textTheme.bodySmall,
+                ),
+              ],
+              if (link.cloudError != null) ...[
+                const SizedBox(height: 4),
+                Text(
+                  link.cloudError!,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.error,
+                  ),
+                ),
               ],
               if (link.sharing && Platform.isWindows) ...[
                 const SizedBox(height: 12),
@@ -61,15 +89,6 @@ class _DeviceLinkDialogState extends ConsumerState<DeviceLinkDialog> {
                   'networks, choose allow. The phone cannot connect on Wi-Fi '
                   'until you do.',
                   style: theme.textTheme.bodySmall,
-                ),
-              ],
-              if (link.error != null) ...[
-                const SizedBox(height: 12),
-                Text(
-                  link.error!,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.error,
-                  ),
                 ),
               ],
               const SizedBox(height: 16),
@@ -190,14 +209,13 @@ class _DeviceLinkDialogState extends ConsumerState<DeviceLinkDialog> {
     );
   }
 
-  String _when(DeviceLinkState link) {
-    final time = link.lastSync;
-    if (time == null) return 'Not synced yet.';
+  String _when(String channel, DateTime? time) {
+    if (time == null) return '$channel: not synced yet.';
     final seconds = DateTime.now().difference(time).inSeconds;
-    if (seconds < 10) return 'Synced just now.';
-    if (seconds < 60) return 'Synced ${seconds}s ago.';
+    if (seconds < 10) return '$channel: synced just now.';
+    if (seconds < 60) return '$channel: synced ${seconds}s ago.';
     final minutes = seconds ~/ 60;
-    if (minutes < 60) return 'Synced ${minutes}m ago.';
-    return 'Synced ${minutes ~/ 60}h ago.';
+    if (minutes < 60) return '$channel: synced ${minutes}m ago.';
+    return '$channel: synced ${minutes ~/ 60}h ago.';
   }
 }

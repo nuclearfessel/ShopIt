@@ -107,6 +107,10 @@ void main() {
           reason: entry,
         );
       }
+      expect(
+        find.widgetWithText(PopupMenuItem<String>, 'Mark all items taxable'),
+        findsNothing,
+      );
     });
 
     testWidgets('List settings opens with the list\'s current values', (
@@ -134,6 +138,9 @@ void main() {
       expect(on('Enable categories'), isTrue);
       expect(on('Auto-categorize items'), isFalse);
       expect(on('Show empty categories'), isTrue);
+      expect(find.text('Use automatic tax rules'), findsOneWidget);
+      expect(find.text('Mark all items taxable'), findsOneWidget);
+      expect(find.text('Mark all items not taxable'), findsOneWidget);
     });
 
     testWidgets('with categories off the other two switches are disabled', (

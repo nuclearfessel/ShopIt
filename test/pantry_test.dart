@@ -323,6 +323,37 @@ void main() {
       expect(find.text('Yogurt'), findsNothing);
     });
 
+    testWidgets('use soon lists items expiring within a week', (tester) async {
+      final today = DateTime.now();
+      final start = DateTime(today.year, today.month, today.day);
+      await pumpShopIt(
+        tester,
+        pantry: [
+          fakePantryItem(
+            'a',
+            'Yogurt',
+            expiryDate: start.add(const Duration(days: 2)),
+          ),
+          fakePantryItem(
+            'b',
+            'Rice',
+            expiryDate: start.add(const Duration(days: 40)),
+          ),
+          fakePantryItem(
+            'c',
+            'Milk',
+            expiryDate: start.subtract(const Duration(days: 1)),
+          ),
+        ],
+      );
+      await _gotoPantry(tester);
+      expect(find.text('USE SOON'), findsOneWidget);
+      expect(find.textContaining('Yogurt (in 2 days)'), findsOneWidget);
+      expect(find.textContaining('Milk (expired)'), findsOneWidget);
+      expect(find.textContaining('Rice ('), findsNothing);
+      expect(find.text('Rice'), findsOneWidget);
+    });
+
     testWidgets('groups the items under category headers', (tester) async {
       await pumpShopIt(tester, pantry: items);
       await _gotoPantry(tester);
