@@ -14,9 +14,9 @@ Each picture is a button on the screen.
 | <img src="icons/pantry.png" width="28" height="28" alt=""> | **Pantry** switches to what you already have. |
 | <img src="icons/settings.png" width="28" height="28" alt=""> | **Settings** opens appearance, sales tax, sharing, and About. |
 | <img src="icons/more.png" width="28" height="28" alt=""> | **List options** opens the menu for the list you are looking at. |
-| <img src="icons/plus.png" width="28" height="28" alt=""> | **Add** puts the name in the search field onto the list. |
+| <img src="icons/plus.png" width="28" height="28" alt=""> | **Add** puts the name in the search field onto the list. A name Shop-it does not already know is saved, so search can find it later. |
 | <img src="icons/pen.png" width="28" height="28" alt=""> | **Edit details** sets quantity, unit, category, price, tax, and a note before the item is added. |
-| <img src="icons/history.png" width="28" height="28" alt=""> | **History** opens names you have added before. |
+| <img src="icons/history.png" width="28" height="28" alt=""> | **History** opens names you have added to a shopping list before. The trash can removes one of those recents. The saved name stays in search. |
 | <img src="icons/new-list.png" width="28" height="28" alt=""> | **New list** starts another shopping or pantry list. |
 | <img src="icons/uncheck.png" width="28" height="28" alt=""> | **Uncheck all** moves everything out of the cart and back onto the list. |
 | <img src="icons/delete.png" width="28" height="28" alt=""> | **Delete checked items** removes what is in the cart. |
@@ -48,10 +48,12 @@ The field at the top looks through more than the catalog.
 
 - **On this list** — the name is already on the open shopping list. Choosing it does not add a second copy. Shop-it shows that it is already there and moves the list to that item.
 - **In pantry** — you already have it in the pantry. Choosing it does not add it to the shopping list.
-- **Recent** — a name from History that is not already on this list or in the pantry. Choosing it adds the item again. <img src="icons/history.png" width="22" height="22" alt="History"> still opens the full history.
+- **Recent** — a name from History that is not already on this list or in the pantry. Choosing it adds the item again. <img src="icons/history.png" width="22" height="22" alt="History"> still opens the full history. The trash can beside a name there removes that recent only. The name stays searchable, and the item stays on any list that already has it.
 - Catalog matches come after those. Press Enter or tap <img src="icons/plus.png" width="22" height="22" alt="Add"> to add something that is not already on the list or in the pantry.
 
 With the field focused and empty, Shop-it shows up to six recent names so repeat groceries are one tap away.
+
+A name that is not already in Shop-it is saved when you add it to a shopping list or to the pantry. The next search offers it with the built-in items. Adding that same name again does not store a second copy. A new name is filed under **Other**. To pick the category first, tap <img src="icons/pen.png" width="22" height="22" alt="Edit">, choose the category, then add. That category is what the name uses from then on. A pantry name is saved for search, and it does not appear under Recent. Recent is names you have added to a shopping list.
 
 ### List settings and categories
 
