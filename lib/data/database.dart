@@ -171,7 +171,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.memory() : super(NativeDatabase.memory());
 
   @override
-  int get schemaVersion => 10;
+  int get schemaVersion => 11;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -268,36 +268,57 @@ class AppDatabase extends _$AppDatabase {
         await delete(listCategoryOrders).go();
         await _resortCategoriesAlphabetically();
       }
+      if (from < 11) {
+        // v11: larger built-in catalog. Add names that are not already there.
+        await mergeBuiltinCatalog();
+      }
     },
   );
 
-  Future<void> _seedCatalog() async {
-    final names = catalogSeed.keys.toList()
-      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+  Future<void> _seedCatalog() => mergeBuiltinCatalog();
+
+  /// Inserts built-in categories and catalog names that this database does not
+  /// already have. Custom rows and older built-in names are left in place.
+  Future<void> mergeBuiltinCatalog() async {
+    final existingNames = {
+      for (final row in await select(catalogItems).get())
+        row.name.toLowerCase(),
+    };
+    final existingCategories = {
+      for (final row in await select(categories).get()) row.name,
+    };
     await batch((b) {
-      var order = 0;
-      for (final name in names) {
-        final items = catalogSeed[name]!;
-        b.insert(
-          categories,
-          CategoriesCompanion.insert(name: name, sortOrder: order++),
-        );
-        for (final item in items.entries) {
+      for (final name in catalogSeed.keys) {
+        if (!existingCategories.contains(name)) {
           b.insert(
-            catalogItems,
-            CatalogItemsCompanion.insert(name: item.key, category: name),
+            categories,
+            CategoriesCompanion.insert(name: name, sortOrder: 0),
           );
-          b.insertAll(catalogItems, [
-            for (final variant in item.value)
-              CatalogItemsCompanion.insert(
-                name: variant,
-                category: name,
-                parentName: Value(item.key),
-              ),
-          ]);
+        }
+        final items = catalogSeed[name]!;
+        for (final item in items.entries) {
+          if (existingNames.add(item.key.toLowerCase())) {
+            b.insert(
+              catalogItems,
+              CatalogItemsCompanion.insert(name: item.key, category: name),
+            );
+          }
+          for (final variant in item.value) {
+            if (existingNames.add(variant.toLowerCase())) {
+              b.insert(
+                catalogItems,
+                CatalogItemsCompanion.insert(
+                  name: variant,
+                  category: name,
+                  parentName: Value(item.key),
+                ),
+              );
+            }
+          }
         }
       }
     });
+    await _resortCategoriesAlphabetically();
   }
 
   /// Rewrites [categories.sortOrder] so it matches A–Z by name.
@@ -315,6 +336,10 @@ class AppDatabase extends _$AppDatabase {
   Stream<List<Category>> watchCategories() => (select(
     categories,
   )..orderBy([(t) => OrderingTerm.asc(t.name)])).watch();
+
+  /// How many variants to show when the query matched their parent, not their
+  /// own name. A variant whose name matches is always included.
+  static const _unmatchedVariantCap = 8;
 
   /// Case-insensitive search over item names and their group names.
   ///
@@ -340,7 +365,7 @@ class AppDatabase extends _$AppDatabase {
                 (t) => OrderingTerm.desc(t.name.lower().like('% $q%')),
                 (t) => OrderingTerm.asc(t.name),
               ])
-              ..limit(300))
+              ..limit(1000))
             .get();
 
     final out = <CatalogItem>[];
@@ -349,14 +374,24 @@ class AppDatabase extends _$AppDatabase {
       if (out.length < limit && seen.add(i.name.toLowerCase())) out.add(i);
     }
 
+    final parents = rows.where((i) => i.parentName.isEmpty).toList();
+    final parentNames = {for (final parent in parents) parent.name};
     final variants = rows.where((i) => i.parentName.isNotEmpty).toList();
-    for (final parent in rows.where((i) => i.parentName.isEmpty)) {
+    for (final parent in parents) {
       add(parent);
+      var unmatched = 0;
       for (final v in variants.where((v) => v.parentName == parent.name)) {
+        final ownName = v.name.toLowerCase().contains(q);
+        if (!ownName) {
+          // A query that only hit the parent should not list every brand.
+          if (unmatched >= _unmatchedVariantCap) continue;
+          unmatched++;
+        }
         add(v);
       }
     }
     for (final v in variants) {
+      if (parentNames.contains(v.parentName)) continue;
       add(v);
     }
     return out;
