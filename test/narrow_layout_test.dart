@@ -56,6 +56,7 @@ CatalogItem _cat(String name, {String parent = ''}) => CatalogItem(
   defaultUnit: '',
   isCustom: false,
   parentName: parent,
+  barcode: '',
 );
 
 /// Scrolls the (last) list until [finder] is built; rows far below the fold

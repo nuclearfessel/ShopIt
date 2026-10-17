@@ -15,6 +15,7 @@ import '../../ui/tip.dart';
 import '../../ui/undo_snack_bar.dart';
 import '../catalog/catalog_suggestions.dart';
 import '../catalog/item_editor.dart';
+import '../catalog/scan_item.dart';
 import '../categories/category_color_dialog.dart';
 import '../categories/manage_categories_dialog.dart';
 import '../lists/manage_lists_dialog.dart';
@@ -142,6 +143,9 @@ class _PantryBody extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Pantry'),
         actions: [
+          ScanItemButton(
+            onScan: () => _scanPantry(context, db, categories, current.id),
+          ),
           settingsButton,
           PopupMenuButton<String>(
             tooltip: 'List options',
@@ -613,6 +617,42 @@ class _PantryTile extends StatelessWidget {
   }
 }
 
+Future<void> _scanPantry(
+  BuildContext context,
+  AppDatabase db,
+  List<String> categories,
+  String listId,
+) async {
+  final resolved = await scanAndResolve(context, db);
+  if (resolved == null || !context.mounted) return;
+  if (resolved.needsName) {
+    final edit = await nameUnknownBarcode(
+      context,
+      barcode: resolved.barcode,
+      categories: categories,
+    );
+    if (edit == null || !context.mounted) return;
+    await db.linkBarcode(
+      resolved.barcode,
+      edit.name,
+      category: edit.category,
+      unit: edit.unit,
+    );
+    await db.addOrBumpPantry(
+      edit.name,
+      category: edit.category,
+      unit: edit.unit,
+      listId: listId,
+    );
+    return;
+  }
+  await db.addOrBumpPantry(
+    resolved.name,
+    category: resolved.category,
+    listId: listId,
+  );
+}
+
 Future<void> _showAddDialog(
   BuildContext context,
   AppDatabase db,
@@ -639,9 +679,15 @@ Future<void> _showAddDialog(
                 controller: name,
                 autofocus: true,
                 onChanged: (_) => setState(() {}),
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'Search or add an item',
-                  prefixIcon: KeylineIcon(KeylineIcons.search),
+                  prefixIcon: const KeylineIcon(KeylineIcons.search),
+                  suffixIcon: ScanItemButton(
+                    onScan: () async {
+                      Navigator.pop(ctx);
+                      await _scanPantry(context, db, categories, listId);
+                    },
+                  ),
                 ),
               ),
               CatalogSuggestions(

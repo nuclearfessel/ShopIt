@@ -1,6 +1,6 @@
 # Shop-it
 
-Shop-it is a shopping and pantry list app for Windows and Android. The same lists, categories, prices, and tax settings work on both.
+Shop-it is a shopping, pantry, and recipe app for Windows and Android. The same lists, categories, prices, recipes, and tax settings work on both.
 
 ![Shop-it on Windows](docs/screenshots/windows.png)
 
@@ -8,23 +8,24 @@ Shop-it is a shopping and pantry list app for Windows and Android. The same list
 
 ## Download
 
-**Current version: 0.1.1**
+**Current version: 0.1.2**
 
 | Platform | Package |
 | --- | --- |
-| Windows | [Shop-it-Setup-0.1.1.exe](https://github.com/nuclearfessel/Shop-it/releases/download/v0.1.1/Shop-it-Setup-0.1.1.exe) |
-| Android | [Shop-it-0.1.1.apk](https://github.com/nuclearfessel/Shop-it/releases/download/v0.1.1/Shop-it-0.1.1.apk) |
+| Windows | [Shop-it-Setup-0.1.2.exe](https://github.com/nuclearfessel/Shop-it/releases/download/v0.1.2/Shop-it-Setup-0.1.2.exe) |
+| Android | [Shop-it-0.1.2.apk](https://github.com/nuclearfessel/Shop-it/releases/download/v0.1.2/Shop-it-0.1.2.apk) |
 
 On Windows, run the installer. On Android, allow installs from the APK, then open it. Older packages stay in [Releases](https://github.com/nuclearfessel/Shop-it/releases) until a newer build replaces them; only the three newest releases are kept.
 
 ## Features
 
-- **Shopping** — lists with categories, quantities, prices, coupons, and a cart. Categories stay in alphabetical order. Search finds items already on the open list, items in the pantry, and names you have added before. A name Shop-it does not already know is saved when you add it, so it shows up next time.
-- **Pantry** — what you already have, with counts or full/low levels. Items that expire within seven days, or that are already past that date, show in a Use soon strip.
+- **Shopping** — lists with categories, quantities, prices, coupons, and a cart. Categories stay in alphabetical order. Search finds items already on the open list, items in the pantry, and names you have added before. A name Shop-it does not already know is saved when you add it, so it shows up next time. On Android, scan a barcode next to Add.
+- **Pantry** — what you already have, with counts or full/low levels. Items that expire within seven days, or that are already past that date, show in a Use soon strip. On Android, scan a barcode to add or increase that item.
+- **Recipes** — save a meal, scale the servings, and add the missing ingredients to a shopping list. Shop-it skips what the pantry already covers. Cook subtracts those amounts from the pantry.
 - **Sales tax** — saved rates, optional location lookup, and per-item control. Marking every item taxable, not taxable, or back on automatic rules is in List settings.
 - **Sync** — share lists on the same Wi-Fi, or over the internet with a household code. Cloud copies are encrypted with that code. Share lists shows the last Wi-Fi sync and the last cloud sync separately.
 
-On a wide window, Shopping and Pantry sit in the left rail. On a phone, they sit in the bottom bar. Open **Settings** for appearance, tax, sharing, and About. The walkthrough in [Using Shop-it](docs/usage.md) shows each button next to the step that uses it.
+On a wide window, Shopping, Pantry, and Recipes sit in the left rail. On a phone, they sit in the bottom bar. Open **Settings** for appearance, tax, sharing, and About. The walkthrough in [Using Shop-it](docs/usage.md) shows each button next to the step that uses it. Scanning a barcode is on the phone only. A name scanned there still appears on the computer through sync.
 
 ## Sync
 

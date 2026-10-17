@@ -9,6 +9,9 @@ import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 
 import 'catalog_seed.dart';
+import 'recipe_plan.dart';
+
+export 'recipe_plan.dart';
 
 part 'database.g.dart';
 
@@ -150,6 +153,26 @@ class CatalogItems extends Table with SyncColumns {
   /// For a variant (a type, cut or flavour) the group it belongs to, e.g.
   /// "Onions" for "Red onions". Empty for top-level items.
   TextColumn get parentName => text().withDefault(const Constant(''))();
+
+  /// Package barcode from an Android scan. Empty until a scan is linked.
+  TextColumn get barcode => text().withDefault(const Constant(''))();
+}
+
+/// A saved recipe: name, how many it serves, and optional notes.
+class Recipes extends Table with SyncColumns {
+  TextColumn get name => text()();
+  RealColumn get servings => real().withDefault(const Constant(4))();
+  TextColumn get note => text().withDefault(const Constant(''))();
+}
+
+/// One ingredient on a recipe, using the same names as the catalog.
+class RecipeIngredients extends Table with SyncColumns {
+  TextColumn get recipeId => text()();
+  TextColumn get name => text()();
+  RealColumn get quantity => real().withDefault(const Constant(1))();
+  TextColumn get unit => text().withDefault(const Constant(''))();
+  TextColumn get category => text().withDefault(const Constant(''))();
+  IntColumn get sortOrder => integer().withDefault(const Constant(0))();
 }
 
 @DriftDatabase(
@@ -162,6 +185,8 @@ class CatalogItems extends Table with SyncColumns {
     TaxRates,
     ListCategoryOrders,
     ItemHistory,
+    Recipes,
+    RecipeIngredients,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -171,7 +196,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.memory() : super(NativeDatabase.memory());
 
   @override
-  int get schemaVersion => 12;
+  int get schemaVersion => 13;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -275,6 +300,29 @@ class AppDatabase extends _$AppDatabase {
       if (from < 12) {
         // v12: more brand products, including Tillamook and Organic Valley dairy.
         await mergeBuiltinCatalog();
+      }
+      if (from < 13) {
+        final columns = await customSelect(
+          'PRAGMA table_info(catalog_items)',
+        ).get();
+        final names = {
+          for (final row in columns) row.read<String>('name'),
+        };
+        if (!names.contains('barcode')) {
+          await m.addColumn(catalogItems, catalogItems.barcode);
+        }
+        final tables = await customSelect(
+          "SELECT name FROM sqlite_master WHERE type = 'table'",
+        ).get();
+        final tableNames = {
+          for (final row in tables) row.read<String>('name'),
+        };
+        if (!tableNames.contains('recipes')) {
+          await m.createTable(recipes);
+        }
+        if (!tableNames.contains('recipe_ingredients')) {
+          await m.createTable(recipeIngredients);
+        }
       }
     },
   );
@@ -1364,6 +1412,325 @@ class AppDatabase extends _$AppDatabase {
     return (update(pantryItems)..where((t) => t.id.equals(id))).write(
       PantryItemsCompanion(deletedAt: Value(now), updatedAt: Value(now)),
     );
+  }
+
+  // ---- Recipes ----
+
+  Stream<List<Recipe>> watchRecipes() =>
+      (select(recipes)
+            ..where((t) => t.deletedAt.isNull())
+            ..orderBy([(t) => OrderingTerm.asc(t.name)]))
+          .watch();
+
+  Stream<List<RecipeIngredient>> watchRecipeIngredients(String recipeId) =>
+      (select(recipeIngredients)
+            ..where(
+              (t) => t.recipeId.equals(recipeId) & t.deletedAt.isNull(),
+            )
+            ..orderBy([(t) => OrderingTerm.asc(t.sortOrder)]))
+          .watch();
+
+  Future<List<RecipeIngredient>> recipeIngredientsFor(String recipeId) =>
+      (select(recipeIngredients)
+            ..where(
+              (t) => t.recipeId.equals(recipeId) & t.deletedAt.isNull(),
+            )
+            ..orderBy([(t) => OrderingTerm.asc(t.sortOrder)]))
+          .get();
+
+  Future<String> addRecipe(String name, {double servings = 4}) async {
+    final row = await into(recipes).insertReturning(
+      RecipesCompanion.insert(name: name, servings: Value(servings)),
+    );
+    return row.id;
+  }
+
+  Future<void> updateRecipe(
+    String id, {
+    required String name,
+    required double servings,
+    String note = '',
+  }) => (update(recipes)..where((t) => t.id.equals(id))).write(
+    RecipesCompanion(
+      name: Value(name),
+      servings: Value(servings <= 0 ? 1 : servings),
+      note: Value(note),
+      updatedAt: Value(DateTime.now()),
+    ),
+  );
+
+  Future<void> deleteRecipe(String id) async {
+    final now = DateTime.now();
+    await transaction(() async {
+      await (update(recipes)..where((t) => t.id.equals(id))).write(
+        RecipesCompanion(deletedAt: Value(now), updatedAt: Value(now)),
+      );
+      await (update(
+        recipeIngredients,
+      )..where((t) => t.recipeId.equals(id))).write(
+        RecipeIngredientsCompanion(deletedAt: Value(now), updatedAt: Value(now)),
+      );
+    });
+  }
+
+  Future<String> addRecipeIngredient(
+    String recipeId,
+    String name, {
+    double quantity = 1,
+    String unit = '',
+    String category = '',
+  }) async {
+    final existing =
+        await (select(recipeIngredients)
+              ..where((t) => t.recipeId.equals(recipeId))
+              ..orderBy([(t) => OrderingTerm.desc(t.sortOrder)])
+              ..limit(1))
+            .getSingleOrNull();
+    final row = await into(recipeIngredients).insertReturning(
+      RecipeIngredientsCompanion.insert(
+        recipeId: recipeId,
+        name: name,
+        quantity: Value(quantity <= 0 ? 1 : quantity),
+        unit: Value(unit),
+        category: Value(category),
+        sortOrder: Value((existing?.sortOrder ?? -1) + 1),
+      ),
+    );
+    await _rememberItem(name, category, unit);
+    return row.id;
+  }
+
+  Future<void> updateRecipeIngredient(
+    String id, {
+    required String name,
+    required double quantity,
+    required String unit,
+    required String category,
+  }) => (update(recipeIngredients)..where((t) => t.id.equals(id))).write(
+    RecipeIngredientsCompanion(
+      name: Value(name),
+      quantity: Value(quantity <= 0 ? 1 : quantity),
+      unit: Value(unit),
+      category: Value(category),
+      updatedAt: Value(DateTime.now()),
+    ),
+  );
+
+  Future<void> deleteRecipeIngredient(String id) {
+    final now = DateTime.now();
+    return (update(recipeIngredients)..where((t) => t.id.equals(id))).write(
+      RecipeIngredientsCompanion(deletedAt: Value(now), updatedAt: Value(now)),
+    );
+  }
+
+  /// What to put on a shopping list for [recipeId] at [cookServings], after
+  /// subtracting what the pantry already covers.
+  Future<RecipeShopPlan> planRecipeShop(
+    String recipeId, {
+    required double cookServings,
+  }) async {
+    final recipe = await (select(
+      recipes,
+    )..where((t) => t.id.equals(recipeId))).getSingle();
+    final ingredients = await recipeIngredientsFor(recipeId);
+    final stock = await (select(
+      pantryItems,
+    )..where((t) => t.deletedAt.isNull())).get();
+    return planRecipeAgainstPantry(
+      ingredients: ingredients,
+      baseServings: recipe.servings,
+      cookServings: cookServings,
+      pantry: stock,
+    );
+  }
+
+  /// Adds the planned lines to [listId]. An item already on that list has its
+  /// quantity increased. [recipeName] is stored on a new line's note.
+  Future<void> applyRecipeShopPlan(
+    String listId,
+    RecipeShopPlan plan, {
+    String recipeName = '',
+  }) async {
+    final note = recipeName.isEmpty ? '' : 'For $recipeName';
+    for (final line in plan.add) {
+      final existing =
+          await (select(shoppingItems)
+                ..where(
+                  (t) =>
+                      t.listId.equals(listId) &
+                      t.deletedAt.isNull() &
+                      t.name.lower().equals(line.name.toLowerCase()),
+                )
+                ..limit(1))
+              .getSingleOrNull();
+      if (existing == null) {
+        await addShoppingItem(
+          listId,
+          line.name,
+          quantity: line.quantity,
+          unit: line.unit,
+          category: line.category,
+        );
+        if (note.isNotEmpty) {
+          final rows =
+              await (select(shoppingItems)
+                    ..where(
+                      (t) =>
+                          t.listId.equals(listId) &
+                          t.name.lower().equals(line.name.toLowerCase()),
+                    )
+                    ..orderBy([(t) => OrderingTerm.desc(t.updatedAt)])
+                    ..limit(1))
+                  .get();
+          if (rows.isNotEmpty && rows.first.note.isEmpty) {
+            await (update(
+              shoppingItems,
+            )..where((t) => t.id.equals(rows.first.id))).write(
+              ShoppingItemsCompanion(
+                note: Value(note),
+                updatedAt: Value(DateTime.now()),
+              ),
+            );
+          }
+        }
+      } else {
+        await (update(shoppingItems)..where((t) => t.id.equals(existing.id)))
+            .write(
+          ShoppingItemsCompanion(
+            quantity: Value(existing.quantity + line.quantity),
+            updatedAt: Value(DateTime.now()),
+          ),
+        );
+      }
+    }
+  }
+
+  /// Subtracts a cooked recipe from pantry stock.
+  Future<void> cookRecipe(String recipeId, {required double cookServings}) async {
+    final recipe = await (select(
+      recipes,
+    )..where((t) => t.id.equals(recipeId))).getSingle();
+    final ingredients = await recipeIngredientsFor(recipeId);
+    final scale = cookServings <= 0 || recipe.servings <= 0
+        ? 1.0
+        : cookServings / recipe.servings;
+    final now = DateTime.now();
+    await transaction(() async {
+      for (final line in ingredients) {
+        final used = line.quantity * scale;
+        final rows =
+            await (select(pantryItems)..where(
+                  (t) =>
+                      t.deletedAt.isNull() &
+                      t.name.lower().equals(line.name.toLowerCase()),
+                ))
+                .get();
+        for (final row in rows) {
+          if (row.quantityMode == 'level') {
+            await (update(pantryItems)..where((t) => t.id.equals(row.id)))
+                .write(
+              PantryItemsCompanion(
+                level: const Value('low'),
+                updatedAt: Value(now),
+              ),
+            );
+          } else if (unitsMatch(row.unit, line.unit)) {
+            await (update(pantryItems)..where((t) => t.id.equals(row.id)))
+                .write(
+              PantryItemsCompanion(
+                quantity: Value(
+                  row.quantity - used < 0 ? 0 : row.quantity - used,
+                ),
+                updatedAt: Value(now),
+              ),
+            );
+          }
+        }
+      }
+    });
+  }
+
+  // ---- Barcodes ----
+
+  Future<CatalogItem?> catalogByBarcode(String barcode) async {
+    final code = barcode.trim();
+    if (code.isEmpty) return null;
+    return (select(catalogItems)
+          ..where(
+            (t) => t.deletedAt.isNull() & t.barcode.equals(code),
+          )
+          ..limit(1))
+        .getSingleOrNull();
+  }
+
+  /// Stores [barcode] on the catalog row for [name], or creates a custom row.
+  Future<void> linkBarcode(
+    String barcode,
+    String name, {
+    String category = 'Other',
+    String unit = '',
+  }) async {
+    final code = barcode.trim();
+    final trimmed = name.trim();
+    if (code.isEmpty || trimmed.isEmpty) return;
+    final now = DateTime.now();
+    final match =
+        await (select(catalogItems)
+              ..where(
+                (t) =>
+                    t.deletedAt.isNull() &
+                    t.name.lower().equals(trimmed.toLowerCase()),
+              )
+              ..limit(1))
+            .getSingleOrNull();
+    if (match != null) {
+      await (update(catalogItems)..where((t) => t.id.equals(match.id))).write(
+        CatalogItemsCompanion(barcode: Value(code), updatedAt: Value(now)),
+      );
+      return;
+    }
+    await into(catalogItems).insert(
+      CatalogItemsCompanion.insert(
+        name: trimmed,
+        category: category.isEmpty ? 'Other' : category,
+        defaultUnit: Value(unit),
+        isCustom: const Value(true),
+        barcode: Value(code),
+      ),
+    );
+  }
+
+  /// Adds [name] to the pantry, or increases the count when that name is
+  /// already there.
+  Future<void> addOrBumpPantry(
+    String name, {
+    String category = '',
+    String unit = '',
+    String? listId,
+  }) async {
+    final existing =
+        await (select(pantryItems)
+              ..where(
+                (t) =>
+                    t.deletedAt.isNull() &
+                    t.name.lower().equals(name.toLowerCase()),
+              )
+              ..limit(1))
+            .getSingleOrNull();
+    if (existing == null) {
+      await addPantryItem(
+        name,
+        category: category,
+        unit: unit,
+        listId: listId,
+      );
+      return;
+    }
+    if (existing.quantityMode == 'level') {
+      await setPantryLevel(existing.id, 'full');
+      return;
+    }
+    await updatePantryQuantity(existing.id, existing.quantity + 1);
   }
 }
 

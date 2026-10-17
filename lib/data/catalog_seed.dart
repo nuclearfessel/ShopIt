@@ -5,4 +5,4 @@
 /// a schema migration so existing installs pick up the new names.
 library;
 
-export 'catalog_seed.g.dart';
+export 'catalog_seed_data.dart';

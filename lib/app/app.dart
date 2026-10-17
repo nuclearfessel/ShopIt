@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../features/pantry/pantry_screen.dart';
+import '../features/recipes/recipes_screen.dart';
 import '../features/settings/device_link_controller.dart';
 import 'theme_mode.dart';
 import 'title_bar.dart';
@@ -29,6 +30,11 @@ GoRouter _createRouter() => GoRouter(
         StatefulShellBranch(
           routes: [
             GoRoute(path: '/pantry', builder: (_, _) => const PantryScreen()),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(path: '/recipes', builder: (_, _) => const RecipesScreen()),
           ],
         ),
       ],
@@ -171,6 +177,7 @@ class AppShell extends StatelessWidget {
   static const _destinations = [
     (KeylineIcons.shoppingCart, KeylineIcons.shoppingCart, 'Shopping'),
     (KeylineIcons.archive, KeylineIcons.archive, 'Pantry'),
+    (KeylineIcons.bookOpen, KeylineIcons.bookOpen, 'Recipes'),
   ];
 
   /// Switches screen. A message (like "Deleted 2 items - UNDO") belongs to the

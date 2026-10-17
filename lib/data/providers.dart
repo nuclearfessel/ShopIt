@@ -49,3 +49,13 @@ final listCategoryOrderProvider =
 final historyProvider = StreamProvider<List<HistoryEntry>>(
   (ref) => ref.watch(databaseProvider).watchHistory(),
 );
+
+final recipesProvider = StreamProvider<List<Recipe>>(
+  (ref) => ref.watch(databaseProvider).watchRecipes(),
+);
+
+final recipeIngredientsProvider =
+    StreamProvider.family<List<RecipeIngredient>, String>(
+      (ref, recipeId) =>
+          ref.watch(databaseProvider).watchRecipeIngredients(recipeId),
+    );
