@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
+import '../app/form_factor.dart';
 import '../data/database.dart';
 import '../data/device_sync.dart';
 import 'cloud_mailbox.dart';
@@ -15,9 +16,12 @@ const shopItBeaconPort = 47822;
 
 const shopItSyncHeader = 'x-shop-it';
 
-/// A name the other device can show, such as "the phone".
+/// A name the other device can show, such as "the phone" or "the iPad".
 String thisDeviceName() {
-  if (Platform.isAndroid) return 'the phone';
+  final phone = hostIsPhone();
+  if (Platform.isIOS) return phone ? 'the iPhone' : 'the iPad';
+  if (Platform.isAndroid) return phone ? 'the phone' : 'the tablet';
+  if (Platform.isMacOS) return 'the Mac';
   if (Platform.isWindows) return 'the computer';
   return 'the other device';
 }

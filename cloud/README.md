@@ -4,7 +4,7 @@ Cloud sync stores each device’s latest list snapshot so the phone and computer
 
 The snapshot is sealed with the household code (AES-GCM) before it leaves the device. The MQTT broker only stores that ciphertext. It never receives list names, items, or prices. Anyone who can see the topic still cannot read the lists without the code.
 
-Shop-it publishes one retained message per device on `broker.hivemq.com`, port 8883. The household code is part of the topic and is also the key. No Shop-it account is required.
+ShopIt publishes one retained message per device on `broker.hivemq.com`, port 8883. The household code is part of the topic and is also the key. No ShopIt account is required.
 
 ## Topics
 

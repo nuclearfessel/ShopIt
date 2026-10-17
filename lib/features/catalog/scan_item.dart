@@ -1,6 +1,6 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
+
+import '../../app/form_factor.dart';
 
 import '../../data/database.dart';
 import '../../services/barcode_scanner.dart';
@@ -10,7 +10,7 @@ import '../../ui/tip.dart';
 import 'item_editor.dart';
 import 'resolve_barcode.dart';
 
-/// Android-only scan button for the search field.
+/// Scan button for a phone or tablet. Windows and Mac do not show it.
 class ScanItemButton extends StatelessWidget {
   const ScanItemButton({super.key, required this.onScan});
 
@@ -18,7 +18,7 @@ class ScanItemButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!Platform.isAndroid) return const SizedBox.shrink();
+    if (!platformScansBarcodes) return const SizedBox.shrink();
     return Tip(
       'Scan a barcode',
       child: IconButton(

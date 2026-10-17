@@ -57,7 +57,7 @@ class DeviceLinkState {
         parts.add(
           lastWifiSync != null
               ? 'Synced on this Wi-Fi.'
-              : 'Looking for Shop-it on this Wi-Fi.',
+              : 'Looking for ShopIt on this Wi-Fi.',
         );
       } else if (peerNames.length == 1) {
         parts.add('Sharing with ${peerNames.first} on this Wi-Fi.');

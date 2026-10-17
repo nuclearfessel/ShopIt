@@ -39,7 +39,7 @@ class _AboutSectionState extends State<AboutSection> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Shop-it', style: theme.textTheme.titleMedium),
+        Text('ShopIt', style: theme.textTheme.titleMedium),
         const SizedBox(height: 4),
         Text(
           'A shopping and pantry list app.',

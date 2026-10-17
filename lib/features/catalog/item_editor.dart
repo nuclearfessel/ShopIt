@@ -472,8 +472,15 @@ class _ItemEditorSheetState extends State<_ItemEditorSheet> {
                         segments: const [
                           ButtonSegment(
                             value: 'level',
-                            label: Text('Low / Full'),
-                            tooltip: 'Just track whether it is low or full',
+                            label: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                'Low or stocked',
+                                maxLines: 1,
+                                softWrap: false,
+                              ),
+                            ),
+                            tooltip: 'Track whether it is low or stocked',
                           ),
                           ButtonSegment(
                             value: 'number',

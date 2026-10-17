@@ -177,7 +177,9 @@ void main() {
     testWidgets('the scrollbar sits beside the theme control', (tester) async {
       debugDefaultTargetPlatformOverride = TargetPlatform.windows;
       try {
-        await pumpApp(tester, size: const Size(720, 460));
+        // Short enough that Settings scrolls, and large enough that it
+        // stays a dialog: shortest side at least 600, width at least 700.
+        await pumpApp(tester, size: const Size(720, 600));
         await tester.tap(find.byTooltip('Settings'));
         await tester.pumpAndSettle();
 

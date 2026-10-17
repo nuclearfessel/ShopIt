@@ -137,8 +137,63 @@ jobs:
           name: windows-installer
           path: build/installer/Shop-it-Setup-${{ needs.version.outputs.name }}.exe
 
+  macos:
+    needs: [version, check]
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build macOS app
+        run: |
+          flutter config --enable-macos-desktop
+          flutter build macos --release \
+            --build-name=${{ needs.version.outputs.name }} \
+            --build-number=${{ needs.version.outputs.code }}
+          cd build/macos/Build/Products/Release
+          zip -r "$GITHUB_WORKSPACE/Shop-it-${{ needs.version.outputs.name }}-macos.zip" ShopIt.app
+
+      - name: Upload Mac app
+        uses: actions/upload-artifact@v7
+        with:
+          name: macos-app
+          path: Shop-it-${{ needs.version.outputs.name }}-macos.zip
+
+  ios:
+    needs: [version, check]
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build iOS app
+        run: |
+          flutter build ios --release --no-codesign \
+            --build-name=${{ needs.version.outputs.name }} \
+            --build-number=${{ needs.version.outputs.code }}
+
   publish:
-    needs: [version, android, windows]
+    needs: [version, android, windows, macos, ios]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -159,8 +214,9 @@ jobs:
           gh release create "$TAG" \
             "packages/Shop-it-${VERSION}.apk" \
             "packages/Shop-it-Setup-${VERSION}.exe" \
+            "packages/Shop-it-${VERSION}-macos.zip" \
             --title "$VERSION" \
-            --notes "Shop-it ${VERSION}. Install Shop-it-Setup-${VERSION}.exe on Windows, or Shop-it-${VERSION}.apk on Android."
+            --notes "ShopIt ${VERSION}. Install Shop-it-Setup-${VERSION}.exe on Windows, Shop-it-${VERSION}.apk on Android, or unzip Shop-it-${VERSION}-macos.zip on a Mac."
           # The release section keeps the three newest releases.
           gh release list --limit 50 --json tagName,publishedAt \
             --jq 'sort_by(.publishedAt) | reverse | .[3:] | .[].tagName' \

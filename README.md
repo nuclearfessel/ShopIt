@@ -1,37 +1,38 @@
-# Shop-it
+# ShopIt
 
-Shop-it is a shopping, pantry, and recipe app for Windows and Android. The same lists, categories, prices, recipes, and tax settings work on both.
+ShopIt is a shopping, pantry, and recipe app for Windows, Mac, Android, and iOS. The window title, the icon, and Windows Installed apps all say ShopIt. The same lists, categories, prices, recipes, and tax settings work on each of them.
 
-![Shop-it on Windows](docs/screenshots/windows.png)
+![ShopIt on Windows](docs/screenshots/windows.png)
 
-<img src="docs/screenshots/android.png" alt="Shop-it on Android" width="280" />
+<img src="docs/screenshots/android.png" alt="ShopIt on Android" width="280" />
 
 ## Download
 
-**Current version: 0.1.3**
+**Current version: 1.0.0**
 
 | Platform | Package |
 | --- | --- |
-| Windows | [Shop-it-Setup-0.1.3.exe](https://github.com/nuclearfessel/Shop-it/releases/download/v0.1.3/Shop-it-Setup-0.1.3.exe) |
-| Android | [Shop-it-0.1.3.apk](https://github.com/nuclearfessel/Shop-it/releases/download/v0.1.3/Shop-it-0.1.3.apk) |
+| Windows | [Shop-it-Setup-1.0.0.exe](https://github.com/nuclearfessel/Shop-it/releases/download/v1.0.0/Shop-it-Setup-1.0.0.exe) |
+| Android | [Shop-it-1.0.0.apk](https://github.com/nuclearfessel/Shop-it/releases/download/v1.0.0/Shop-it-1.0.0.apk) |
+| Mac | [Shop-it-1.0.0-macos.zip](https://github.com/nuclearfessel/Shop-it/releases/download/v1.0.0/Shop-it-1.0.0-macos.zip) |
 
-On Windows, run the installer. On Android, allow installs from the APK, then open it. Older packages stay in [Releases](https://github.com/nuclearfessel/Shop-it/releases) until a newer build replaces them; only the three newest releases are kept.
+On Windows, run the installer. On Android, allow installs from the APK, then open it. On a Mac, unzip the app and open ShopIt. iPhone and iPad installs go through TestFlight once an Apple Developer account is connected, so they are not a file on this page. Older packages stay in [Releases](https://github.com/nuclearfessel/Shop-it/releases) until a newer build replaces them; only the three newest releases are kept.
 
 ## Features
 
-- **Shopping** — lists with categories, quantities, prices, coupons, and a cart. Categories stay in alphabetical order. Search finds items already on the open list, items in the pantry, and names you have added before. A name Shop-it does not already know is saved when you add it, so it shows up next time. On Android, scan a barcode next to Add.
-- **Pantry** — what you already have, with counts or full/low levels. Items that expire within seven days, or that are already past that date, show in a Use soon strip. On Android, scan a barcode to add or increase that item.
-- **Recipes** — save a meal, scale the servings, and add the missing ingredients to a shopping list. Shop-it skips what the pantry already covers. Cook subtracts those amounts from the pantry.
+- **Shopping** — lists with categories, quantities, prices, coupons, and a cart. Categories stay in alphabetical order. Search finds items already on the open list, items in the pantry, and names you have added before. A name ShopIt does not already know is saved when you add it, so it shows up next time. On a phone or tablet, scan a barcode next to Add.
+- **Pantry** — what you already have. Each item can be **Low** or **Full**, or an exact amount. **Amounts** in the list menu applies **Low or stocked** or **Exact amounts** to every item on that list. Items that expire within seven days, or that are already past that date, show in a Use soon strip. On a phone or tablet, scan a barcode to add or increase that item.
+- **Recipes** — save a meal, scale the servings, and add the missing ingredients to a shopping list. ShopIt skips what the pantry already covers. Cook subtracts those amounts from the pantry.
 - **Sales tax** — saved rates, optional location lookup, and per-item control. Marking every item taxable, not taxable, or back on automatic rules is in List settings.
 - **Sync** — share lists on the same Wi-Fi, or over the internet with a household code. Cloud copies are encrypted with that code. Share lists shows the last Wi-Fi sync and the last cloud sync separately.
 
-On Windows, Shopping, Pantry, and Recipes sit at the top of the left rail when the window is at least 700 pixels wide, and Settings sits at the bottom as a dialog. Below 700, all four sit in the bottom bar and Settings is a full page. Resizing across 700 switches Settings between the dialog and the page. On Android, Settings is always that full page, and the app stays in portrait. Close it with the X or with Done. Settings covers appearance, tax, sharing, and About. The walkthrough in [Using Shop-it](docs/usage.md) shows each button next to the step that uses it. Scanning a barcode is on the phone only. A name scanned there still appears on the computer through sync.
+When the shortest side of the window is under 600, Shopping, Pantry, Recipes, and Settings sit in the bottom bar, and Settings is a full page. That is a phone: an Android phone or an iPhone stays in portrait. A larger window uses the side rail. Settings is a dialog when that window is at least 700 pixels wide, and a full page when it is narrower. Changing the size switches Settings while it is open. Tablets, Windows, and Mac can rotate or be resized. Close the page with the X or with Done. Settings covers appearance, tax, sharing, and About. The walkthrough in [Using ShopIt](docs/usage.md) shows each button next to the step that uses it. Scanning a barcode is on Android and iOS, including tablets. Windows and Mac do not show it. A name scanned on a phone still appears on the computer through sync.
 
 ## Sync
 
 Open **Settings → Share lists** on both devices.
 
-- **Same Wi-Fi** — turn on **Share on this Wi-Fi** while both apps are open. That also turns on internet sync and passes a household code to the other device. If Windows asks to allow Shop-it on private networks, choose allow. The Wi-Fi line says when the last sync succeeded, or that it has not synced yet.
+- **Same Wi-Fi** — turn on **Share on this Wi-Fi** while both apps are open. That also turns on internet sync and passes a household code to the other device. If Windows asks to allow ShopIt on private networks, choose allow. The Wi-Fi line says when the last sync succeeded, or that it has not synced yet.
 - **Wi-Fi off** — lists keep syncing over the internet while both apps are open, including on mobile data. If the devices have not met on Wi-Fi yet, create a cloud code on one and enter it on the other. List contents are encrypted with that code before they are stored. Closing the app sends one last cloud snapshot. The cloud line shows its own last sync time and its own error, separate from Wi-Fi.
 
 If you paired on a build before 0.0.8, leave the household on both devices and create a new code after updating.
@@ -40,4 +41,4 @@ If both sides already have a list with the same name, sync merges them and appen
 
 ## Docs
 
-Full walkthrough: [Using Shop-it](docs/usage.md).
+Full walkthrough: [Using ShopIt](docs/usage.md).

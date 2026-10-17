@@ -1,9 +1,8 @@
-import 'dart:io' show Platform;
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../app/form_factor.dart';
 import '../../app/theme_mode.dart';
 import '../shopping/tax_rates_dialog.dart';
 import '../../ui/keyline/keyline_icon.dart';
@@ -12,57 +11,49 @@ import 'about_section.dart';
 import 'device_link_controller.dart';
 import 'device_link_dialog.dart';
 
-/// Same breakpoint as the side rail. On Windows, Settings is a dialog at this
-/// width or wider, and a full-screen page below it.
+/// On a large window, Settings is a dialog at this width or wider, and a
+/// full-screen page below it. A phone is always the page.
 const settingsDialogBreakpoint = 700.0;
 
-/// Android is always the full-screen page. Windows follows the window width,
-/// including while Settings is already open.
-bool settingsUsesDialog({required bool android, required double width}) =>
-    !android && width >= settingsDialogBreakpoint;
+/// A phone is always the full-screen page. A tablet or desktop window follows
+/// [width], including while Settings is already open.
+bool settingsUsesDialog({required bool phone, required double width}) =>
+    !phone && width >= settingsDialogBreakpoint;
 
-/// Opens Settings. Android always gets the full-screen page. Windows gets a
-/// dialog or that page based on the window width, and switches if the width
-/// later crosses [settingsDialogBreakpoint].
+/// Opens Settings and switches between the dialog and the page if the window
+/// later crosses [settingsDialogBreakpoint] or the phone-size line.
 void showAppSettings(BuildContext context, {String? listId, String? listName}) {
-  if (Platform.isAndroid) {
-    Navigator.of(context).push<void>(
-      MaterialPageRoute<void>(
-        builder: (_) => SettingsPage(listId: listId, listName: listName),
-      ),
-    );
-    return;
-  }
   Navigator.of(context).push<void>(
     PageRouteBuilder<void>(
       opaque: false,
       barrierDismissible: false,
       pageBuilder: (_, _, _) =>
-          _WindowsSettings(listId: listId, listName: listName),
+          _AdaptiveSettings(listId: listId, listName: listName),
     ),
   );
 }
 
 /// Switches the open Settings between the dialog and the full-screen page as
-/// the Windows window crosses [settingsDialogBreakpoint].
-class _WindowsSettings extends StatefulWidget {
-  const _WindowsSettings({this.listId, this.listName});
+/// the window changes size.
+class _AdaptiveSettings extends StatefulWidget {
+  const _AdaptiveSettings({this.listId, this.listName});
 
   final String? listId;
   final String? listName;
 
   @override
-  State<_WindowsSettings> createState() => _WindowsSettingsState();
+  State<_AdaptiveSettings> createState() => _AdaptiveSettingsState();
 }
 
-class _WindowsSettingsState extends State<_WindowsSettings> {
+class _AdaptiveSettingsState extends State<_AdaptiveSettings> {
   final _formKey = GlobalKey();
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.sizeOf(context);
     final dialog = settingsUsesDialog(
-      android: false,
-      width: MediaQuery.sizeOf(context).width,
+      phone: isPhoneSize(size),
+      width: size.width,
     );
     if (!dialog) {
       return SettingsPage(

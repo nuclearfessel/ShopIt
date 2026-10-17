@@ -35,11 +35,16 @@ class MainActivity : FlutterActivity() {
                     return@setMethodCallHandler
                 }
                 scanResult = result
+                val portrait = (call.arguments as? Map<*, *>)?.get("portrait") == true
+                if (portrait) {
+                    requestedOrientation =
+                        android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                }
                 IntentIntegrator(this)
                     .setDesiredBarcodeFormats(IntentIntegrator.PRODUCT_CODE_TYPES)
                     .setPrompt("Scan a barcode")
                     .setBeepEnabled(false)
-                    .setOrientationLocked(true)
+                    .setOrientationLocked(portrait)
                     .initiateScan()
             }
     }
