@@ -19,10 +19,10 @@ On Windows, run the installer. On Android, allow installs from the APK, then ope
 
 ## Features
 
-- **Shopping** — lists with categories, quantities, prices, coupons, and a cart
-- **Pantry** — what you already have, with counts or full/low levels
-- **Sales tax** — saved rates, optional location lookup, per-list and per-item control
-- **Sync** — share lists between your phone and computer
+- **Shopping** — lists with categories, quantities, prices, coupons, and a cart. Categories stay in alphabetical order. Search finds items already on the open list, items in the pantry, and names you have added before.
+- **Pantry** — what you already have, with counts or full/low levels. Items that expire within seven days, or that are already past that date, show in a Use soon strip.
+- **Sales tax** — saved rates, optional location lookup, and per-item control. Marking every item taxable, not taxable, or back on automatic rules is in List settings.
+- **Sync** — share lists on the same Wi-Fi, or over the internet with a household code. Cloud copies are encrypted with that code. Share lists shows the last Wi-Fi sync and the last cloud sync separately.
 
 On a wide window, Shopping and Pantry sit in the left rail. On a phone, they sit in the bottom bar. Open **Settings** from the gear for appearance, tax, sharing, and About.
 
@@ -30,8 +30,10 @@ On a wide window, Shopping and Pantry sit in the left rail. On a phone, they sit
 
 Open **Settings → Share lists** on both devices.
 
-- **Same Wi-Fi** — turn on **Share on this Wi-Fi** while both apps are open. If Windows asks to allow Shop-it on private networks, choose allow.
-- **Away from home** — create a cloud code on one device and enter it on the other. Both need internet while the apps are open. List contents are encrypted with that code before they are stored.
+- **Same Wi-Fi** — turn on **Share on this Wi-Fi** while both apps are open. If Windows asks to allow Shop-it on private networks, choose allow. The Wi-Fi line says when the last sync succeeded, or that it has not synced yet.
+- **Away from home** — create a cloud code on one device and enter it on the other. Both need internet while the apps are open. List contents are encrypted with that code before they are stored. Closing the app sends one last cloud snapshot. The cloud line shows its own last sync time and its own error, separate from Wi-Fi.
+
+If you paired on a build before 0.0.8, leave the household on both devices and create a new code after updating.
 
 If both sides already have a list with the same name, sync merges them and appends items instead of creating a duplicate list.
 
