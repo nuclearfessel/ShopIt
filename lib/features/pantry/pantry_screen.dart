@@ -338,8 +338,50 @@ class _PantryBody extends ConsumerWidget {
                     (a, b) =>
                         (order[a] ?? 1 << 20).compareTo(order[b] ?? 1 << 20),
                   );
+                final today = DateTime.now();
+                final start = DateTime(today.year, today.month, today.day);
+                final useSoon = [
+                  for (final item in rows)
+                    if (_dueWithinWeek(item.expiryDate, start)) item,
+                ]..sort((a, b) => a.expiryDate!.compareTo(b.expiryDate!));
                 return ListView(
                   children: [
+                    if (useSoon.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+                        child: Material(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .surfaceContainerHigh,
+                          borderRadius: BorderRadius.circular(8),
+                          child: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'USE SOON',
+                                  style: Theme.of(context).textTheme.labelLarge
+                                      ?.copyWith(
+                                        letterSpacing: 0.6,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurface
+                                            .withValues(alpha: 0.7),
+                                      ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  [
+                                    for (final item in useSoon)
+                                      '${item.name} (${_soonWhen(item.expiryDate!, start)})',
+                                  ].join(', '),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
                     for (final n in names) ...[
                       CategoryHeader(
                         n,
@@ -363,6 +405,21 @@ class _PantryBody extends ConsumerWidget {
       ),
     );
   }
+}
+
+bool _dueWithinWeek(DateTime? expiry, DateTime startOfToday) {
+  if (expiry == null) return false;
+  final day = DateTime(expiry.year, expiry.month, expiry.day);
+  return !day.isAfter(startOfToday.add(const Duration(days: 7)));
+}
+
+String _soonWhen(DateTime expiry, DateTime startOfToday) {
+  final day = DateTime(expiry.year, expiry.month, expiry.day);
+  final days = day.difference(startOfToday).inDays;
+  if (days < 0) return 'expired';
+  if (days == 0) return 'today';
+  if (days == 1) return 'tomorrow';
+  return 'in $days days';
 }
 
 String _fmt(double q) => q == q.roundToDouble() ? q.toInt().toString() : '$q';

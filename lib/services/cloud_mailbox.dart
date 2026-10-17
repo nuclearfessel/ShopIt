@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
+import 'package:cryptography/cryptography.dart';
 import 'package:mqtt_client/mqtt_client.dart';
 import 'package:mqtt_client/mqtt_server_client.dart';
 
@@ -12,11 +13,15 @@ import '../data/device_sync.dart';
 /// Version of each device's retained cloud message.
 const cloudMailboxVersion = 1;
 
-/// Public MQTT broker used as the cloud mailbox. Retained messages hold the
-/// latest snapshot per device so the phone and computer do not need to be
-/// online at the same time.
+/// MQTT broker used only as an encrypted drop box. List JSON is sealed with
+/// the household code before it is published, so the broker never sees list
+/// contents. Retained messages hold the latest snapshot per device so the
+/// phone and computer do not need to be online at the same time.
 const defaultCloudMqttHost = 'broker.hivemq.com';
 const defaultCloudMqttPort = 8883;
+
+const _mailboxMacBytes = 16;
+const _mailboxNonceBytes = 12;
 
 /// One device's latest snapshot sitting in the household mailbox.
 class CloudDeviceEntry {
@@ -75,11 +80,12 @@ class CloudMailboxDoc {
   Map<String, Object?> toJson() => {
     'v': cloudMailboxVersion,
     'devices': {
-      for (final entry in devices.entries) entry.key: {
-        'name': entry.value.name,
-        'updatedAt': entry.value.updatedAt.toUtc().toIso8601String(),
-        'snapshot': entry.value.snapshot.toJson(),
-      },
+      for (final entry in devices.entries)
+        entry.key: {
+          'name': entry.value.name,
+          'updatedAt': entry.value.updatedAt.toUtc().toIso8601String(),
+          'snapshot': entry.value.snapshot.toJson(),
+        },
     },
   };
 
@@ -105,7 +111,8 @@ class CloudMailboxDoc {
   static CloudMailboxDoc empty() => CloudMailboxDoc();
 }
 
-/// Reads and writes the household mailbox over a public MQTT broker.
+/// Reads and writes the household mailbox. Payloads on the broker are
+/// ciphertext sealed with the household code.
 class CloudMailbox {
   CloudMailbox({
     this.host = defaultCloudMqttHost,
@@ -164,7 +171,7 @@ class CloudMailbox {
       await _connect(client);
       final topic = _householdTopic(code);
       client.subscribe(topic, MqttQos.atLeastOnce);
-      final done = Completer<void>();
+      final pending = <Future<void>>[];
       final sub = client.updates?.listen((messages) {
         for (final message in messages) {
           final rec = message.payload;
@@ -175,14 +182,16 @@ class CloudMailbox {
           final text = MqttPublishPayload.bytesToStringAsString(
             rec.payload.message,
           );
-          final entry = _entryFromPayload(deviceId, text);
-          if (entry != null) devices[deviceId] = entry;
+          pending.add(() async {
+            final entry = await _entryFromPayload(code, deviceId, text);
+            if (entry != null) devices[deviceId] = entry;
+          }());
         }
       });
       // Retained messages arrive right after subscribe; wait briefly for them.
       await Future<void>.delayed(const Duration(seconds: 2));
+      await Future.wait(pending);
       await sub?.cancel();
-      if (!done.isCompleted) done.complete();
       return devices;
     } on SyncException {
       rethrow;
@@ -205,10 +214,9 @@ class CloudMailbox {
       await _connect(client);
       final topic = _deviceTopic(code, entry.deviceId);
       final builder = MqttClientPayloadBuilder();
-      // Gzip keeps large lists under typical broker payload limits.
-      final raw = utf8.encode(jsonEncode(entry.toJson()));
-      final compressed = gzip.encode(raw);
-      builder.addString('gz:${base64Url.encode(compressed)}');
+      builder.addString(
+        await sealMailboxPayload(code, jsonEncode(entry.toJson())),
+      );
       client.publishMessage(
         topic,
         MqttQos.atLeastOnce,
@@ -246,7 +254,9 @@ class CloudMailbox {
 
   Future<void> _connect(MqttServerClient client) async {
     try {
-      final status = await client.connect().timeout(const Duration(seconds: 12));
+      final status = await client.connect().timeout(
+        const Duration(seconds: 12),
+      );
       if (status?.state != MqttConnectionState.connected) {
         throw const SyncException('The cloud mailbox did not answer.');
       }
@@ -274,19 +284,24 @@ class CloudMailbox {
   }
 }
 
-String _householdTopic(String code) => 'shopit/1/$code/+';
+String _householdTopic(String code) => 'shopit/p/$code/+';
 
-String _deviceTopic(String code, String deviceId) => 'shopit/1/$code/$deviceId';
+String _deviceTopic(String code, String deviceId) => 'shopit/p/$code/$deviceId';
 
 String? _deviceIdFromTopic(String topic) {
   final parts = topic.split('/');
-  if (parts.length != 4 || parts[0] != 'shopit' || parts[1] != '1') return null;
+  if (parts.length != 4 || parts[0] != 'shopit' || parts[1] != 'p') return null;
   final id = parts[3];
   return id.isEmpty ? null : id;
 }
 
-CloudDeviceEntry? _entryFromPayload(String deviceId, String text) {
-  final jsonText = _decodeStored(text);
+Future<CloudDeviceEntry?> _entryFromPayload(
+  String code,
+  String deviceId,
+  String text,
+) async {
+  final jsonText = await openMailboxPayload(code, text.trim());
+  if (jsonText == null) return null;
   Object? decoded;
   try {
     decoded = jsonDecode(jsonText);
@@ -296,39 +311,59 @@ CloudDeviceEntry? _entryFromPayload(String deviceId, String text) {
   return CloudDeviceEntry.tryParse(deviceId, decoded);
 }
 
-String _decodeStored(String text) {
-  final trimmed = text.trim();
-  if (trimmed.startsWith('gz:')) {
-    try {
-      final bytes = gzip.decode(base64Url.decode(trimmed.substring(3)));
-      return utf8.decode(bytes);
-    } on Object {
-      throw const SyncException('Could not read the cloud mailbox.');
-    }
-  }
+/// Seals [json] so a broker or anyone without [code] cannot read the lists.
+Future<String> sealMailboxPayload(String code, String json) async {
+  final algorithm = AesGcm.with256bits();
+  final box = await algorithm.encrypt(
+    gzip.encode(utf8.encode(json)),
+    secretKey: await _mailboxKey(code),
+  );
+  final packed = <int>[...box.nonce, ...box.mac.bytes, ...box.cipherText];
+  return 'enc1:${base64Url.encode(packed)}';
+}
+
+/// Opens a payload sealed with [code]. Returns null when it is not ours
+/// (plaintext leftovers, or a different household code).
+Future<String?> openMailboxPayload(String code, String stored) async {
+  final trimmed = stored.trim();
+  if (!trimmed.startsWith('enc1:')) return null;
+  List<int> packed;
   try {
-    final bytes = base64Url.decode(trimmed);
-    return utf8.decode(bytes);
+    packed = base64Url.decode(trimmed.substring(5));
   } on FormatException {
-    // Plain JSON from tests or older writes.
+    return null;
   }
-  if (trimmed.length >= 2 && trimmed.startsWith('"') && trimmed.endsWith('"')) {
-    try {
-      final decoded = jsonDecode(trimmed);
-      if (decoded is String) return _decodeStored(decoded);
-    } on FormatException {
-      // Fall through.
-    }
+  if (packed.length <= _mailboxNonceBytes + _mailboxMacBytes) return null;
+  final box = SecretBox(
+    packed.sublist(_mailboxNonceBytes + _mailboxMacBytes),
+    nonce: packed.sublist(0, _mailboxNonceBytes),
+    mac: Mac(
+      packed.sublist(_mailboxNonceBytes, _mailboxNonceBytes + _mailboxMacBytes),
+    ),
+  );
+  try {
+    final clear = await AesGcm.with256bits().decrypt(
+      box,
+      secretKey: await _mailboxKey(code),
+    );
+    return utf8.decode(gzip.decode(clear));
+  } on SecretBoxAuthenticationError {
+    return null;
+  } on Object {
+    return null;
   }
-  return trimmed;
+}
+
+Future<SecretKey> _mailboxKey(String code) async {
+  final hash = await Sha256().hash(
+    utf8.encode('shop-it-mailbox-v1:${code.trim().toLowerCase()}'),
+  );
+  return SecretKey(hash.bytes);
 }
 
 String _shortId() {
   final random = Random.secure();
-  return List.generate(
-    8,
-    (_) => random.nextInt(16).toRadixString(16),
-  ).join();
+  return List.generate(8, (_) => random.nextInt(16).toRadixString(16)).join();
 }
 
 /// Eight-character code one device shows and the other types in.

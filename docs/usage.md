@@ -14,7 +14,9 @@ Open **Settings** from the gear icon for appearance, sales tax, sharing, and Abo
 
 From the cart you can uncheck everything or delete the checked items. **History** suggests items you have added before.
 
-The list menu also covers categories, list settings, renaming and reordering lists, CSV import and export, applying tax to every item, and deleting a list.
+The list menu also covers categories, list settings, renaming and reordering lists, CSV import and export, and deleting a list. Sales tax for every item on the list is in List settings.
+
+Typing in **Search or add an item** also finds items already on this list or in the pantry, and recent names from History, so you can open what you already have instead of adding it again.
 
 ### List settings and categories
 
@@ -22,7 +24,7 @@ List settings control whether items are grouped by category, whether new items a
 
 ## Pantry
 
-Open **Pantry** for stock you already have. Add items the same way as on a shopping list. An item can use a count or a level (full or low), and it can include a place and an expiry date.
+Open **Pantry** for stock you already have. Add items the same way as on a shopping list. An item can use a count or a level (full or low), and it can include a place and an expiry date. Items that expire within seven days, or that are already past that date, show in a **Use soon** strip at the top.
 
 **Move/Copy items** sends items between shopping lists and pantry lists—handy when you restock or finish something.
 
@@ -52,7 +54,7 @@ When you are not on the same Wi-Fi (for example the phone is on mobile data):
 1. On one device, tap **Create cloud code**.
 2. On the other, enter that eight-character code and tap **Join with code**.
 
-Both apps need an internet connection while they are open. They do not need to be nearby, and they do not need to be online at the exact same moment.
+Both apps need an internet connection while they are open. They do not need to be nearby, and they do not need to be online at the exact same moment. Closing the app publishes one last cloud snapshot. Share lists shows the last Wi-Fi sync and the last cloud sync separately, including when one of them has not succeeded yet.
 
 If an older build could not reach cloud sync, leave the household on both devices and create a new code after updating.
 

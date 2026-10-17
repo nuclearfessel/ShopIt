@@ -36,11 +36,32 @@ class ShoppingScreen extends ConsumerStatefulWidget {
 class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
   String? _listId;
   final _controller = TextEditingController();
+  final _searchFocus = FocusNode();
+  final _itemKeys = <String, GlobalKey>{};
+
+  @override
+  void initState() {
+    super.initState();
+    _searchFocus.addListener(() {
+      if (mounted) setState(() {});
+    });
+  }
 
   @override
   void dispose() {
+    _searchFocus.dispose();
     _controller.dispose();
     super.dispose();
+  }
+
+  void _revealItem(String id) {
+    final target = _itemKeys[id]?.currentContext;
+    if (target == null) return;
+    Scrollable.ensureVisible(
+      target,
+      duration: const Duration(milliseconds: 200),
+      alignment: 0.2,
+    );
   }
 
   Future<void> _newList() async {
@@ -143,11 +164,41 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
     if (mounted) setState(_controller.clear);
   }
 
-  /// Enter key: use the catalog entry with exactly this name if there is one,
-  /// otherwise add the text as a new item under "Other".
+  /// Enter key: jump to an item already on this list or in the pantry, otherwise
+  /// use the catalog entry with exactly this name, or add the text under "Other".
   Future<void> _submit(ShoppingList list) async {
     final name = _controller.text.trim();
     if (name.isEmpty) return;
+    final rows =
+        ref.read(shoppingItemsProvider(list.id)).value ??
+        const <ShoppingItem>[];
+    final onList = rows.where(
+      (i) => i.name.toLowerCase() == name.toLowerCase(),
+    );
+    if (onList.isNotEmpty) {
+      _revealItem(onList.first.id);
+      if (mounted) {
+        showInfoSnackBar(
+          context,
+          '${onList.first.name} is already on this list.',
+        );
+        setState(_controller.clear);
+      }
+      return;
+    }
+    final held = _pantryNow().where(
+      (i) => i.name.toLowerCase() == name.toLowerCase(),
+    );
+    if (held.isNotEmpty) {
+      if (mounted) {
+        showInfoSnackBar(
+          context,
+          'You already have ${held.first.name} in the pantry.',
+        );
+        setState(_controller.clear);
+      }
+      return;
+    }
     final match = (await ref.read(databaseProvider).searchCatalog(name))
         .where((i) => i.name.toLowerCase() == name.toLowerCase());
     if (!mounted) return;
@@ -156,6 +207,14 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
       match.isEmpty ? name : match.first.name,
       match.isEmpty ? 'Other' : match.first.category,
     );
+  }
+
+  List<PantryItem> _pantryNow() {
+    final lists = ref.read(pantryListsProvider).value ?? const <ShoppingList>[];
+    return [
+      for (final list in lists)
+        ...ref.read(pantryProvider(list.id)).value ?? const <PantryItem>[],
+    ];
   }
 
   @override
@@ -208,6 +267,12 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
         // Watched (not read) so they are loaded by the time Move/Copy needs them.
         final pantryLists =
             ref.watch(pantryListsProvider).value ?? const <ShoppingList>[];
+        final pantryItems = [
+          for (final list in pantryLists)
+            ...ref.watch(pantryProvider(list.id)).value ?? const <PantryItem>[],
+        ];
+        final history =
+            ref.watch(historyProvider).value ?? const <HistoryEntry>[];
         final rate = ref
             .watch(taxRatesProvider)
             .value
@@ -360,10 +425,6 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
                       context: context,
                       builder: (_) => const ManageListsDialog(),
                     );
-                  } else if (v == 'taxAll' || v == 'taxNone') {
-                    await db.setAllTaxable(current.id, v == 'taxAll');
-                  } else if (v == 'taxAuto') {
-                    await db.resetTaxToAutomatic(current.id);
                   } else if (v == 'deleteAll') {
                     if (await _confirm(
                       context,
@@ -424,21 +485,6 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
                     label: 'Import list',
                   ),
                   tipMenuItem(
-                    value: 'taxAuto',
-                    tip: 'Let each item follow the tax rules again',
-                    label: 'Use automatic tax rules',
-                  ),
-                  tipMenuItem(
-                    value: 'taxAll',
-                    tip: 'Tax every item on this list',
-                    label: 'Mark all items taxable',
-                  ),
-                  tipMenuItem(
-                    value: 'taxNone',
-                    tip: 'Tax no item on this list',
-                    label: 'Mark all items not taxable',
-                  ),
-                  tipMenuItem(
                     value: 'rename',
                     tip: 'Rename the list you have open',
                     label: 'Rename this list',
@@ -493,6 +539,7 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
                 padding: const EdgeInsets.all(12),
                 child: TextField(
                   controller: _controller,
+                  focusNode: _searchFocus,
                   onChanged: (_) => setState(() {}),
                   decoration: InputDecoration(
                     hintText: 'Search or add an item',
@@ -538,7 +585,27 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
               ),
               CatalogSuggestions(
                 query: _controller.text,
+                showRecent: _searchFocus.hasFocus,
+                onList: items.value ?? const [],
+                inPantry: pantryItems,
+                history: history,
                 onPick: (i) => _add(current, i.name, i.category),
+                onOpenList: (item) {
+                  _revealItem(item.id);
+                  showInfoSnackBar(
+                    context,
+                    '${item.name} is already on this list.',
+                  );
+                  setState(_controller.clear);
+                },
+                onPantry: (item) {
+                  showInfoSnackBar(
+                    context,
+                    'You already have ${item.name} in the pantry.',
+                  );
+                  setState(_controller.clear);
+                },
+                onHistory: (entry) => _add(current, entry.name, entry.category),
               ),
               Expanded(
                 child: items.when(
@@ -555,6 +622,7 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
                               all,
                               current.id,
                               taxCtx,
+                              itemKeys: _itemKeys,
                               onUncheckAll: () => db.uncheckAll(current.id),
                               onDeleteAll: () => _deleteChecked(current.id),
                               useCategories: current.useCategories,
@@ -586,6 +654,7 @@ List<Widget> _grouped(
   List<ShoppingList> lists,
   String listId,
   TaxContext? tax, {
+  required Map<String, GlobalKey> itemKeys,
   required VoidCallback onUncheckAll,
   required VoidCallback onDeleteAll,
   bool useCategories = true,
@@ -597,6 +666,7 @@ List<Widget> _grouped(
   final open = rows.where((i) => !i.checked).toList();
   final done = rows.where((i) => i.checked).toList();
   Widget tile(ShoppingItem i) => _ItemTile(
+    key: itemKeys.putIfAbsent(i.id, GlobalKey.new),
     item: i,
     db: db,
     lists: lists,
@@ -750,6 +820,7 @@ class _CartSection extends StatelessWidget {
 
 class _ItemTile extends StatelessWidget {
   const _ItemTile({
+    super.key,
     required this.item,
     required this.db,
     required this.lists,

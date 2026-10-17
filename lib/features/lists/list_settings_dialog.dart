@@ -83,6 +83,35 @@ class ListSettingsDialog extends ConsumerWidget {
                       : null,
                 ),
               ),
+              const SizedBox(height: 8),
+              Text(
+                'SALES TAX',
+                style: theme.textTheme.labelLarge?.copyWith(
+                  letterSpacing: 0.6,
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                ),
+              ),
+              Tip(
+                'Let each item follow the tax rules again',
+                child: TextButton(
+                  onPressed: () => db.resetTaxToAutomatic(listId),
+                  child: const Text('Use automatic tax rules'),
+                ),
+              ),
+              Tip(
+                'Tax every item on this list',
+                child: TextButton(
+                  onPressed: () => db.setAllTaxable(listId, true),
+                  child: const Text('Mark all items taxable'),
+                ),
+              ),
+              Tip(
+                'Tax no item on this list',
+                child: TextButton(
+                  onPressed: () => db.setAllTaxable(listId, false),
+                  child: const Text('Mark all items not taxable'),
+                ),
+              ),
             ],
           ),
         ),

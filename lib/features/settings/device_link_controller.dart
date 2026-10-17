@@ -15,6 +15,8 @@ import '../../services/device_link.dart';
 const _prefKey = 'device_link';
 const _deviceIdKey = 'device_id';
 const _cloudCodeKey = 'cloud_household';
+const _lastWifiSyncKey = 'last_wifi_sync';
+const _lastCloudSyncKey = 'last_cloud_sync';
 const _network = MethodChannel('shop.it/network');
 
 /// Whether this device is sharing lists on Wi-Fi and/or over the internet.
@@ -22,8 +24,10 @@ class DeviceLinkState {
   const DeviceLinkState({
     this.sharing = false,
     this.peerNames = const [],
-    this.lastSync,
-    this.error,
+    this.lastWifiSync,
+    this.lastCloudSync,
+    this.wifiError,
+    this.cloudError,
     this.busy = false,
     this.cloudCode,
     this.cloudBusy = false,
@@ -31,8 +35,10 @@ class DeviceLinkState {
 
   final bool sharing;
   final List<String> peerNames;
-  final DateTime? lastSync;
-  final String? error;
+  final DateTime? lastWifiSync;
+  final DateTime? lastCloudSync;
+  final String? wifiError;
+  final String? cloudError;
   final bool busy;
 
   /// Household pairing code when this device is joined to cloud sync.
@@ -45,9 +51,11 @@ class DeviceLinkState {
     if (!sharing && !cloudLinked) return 'Not shared.';
     final parts = <String>[];
     if (sharing) {
-      if (peerNames.isEmpty) {
+      if (wifiError != null) {
+        parts.add('Wi-Fi sync failed.');
+      } else if (peerNames.isEmpty) {
         parts.add(
-          lastSync != null
+          lastWifiSync != null
               ? 'Synced on this Wi-Fi.'
               : 'Looking for Shop-it on this Wi-Fi.',
         );
@@ -58,11 +66,15 @@ class DeviceLinkState {
       }
     }
     if (cloudLinked) {
-      parts.add(
-        lastSync != null
-            ? 'Cloud sync is on.'
-            : 'Cloud sync is on. Waiting for the other device.',
-      );
+      if (cloudError != null) {
+        parts.add('Cloud sync failed.');
+      } else {
+        parts.add(
+          lastCloudSync != null
+              ? 'Cloud sync is on.'
+              : 'Cloud sync is on. Waiting for the other device.',
+        );
+      }
     }
     return parts.join(' ');
   }
@@ -70,9 +82,12 @@ class DeviceLinkState {
   DeviceLinkState copyWith({
     bool? sharing,
     List<String>? peerNames,
-    DateTime? lastSync,
-    String? error,
-    bool clearError = false,
+    DateTime? lastWifiSync,
+    DateTime? lastCloudSync,
+    String? wifiError,
+    bool clearWifiError = false,
+    String? cloudError,
+    bool clearCloudError = false,
     bool? busy,
     String? cloudCode,
     bool clearCloud = false,
@@ -81,8 +96,10 @@ class DeviceLinkState {
     return DeviceLinkState(
       sharing: sharing ?? this.sharing,
       peerNames: peerNames ?? this.peerNames,
-      lastSync: lastSync ?? this.lastSync,
-      error: clearError ? null : error ?? this.error,
+      lastWifiSync: lastWifiSync ?? this.lastWifiSync,
+      lastCloudSync: lastCloudSync ?? this.lastCloudSync,
+      wifiError: clearWifiError ? null : wifiError ?? this.wifiError,
+      cloudError: clearCloudError ? null : cloudError ?? this.cloudError,
       busy: busy ?? this.busy,
       cloudCode: clearCloud ? null : cloudCode ?? this.cloudCode,
       cloudBusy: cloudBusy ?? this.cloudBusy,
@@ -110,7 +127,11 @@ class DeviceLinkController extends Notifier<DeviceLinkState> {
     final token = _token = Object();
     _host.onSynced = () {
       if (token != _token || !state.sharing) return;
-      state = state.copyWith(lastSync: DateTime.now(), clearError: true);
+      state = state.copyWith(
+        lastWifiSync: DateTime.now(),
+        clearWifiError: true,
+      );
+      unawaited(_save());
     };
     _discovery.onChanged = () {
       if (token != _token || !state.sharing) return;
@@ -118,11 +139,17 @@ class DeviceLinkController extends Notifier<DeviceLinkState> {
       if (_sameNames(names, state.peerNames)) return;
       state = state.copyWith(peerNames: names);
     };
-    final observer = _AppResumeObserver(() {
-      if (token != _token) return;
-      if (state.sharing) unawaited(_syncPeers(token));
-      if (state.cloudLinked) unawaited(_syncCloud(token));
-    });
+    final observer = _AppResumeObserver(
+      onResume: () {
+        if (token != _token) return;
+        if (state.sharing) unawaited(_syncPeers(token));
+        if (state.cloudLinked) unawaited(_syncCloud(token));
+      },
+      onBackground: () {
+        if (token != _token || !state.cloudLinked) return;
+        unawaited(_syncCloud(token));
+      },
+    );
     WidgetsBinding.instance.addObserver(observer);
     ref.onDispose(() {
       _token = Object();
@@ -143,7 +170,7 @@ class DeviceLinkController extends Notifier<DeviceLinkState> {
   Future<void> startSharing() async {
     final token = _token;
     if (state.busy || state.sharing) return;
-    state = state.copyWith(busy: true, clearError: true);
+    state = state.copyWith(busy: true, clearWifiError: true);
     try {
       final db = ref.read(databaseProvider);
       final port = await _host.start(db: db);
@@ -155,7 +182,7 @@ class DeviceLinkController extends Notifier<DeviceLinkState> {
       );
       if (token != _token) return;
       await _multicast(true);
-      state = state.copyWith(sharing: true, busy: false, clearError: true);
+      state = state.copyWith(sharing: true, busy: false, clearWifiError: true);
       await _save();
       _startTimer(token);
     } on Object catch (error) {
@@ -164,7 +191,7 @@ class DeviceLinkController extends Notifier<DeviceLinkState> {
       state = state.copyWith(
         sharing: false,
         busy: false,
-        error: friendlySyncError(error),
+        wifiError: friendlySyncError(error),
       );
     }
   }
@@ -178,7 +205,7 @@ class DeviceLinkController extends Notifier<DeviceLinkState> {
       sharing: false,
       peerNames: const [],
       busy: false,
-      clearError: true,
+      clearWifiError: true,
     );
     await _save();
     _startTimer(token);
@@ -188,20 +215,20 @@ class DeviceLinkController extends Notifier<DeviceLinkState> {
   Future<void> createCloudHousehold() async {
     final token = _token;
     if (state.cloudBusy || state.cloudLinked) return;
-    state = state.copyWith(cloudBusy: true, clearError: true);
+    state = state.copyWith(cloudBusy: true, clearCloudError: true);
     try {
       final code = await mailbox.createHousehold();
       if (token != _token) return;
       state = state.copyWith(
         cloudCode: code,
         cloudBusy: false,
-        clearError: true,
+        clearCloudError: true,
       );
       await _save();
       _startTimer(token);
       await _syncCloud(token);
       if (token != _token) return;
-      if (state.error != null) {
+      if (state.cloudError != null) {
         state = state.copyWith(clearCloud: true, cloudBusy: false);
         await _save();
         _startTimer(token);
@@ -211,7 +238,7 @@ class DeviceLinkController extends Notifier<DeviceLinkState> {
       state = state.copyWith(
         clearCloud: true,
         cloudBusy: false,
-        error: friendlySyncError(error),
+        cloudError: friendlySyncError(error),
       );
       await _save();
     }
@@ -224,16 +251,16 @@ class DeviceLinkController extends Notifier<DeviceLinkState> {
     if (state.cloudBusy || state.cloudLinked) return;
     if (!isHouseholdCode(code)) {
       state = state.copyWith(
-        error: 'Enter the eight-character code from the other device.',
+        cloudError: 'Enter the eight-character code from the other device.',
       );
       return;
     }
-    state = state.copyWith(cloudBusy: true, clearError: true);
+    state = state.copyWith(cloudBusy: true, clearCloudError: true);
     try {
       state = state.copyWith(
         cloudCode: code,
         cloudBusy: false,
-        clearError: true,
+        clearCloudError: true,
       );
       await _save();
       _startTimer(token);
@@ -244,7 +271,7 @@ class DeviceLinkController extends Notifier<DeviceLinkState> {
       state = state.copyWith(
         clearCloud: true,
         cloudBusy: false,
-        error: friendlySyncError(error),
+        cloudError: friendlySyncError(error),
       );
       await _save();
     }
@@ -253,7 +280,7 @@ class DeviceLinkController extends Notifier<DeviceLinkState> {
   /// Leaves the cloud household. Wi-Fi sharing is unchanged.
   Future<void> leaveCloud() async {
     final token = _token;
-    state = state.copyWith(clearCloud: true, clearError: true);
+    state = state.copyWith(clearCloud: true, clearCloudError: true);
     await _save();
     if (token != _token) return;
     _startTimer(token);
@@ -269,8 +296,18 @@ class DeviceLinkController extends Notifier<DeviceLinkState> {
     if (token != _token) return;
 
     final cloud = prefs.getString(_cloudCodeKey);
-    if (cloud != null && isHouseholdCode(cloud)) {
-      state = state.copyWith(cloudCode: cloud.toLowerCase());
+    final wifiAt = DateTime.tryParse(prefs.getString(_lastWifiSyncKey) ?? '');
+    final cloudAt = DateTime.tryParse(prefs.getString(_lastCloudSyncKey) ?? '');
+    if (cloud != null && isHouseholdCode(cloud) ||
+        wifiAt != null ||
+        cloudAt != null) {
+      state = state.copyWith(
+        cloudCode: cloud != null && isHouseholdCode(cloud)
+            ? cloud.toLowerCase()
+            : null,
+        lastWifiSync: wifiAt,
+        lastCloudSync: cloudAt,
+      );
     }
 
     String? raw;
@@ -326,11 +363,15 @@ class DeviceLinkController extends Notifier<DeviceLinkState> {
       for (final peer in peers) {
         await syncWithDevice(db: db, host: peer.host, port: peer.port);
         if (token != _token) return;
-        state = state.copyWith(lastSync: DateTime.now(), clearError: true);
+        state = state.copyWith(
+          lastWifiSync: DateTime.now(),
+          clearWifiError: true,
+        );
+        await _save();
       }
     } on Object catch (error) {
       if (token != _token) return;
-      state = state.copyWith(error: friendlySyncError(error));
+      state = state.copyWith(wifiError: friendlySyncError(error));
     } finally {
       _syncing = false;
     }
@@ -350,10 +391,14 @@ class DeviceLinkController extends Notifier<DeviceLinkState> {
         db: db,
       );
       if (token != _token) return;
-      state = state.copyWith(lastSync: DateTime.now(), clearError: true);
+      state = state.copyWith(
+        lastCloudSync: DateTime.now(),
+        clearCloudError: true,
+      );
+      await _save();
     } on Object catch (error) {
       if (token != _token) return;
-      state = state.copyWith(error: friendlySyncError(error));
+      state = state.copyWith(cloudError: friendlySyncError(error));
     } finally {
       _cloudSyncing = false;
     }
@@ -387,6 +432,14 @@ class DeviceLinkController extends Notifier<DeviceLinkState> {
         await prefs.setString(_cloudCodeKey, code);
       } else {
         await prefs.remove(_cloudCodeKey);
+      }
+      final wifiAt = state.lastWifiSync;
+      if (wifiAt != null) {
+        await prefs.setString(_lastWifiSyncKey, wifiAt.toIso8601String());
+      }
+      final cloudAt = state.lastCloudSync;
+      if (cloudAt != null) {
+        await prefs.setString(_lastCloudSyncKey, cloudAt.toIso8601String());
       }
     } on Object {
       // Sharing still works this session if the choice cannot be saved.
@@ -423,11 +476,18 @@ final deviceLinkProvider =
     );
 
 class _AppResumeObserver extends WidgetsBindingObserver {
-  _AppResumeObserver(this.onResume);
+  _AppResumeObserver({required this.onResume, required this.onBackground});
   final void Function() onResume;
+  final void Function() onBackground;
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) onResume();
+    // Publish before the app is no longer on screen (Android background, or
+    // the window hidden on desktop). inactive fires for dialogs, so skip it.
+    if (state == AppLifecycleState.hidden ||
+        state == AppLifecycleState.paused) {
+      onBackground();
+    }
   }
 }

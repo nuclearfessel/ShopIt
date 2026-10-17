@@ -1,9 +1,19 @@
-import 'package:drift/drift.dart';
+import 'package:drift/drift.dart' hide isNull;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shop_it/data/database.dart';
 import 'package:shop_it/services/cloud_mailbox.dart';
 
 void main() {
+  test('sealed mailbox payloads hide list contents', () async {
+    const json = '{"name":"Milk","note":"2%"}';
+    final sealed = await sealMailboxPayload('abcd2345', json);
+    expect(sealed.startsWith('enc1:'), isTrue);
+    expect(sealed.contains('Milk'), isFalse);
+    expect(await openMailboxPayload('abcd2345', sealed), json);
+    expect(await openMailboxPayload('zzzz9999', sealed), isNull);
+    expect(await openMailboxPayload('abcd2345', 'gz:not-ours'), isNull);
+  });
+
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
 
   test('cloud mailbox merges the other device then uploads this one', () async {
@@ -32,14 +42,14 @@ void main() {
       db: computer,
     );
 
-    final names = await (computer.select(computer.shoppingLists)..where(
-          (t) => t.deletedAt.isNull() & t.kind.equals('shopping'),
-        ))
-        .get();
-    expect(
-      [for (final row in names) row.name]..sort(),
-      ['From the computer', 'From the phone', 'Groceries'],
-    );
+    final names = await (computer.select(
+      computer.shoppingLists,
+    )..where((t) => t.deletedAt.isNull() & t.kind.equals('shopping'))).get();
+    expect([for (final row in names) row.name]..sort(), [
+      'From the computer',
+      'From the phone',
+      'Groceries',
+    ]);
 
     await mailbox.syncDevice(
       code: code,
@@ -47,14 +57,14 @@ void main() {
       deviceName: 'the phone',
       db: phone,
     );
-    final phoneNames = await (phone.select(phone.shoppingLists)..where(
-          (t) => t.deletedAt.isNull() & t.kind.equals('shopping'),
-        ))
-        .get();
-    expect(
-      [for (final row in phoneNames) row.name]..sort(),
-      ['From the computer', 'From the phone', 'Groceries'],
-    );
+    final phoneNames = await (phone.select(
+      phone.shoppingLists,
+    )..where((t) => t.deletedAt.isNull() & t.kind.equals('shopping'))).get();
+    expect([for (final row in phoneNames) row.name]..sort(), [
+      'From the computer',
+      'From the phone',
+      'Groceries',
+    ]);
   });
 
   test('same-name lists merge across the cloud mailbox too', () async {
@@ -83,15 +93,18 @@ void main() {
       db: computer,
     );
 
-    final lists = await (computer.select(computer.shoppingLists)..where(
-          (t) => t.deletedAt.isNull() & t.kind.equals('shopping'),
-        ))
-        .get();
+    final lists = await (computer.select(
+      computer.shoppingLists,
+    )..where((t) => t.deletedAt.isNull() & t.kind.equals('shopping'))).get();
     expect(lists, hasLength(1));
-    final items = await (computer.select(computer.shoppingItems)..where(
-          (t) => t.deletedAt.isNull() & t.listId.equals(lists.single.id),
-        ))
-        .get();
-    expect([for (final item in items) item.name]..sort(), ['Apples', 'Bananas']);
+    final items =
+        await (computer.select(computer.shoppingItems)..where(
+              (t) => t.deletedAt.isNull() & t.listId.equals(lists.single.id),
+            ))
+            .get();
+    expect([for (final item in items) item.name]..sort(), [
+      'Apples',
+      'Bananas',
+    ]);
   });
 }
