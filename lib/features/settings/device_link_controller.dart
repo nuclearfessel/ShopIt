@@ -309,27 +309,42 @@ class DeviceLinkController extends Notifier<DeviceLinkState> {
     }
   }
 
-  /// Leaves the cloud household and deletes this device's stored snapshot.
-  /// Wi-Fi sharing is unchanged. The code stays if the stored copy cannot
-  /// be removed, so the delete can be tried again.
-  Future<void> leaveCloud() async {
+  /// Leaves the household and stops Wi-Fi sharing.
+  ///
+  /// Scanning a QR code joins the household and turns Wi-Fi on, so leaving
+  /// has to undo both. The code is forgotten on this device even when the
+  /// broker cannot be reached.
+  Future<void> stopAllSharing() async {
     final token = _token;
     final code = state.cloudCode;
+    await _shutdown();
+    String? warning;
     if (code != null && isHouseholdCode(code)) {
       try {
         await mailbox.forgetDevice(code: code, deviceId: await _deviceId());
-      } on Object catch (error) {
-        if (token != _token) return;
-        state = state.copyWith(cloudError: friendlySyncError(error));
-        return;
+      } on Object {
+        warning = 'Sharing is off. The stored cloud copy could not be removed.';
       }
     }
     if (token != _token) return;
-    state = state.copyWith(clearCloud: true, clearCloudError: true);
+    state = state.copyWith(
+      sharing: false,
+      peerNames: const [],
+      busy: false,
+      clearWifiError: true,
+      clearCloud: true,
+      cloudBusy: false,
+      cloudError: warning,
+      clearCloudError: warning == null,
+    );
     await _save();
     if (token != _token) return;
     _startTimer(token);
   }
+
+  /// Leaves the household. Wi-Fi sharing is turned off with it, because the
+  /// two were started together and lists cannot move without the code.
+  Future<void> leaveCloud() => stopAllSharing();
 
   Future<void> _restore(Object token) async {
     SharedPreferences prefs;

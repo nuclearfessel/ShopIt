@@ -29,7 +29,11 @@ String thisDeviceName() {
 /// Turns connection failures into a sentence for the dialog.
 String friendlySyncError(Object error) {
   if (error is SyncException) return error.message;
-  if (error is SocketException) {
+  if (error is SocketException ||
+      error is HttpException ||
+      error is HandshakeException ||
+      error is TlsException ||
+      error is OSError) {
     return "Can't reach the other device. Keep both apps open on the same "
         'Wi-Fi.';
   }
@@ -80,28 +84,87 @@ class NearbyDevice {
   final int port;
 }
 
+/// One announcement: sent from [from] to the broadcast [to].
+class BeaconSend {
+  const BeaconSend({required this.from, required this.to});
+
+  final InternetAddress from;
+  final InternetAddress to;
+}
+
+/// Virtual, mobile-data, and tunnel adapters are skipped. A failed send on
+/// one of those used to close the socket that listens for the other device.
+bool announcesOnInterface(String name) {
+  final lower = name.toLowerCase();
+  const skip = [
+    'loopback',
+    'virtual',
+    'vethernet',
+    'vmware',
+    'vbox',
+    'docker',
+    'wsl',
+    'hyper-v',
+    'hyperv',
+    'bluetooth',
+    'npcap',
+    'tunnel',
+    'tun',
+    'rmnet',
+    'ccmni',
+    'pdp',
+    'dummy',
+  ];
+  return !skip.any(lower.contains);
+}
+
+/// Directed broadcasts for real network adapters. The global broadcast is
+/// only the fallback, because a computer with a virtual adapter often sends
+/// that packet from an address the phone cannot reach.
+List<BeaconSend> beaconSendsFor(
+  Iterable<({String name, String address})> interfaces,
+) {
+  final sends = <BeaconSend>[];
+  final seen = <String>{};
+  for (final interface in interfaces) {
+    if (!announcesOnInterface(interface.name)) continue;
+    final directed = subnetBroadcast(interface.address);
+    if (directed == null) continue;
+    if (!seen.add('${interface.address}>$directed')) continue;
+    sends.add(
+      BeaconSend(
+        from: InternetAddress(interface.address),
+        to: InternetAddress(directed),
+      ),
+    );
+  }
+  if (sends.isEmpty) {
+    sends.add(
+      BeaconSend(
+        from: InternetAddress.anyIPv4,
+        to: InternetAddress('255.255.255.255'),
+      ),
+    );
+  }
+  return sends;
+}
+
 /// Where a beacon is sent. Phones often drop the global broadcast and
 /// deliver only the subnet broadcast, such as 192.168.1.255.
-Future<List<InternetAddress>> beaconTargets() async {
-  final targets = <InternetAddress>[InternetAddress('255.255.255.255')];
-  final seen = <String>{'255.255.255.255'};
+Future<List<BeaconSend>> beaconTargets() async {
   try {
     final interfaces = await NetworkInterface.list(
       type: InternetAddressType.IPv4,
       includeLinkLocal: false,
     );
-    for (final interface in interfaces) {
-      for (final address in interface.addresses) {
-        final directed = subnetBroadcast(address.address);
-        if (directed != null && seen.add(directed)) {
-          targets.add(InternetAddress(directed));
-        }
-      }
-    }
+    return beaconSendsFor([
+      for (final interface in interfaces)
+        for (final address in interface.addresses)
+          (name: interface.name, address: address.address),
+    ]);
   } on SocketException {
-    // Keep the global broadcast.
+    return beaconSendsFor(const []);
   }
-  return targets;
 }
 
 /// The /24 broadcast for [ipv4], or null when [ipv4] is not a usable address.
@@ -170,21 +233,52 @@ class DeviceDiscovery {
 
   void _send() {
     _dropStale(notify: true);
-    final socket = _socket;
-    if (socket == null) return;
+    if (_socket == null) return;
     final bytes = utf8.encode(
       ShopItBeacon(port: _httpPort, id: _deviceId, name: _name).encode(),
     );
+    // A separate socket per announcement. Sending a broadcast the adapter
+    // rejects must not close the socket that is listening for replies.
     unawaited(() async {
-      for (final target in await beaconTargets()) {
-        if (!identical(socket, _socket)) return;
-        try {
-          socket.send(bytes, target, shopItBeaconPort);
-        } on SocketException {
-          // The network went away; the next announcement tries again.
-        }
+      final targets = await beaconTargets();
+      var sent = false;
+      for (final target in targets) {
+        if (_socket == null) return;
+        sent = await _sendOne(bytes, target) || sent;
+      }
+      final usedGlobal = targets.any(
+        (target) => target.to.address == '255.255.255.255',
+      );
+      if (!sent && !usedGlobal && _socket != null) {
+        await _sendOne(
+          bytes,
+          BeaconSend(
+            from: InternetAddress.anyIPv4,
+            to: InternetAddress('255.255.255.255'),
+          ),
+        );
       }
     }());
+  }
+
+  Future<bool> _sendOne(List<int> bytes, BeaconSend target) async {
+    RawDatagramSocket? sender;
+    try {
+      sender = await RawDatagramSocket.bind(target.from, 0, reuseAddress: true);
+      try {
+        sender.broadcastEnabled = true;
+      } on Object {
+        // Android can reject this option. A directed broadcast may
+        // still leave from this address.
+      }
+      sender.send(bytes, target.to, shopItBeaconPort);
+      return true;
+    } on Object {
+      // This adapter cannot take the announcement. The next one tries.
+      return false;
+    } finally {
+      sender?.close();
+    }
   }
 
   void _onEvent(RawSocketEvent event) {
@@ -387,7 +481,8 @@ Future<String?> syncWithDevice({
     jsonEncode(snapshot.toJson()),
   );
   final bytes = utf8.encode(sealed);
-  final client = HttpClient();
+  final client = HttpClient()..findProxy = ((_) => 'DIRECT');
+  client.connectionTimeout = timeout;
   try {
     final request = await client.post(host, port, '/v1/sync').timeout(timeout);
     request.headers.set(
@@ -423,6 +518,22 @@ Future<String?> syncWithDevice({
   } on SyncException {
     rethrow;
   } on SocketException {
+    throw const SyncException(
+      "Can't reach the other device. Keep both apps open on the same Wi-Fi.",
+    );
+  } on HttpException {
+    throw const SyncException(
+      "Can't reach the other device. Keep both apps open on the same Wi-Fi.",
+    );
+  } on HandshakeException {
+    throw const SyncException(
+      "Can't reach the other device. Keep both apps open on the same Wi-Fi.",
+    );
+  } on TlsException {
+    throw const SyncException(
+      "Can't reach the other device. Keep both apps open on the same Wi-Fi.",
+    );
+  } on OSError {
     throw const SyncException(
       "Can't reach the other device. Keep both apps open on the same Wi-Fi.",
     );

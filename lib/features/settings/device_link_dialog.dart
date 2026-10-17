@@ -152,10 +152,12 @@ class _DeviceLinkDialogState extends ConsumerState<DeviceLinkDialog> {
                   ),
                 ),
                 Tip(
-                  'Stop syncing over the internet',
+                  'Leave this household and stop sharing',
                   child: TextButton(
-                    onPressed: link.cloudBusy ? null : notifier.leaveCloud,
-                    child: const Text('Leave cloud sync'),
+                    onPressed: link.cloudBusy || link.busy
+                        ? null
+                        : notifier.stopAllSharing,
+                    child: const Text('Leave this household'),
                   ),
                 ),
                 if (link.cloudError != null) ...[
@@ -229,6 +231,16 @@ class _DeviceLinkDialogState extends ConsumerState<DeviceLinkDialog> {
         ),
       ),
       actions: [
+        if (link.sharing || link.cloudLinked)
+          Tip(
+            'Leave this household and stop sharing',
+            child: TextButton(
+              onPressed: link.busy || link.cloudBusy
+                  ? null
+                  : notifier.stopAllSharing,
+              child: const Text('Leave this household'),
+            ),
+          ),
         Tip(
           'Close',
           child: TextButton(

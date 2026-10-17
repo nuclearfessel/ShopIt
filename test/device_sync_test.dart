@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:drift/drift.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -214,6 +216,25 @@ void main() {
     expect(subnetBroadcast('10.0.0.4'), '10.0.0.255');
     expect(subnetBroadcast('127.0.0.1'), null);
     expect(subnetBroadcast('not-an-address'), null);
+    expect(announcesOnInterface('Wi-Fi'), isTrue);
+    expect(announcesOnInterface('wlan0'), isTrue);
+    expect(announcesOnInterface('vEthernet (Default Switch)'), isFalse);
+    expect(announcesOnInterface('rmnet_data0'), isFalse);
+    final sends = beaconSendsFor(const [
+      (name: 'vEthernet (Default Switch)', address: '172.22.224.1'),
+      (name: 'Wi-Fi', address: '192.168.1.20'),
+    ]);
+    expect(sends, hasLength(1));
+    expect(sends.single.from.address, '192.168.1.20');
+    expect(sends.single.to.address, '192.168.1.255');
+    final fallback = beaconSendsFor(const [
+      (name: 'vEthernet (WSL)', address: '172.22.224.1'),
+    ]);
+    expect(fallback.single.to.address, '255.255.255.255');
+    expect(
+      friendlySyncError(const HttpException('closed')),
+      "Can't reach the other device. Keep both apps open on the same Wi-Fi.",
+    );
   });
 
   test('a beacon says which device is sharing and where', () {
