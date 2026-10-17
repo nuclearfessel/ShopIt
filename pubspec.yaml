@@ -19,7 +19,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # Each app update merged to main bumps this by 0.0.1 (0.0.3, 0.0.4, …).
 # The release workflow publishes this version and keeps only the three newest
 # releases.
-version: 0.0.9+9
+version: 0.0.10+10
 
 environment:
   sdk: ^3.13.3
@@ -80,6 +80,7 @@ flutter:
 
   assets:
     - assets/app_icon.png
+    - assets/catalog.json
 
   # Roboto (Apache 2.0, copied from the Flutter SDK) so the typeface is the same
   # on Windows and Android instead of Windows' Segoe UI.
