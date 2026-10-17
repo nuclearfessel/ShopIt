@@ -139,6 +139,10 @@ class DeviceLinkController extends Notifier<DeviceLinkState> {
       if (_sameNames(names, state.peerNames)) return;
       state = state.copyWith(peerNames: names);
     };
+    _host.readHousehold = () => state.cloudCode;
+    _host.onHousehold = (code) {
+      unawaited(_noteHousehold(token, code));
+    };
     final observer = _AppResumeObserver(
       onResume: () {
         if (token != _token) return;
@@ -167,33 +171,73 @@ class DeviceLinkController extends Notifier<DeviceLinkState> {
   }
 
   /// Starts looking for the other device on this Wi-Fi and syncing with it.
+  ///
+  /// Also turns on cloud sync. The two devices pass the household code the
+  /// next time they meet on Wi-Fi, and after that lists keep syncing when
+  /// Wi-Fi is off.
   Future<void> startSharing() async {
     final token = _token;
-    if (state.busy || state.sharing) return;
-    state = state.copyWith(busy: true, clearWifiError: true);
-    try {
-      final db = ref.read(databaseProvider);
-      final port = await _host.start(db: db);
-      if (token != _token) return;
-      await _discovery.start(
-        httpPort: port,
-        deviceId: await _deviceId(),
-        name: thisDeviceName(),
-      );
-      if (token != _token) return;
-      await _multicast(true);
-      state = state.copyWith(sharing: true, busy: false, clearWifiError: true);
-      await _save();
-      _startTimer(token);
-    } on Object catch (error) {
-      await _shutdown();
-      if (token != _token) return;
-      state = state.copyWith(
-        sharing: false,
-        busy: false,
-        wifiError: friendlySyncError(error),
-      );
+    if (state.busy) return;
+    if (!state.sharing) {
+      state = state.copyWith(busy: true, clearWifiError: true);
+      try {
+        final db = ref.read(databaseProvider);
+        final port = await _host.start(db: db);
+        if (token != _token) return;
+        await _discovery.start(
+          httpPort: port,
+          deviceId: await _deviceId(),
+          name: thisDeviceName(),
+        );
+        if (token != _token) return;
+        await _multicast(true);
+        state = state.copyWith(
+          sharing: true,
+          busy: false,
+          clearWifiError: true,
+        );
+        await _save();
+      } on Object catch (error) {
+        await _shutdown();
+        if (token != _token) return;
+        state = state.copyWith(
+          sharing: false,
+          busy: false,
+          wifiError: friendlySyncError(error),
+        );
+      }
     }
+    if (token != _token) return;
+    await _ensureCloud(token);
+  }
+
+  /// Makes sure internet sync is on, even when this device is not on Wi-Fi.
+  Future<void> _ensureCloud(Object token) async {
+    if (token != _token) return;
+    if (!state.cloudLinked) {
+      final code = await mailbox.createHousehold();
+      if (token != _token) return;
+      state = state.copyWith(cloudCode: code, clearCloudError: true);
+      await _save();
+    }
+    if (token != _token) return;
+    _startTimer(token);
+    await _syncCloud(token);
+  }
+
+  Future<void> _noteHousehold(Object token, String? remote) async {
+    if (token != _token) return;
+    final chosen = pickHouseholdCode(
+      state.cloudCode,
+      remote,
+      keepLocal: state.lastCloudSync != null,
+    );
+    if (chosen == null || chosen == state.cloudCode) return;
+    state = state.copyWith(cloudCode: chosen, clearCloudError: true);
+    await _save();
+    if (token != _token) return;
+    _startTimer(token);
+    await _syncCloud(token);
   }
 
   /// Stops Wi-Fi sharing and forgets nearby devices.
@@ -329,8 +373,10 @@ class DeviceLinkController extends Notifier<DeviceLinkState> {
       }
     }
     if (token != _token) return;
-    _startTimer(token);
-    if (state.cloudLinked) unawaited(_syncCloud(token));
+    if (!state.sharing) {
+      _startTimer(token);
+      if (state.cloudLinked) unawaited(_syncCloud(token));
+    }
   }
 
   void _startTimer(Object token) {
@@ -361,7 +407,14 @@ class DeviceLinkController extends Notifier<DeviceLinkState> {
     try {
       final db = ref.read(databaseProvider);
       for (final peer in peers) {
-        await syncWithDevice(db: db, host: peer.host, port: peer.port);
+        final remote = await syncWithDevice(
+          db: db,
+          host: peer.host,
+          port: peer.port,
+          household: state.cloudCode,
+        );
+        if (token != _token) return;
+        await _noteHousehold(token, remote);
         if (token != _token) return;
         state = state.copyWith(
           lastWifiSync: DateTime.now(),

@@ -80,7 +80,7 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
           name,
           category: list.autoCategorize ? category : '',
         );
-    setState(_controller.clear);
+    _dismissSearch();
   }
 
   /// Deletes the checked items right away, with an Undo in a snack bar.
@@ -161,7 +161,14 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
     if (e.category.isNotEmpty && e.category != category) {
       await db.assignCategory(e.name, e.category);
     }
-    if (mounted) setState(_controller.clear);
+    if (mounted) _dismissSearch();
+  }
+
+  /// Clears the query and closes the suggestion menu.
+  void _dismissSearch() {
+    _controller.clear();
+    _searchFocus.unfocus();
+    setState(() {});
   }
 
   /// Enter key: jump to an item already on this list or in the pantry, otherwise
@@ -182,7 +189,7 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
           context,
           '${onList.first.name} is already on this list.',
         );
-        setState(_controller.clear);
+        _dismissSearch();
       }
       return;
     }
@@ -195,7 +202,7 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
           context,
           'You already have ${held.first.name} in the pantry.',
         );
-        setState(_controller.clear);
+        _dismissSearch();
       }
       return;
     }
@@ -583,56 +590,71 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
                   onSubmitted: (_) => _submit(current),
                 ),
               ),
-              CatalogSuggestions(
-                query: _controller.text,
-                showRecent: _searchFocus.hasFocus,
-                onList: items.value ?? const [],
-                inPantry: pantryItems,
-                history: history,
-                onPick: (i) => _add(current, i.name, i.category),
-                onOpenList: (item) {
-                  _revealItem(item.id);
-                  showInfoSnackBar(
-                    context,
-                    '${item.name} is already on this list.',
-                  );
-                  setState(_controller.clear);
-                },
-                onPantry: (item) {
-                  showInfoSnackBar(
-                    context,
-                    'You already have ${item.name} in the pantry.',
-                  );
-                  setState(_controller.clear);
-                },
-                onHistory: (entry) => _add(current, entry.name, entry.category),
-              ),
               Expanded(
-                child: items.when(
-                  loading: () => const SizedBox.shrink(),
-                  error: (e, _) => Center(child: Text('Error: $e')),
-                  data: (rows) => rows.isEmpty && !current.showEmptyCategories
-                      ? const Center(child: Text('Nothing to buy'))
-                      : ListView(
-                          children: [
-                            ..._grouped(
-                              rows,
-                              categoryOrder,
-                              db,
-                              all,
-                              current.id,
-                              taxCtx,
-                              itemKeys: _itemKeys,
-                              onUncheckAll: () => db.uncheckAll(current.id),
-                              onDeleteAll: () => _deleteChecked(current.id),
-                              useCategories: current.useCategories,
-                              showEmpty: current.showEmptyCategories,
-                              categoryNames: categoryNames,
-                              colors: categoryColors,
-                              onHeaderTap: recolor,
-                            ),
-                          ],
-                        ),
+                child: Stack(
+                  children: [
+                    Positioned.fill(
+                      child: items.when(
+                        loading: () => const SizedBox.shrink(),
+                        error: (e, _) => Center(child: Text('Error: $e')),
+                        data: (rows) =>
+                            rows.isEmpty && !current.showEmptyCategories
+                            ? const Center(child: Text('Nothing to buy'))
+                            : ListView(
+                                children: [
+                                  ..._grouped(
+                                    rows,
+                                    categoryOrder,
+                                    db,
+                                    all,
+                                    current.id,
+                                    taxCtx,
+                                    itemKeys: _itemKeys,
+                                    onUncheckAll: () =>
+                                        db.uncheckAll(current.id),
+                                    onDeleteAll: () =>
+                                        _deleteChecked(current.id),
+                                    useCategories: current.useCategories,
+                                    showEmpty: current.showEmptyCategories,
+                                    categoryNames: categoryNames,
+                                    colors: categoryColors,
+                                    onHeaderTap: recolor,
+                                  ),
+                                ],
+                              ),
+                      ),
+                    ),
+                    Positioned(
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      child: CatalogSuggestions(
+                        query: _controller.text,
+                        showRecent: _searchFocus.hasFocus,
+                        onList: items.value ?? const [],
+                        inPantry: pantryItems,
+                        history: history,
+                        onPick: (i) => _add(current, i.name, i.category),
+                        onOpenList: (item) {
+                          _revealItem(item.id);
+                          showInfoSnackBar(
+                            context,
+                            '${item.name} is already on this list.',
+                          );
+                          _dismissSearch();
+                        },
+                        onPantry: (item) {
+                          showInfoSnackBar(
+                            context,
+                            'You already have ${item.name} in the pantry.',
+                          );
+                          _dismissSearch();
+                        },
+                        onHistory: (entry) =>
+                            _add(current, entry.name, entry.category),
+                      ),
+                    ),
+                  ],
                 ),
               ),
               _TotalBar(rows: items.value ?? const [], tax: taxCtx),

@@ -202,6 +202,22 @@ void main() {
     expect(await shoppingNames(client), contains('From the phone'));
   });
 
+  test('two new household codes collapse to one', () {
+    expect(
+      pickHouseholdCode('mmmmmmmm', 'aaaaaaaa', keepLocal: false),
+      'aaaaaaaa',
+    );
+    expect(
+      pickHouseholdCode('aaaaaaaa', 'mmmmmmmm', keepLocal: false),
+      'aaaaaaaa',
+    );
+    expect(
+      pickHouseholdCode('mmmmmmmm', 'aaaaaaaa', keepLocal: true),
+      'mmmmmmmm',
+    );
+    expect(pickHouseholdCode(null, 'aaaaaaaa', keepLocal: false), 'aaaaaaaa');
+  });
+
   test('a beacon says which device is sharing and where', () {
     final beacon = ShopItBeacon.tryParse('SHOPIT1\t47821\tabc\tthe phone');
     expect(beacon?.port, shopItSyncPort);

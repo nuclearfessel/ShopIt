@@ -5,6 +5,7 @@ import 'dart:typed_data';
 
 import '../data/database.dart';
 import '../data/device_sync.dart';
+import 'cloud_mailbox.dart';
 
 /// Port Shop-it listens on when this device is sharing lists.
 const shopItSyncPort = 47821;
@@ -181,6 +182,12 @@ class DeviceHost {
   /// Called after a sync has been merged into the local database.
   void Function()? onSynced;
 
+  /// Household code to send back, when this device already has one.
+  String? Function()? readHousehold;
+
+  /// The other device included a household code in its sync.
+  void Function(String code)? onHousehold;
+
   bool get running => _server != null;
   int? get port => _server?.port;
 
@@ -248,10 +255,21 @@ class DeviceHost {
       if (decoded is! Map) {
         throw const SyncException('Could not read that sync.');
       }
+      final remoteCode = decoded['household'];
+      if (remoteCode is String && isHouseholdCode(remoteCode)) {
+        try {
+          onHousehold?.call(remoteCode);
+        } on Object {
+          // The lists still merge if the code cannot be saved yet.
+        }
+      }
       await db.applySnapshot(SyncSnapshot.fromJson(decoded));
       final reply = await db.exportSnapshot();
+      final json = reply.toJson();
+      final mine = readHousehold?.call();
+      if (mine != null && isHouseholdCode(mine)) json['household'] = mine;
       response.headers.contentType = ContentType.json;
-      response.write(jsonEncode(reply.toJson()));
+      response.write(jsonEncode(json));
       try {
         onSynced?.call();
       } on Object {
@@ -287,20 +305,45 @@ Future<String> _readBody(HttpRequest request) async {
   return utf8.decode(builder.takeBytes());
 }
 
+/// Picks the household code both devices should use.
+///
+/// A mailbox that has already synced is kept. Otherwise the two codes
+/// collapse to one so the devices meet in the same mailbox.
+String? pickHouseholdCode(
+  String? local,
+  String? remote, {
+  required bool keepLocal,
+}) {
+  final localOk = local != null && isHouseholdCode(local);
+  final remoteOk = remote != null && isHouseholdCode(remote);
+  if (localOk && keepLocal) return local;
+  if (!remoteOk) return localOk ? local : null;
+  if (!localOk) return remote;
+  if (local == remote) return local;
+  return local!.compareTo(remote!) <= 0 ? local : remote;
+}
+
 /// Sends this device's lists to [host] and applies what comes back.
-Future<void> syncWithDevice({
+///
+/// Returns the household code the other device sent, when it sent one.
+Future<String?> syncWithDevice({
   required AppDatabase db,
   required String host,
   required int port,
+  String? household,
   Duration timeout = const Duration(seconds: 8),
 }) async {
   final snapshot = await db.exportSnapshot();
+  final payload = snapshot.toJson();
+  if (household != null && isHouseholdCode(household)) {
+    payload['household'] = household;
+  }
   final client = HttpClient();
   try {
     final request = await client.post(host, port, '/v1/sync').timeout(timeout);
     request.headers.set(shopItSyncHeader, '1');
     request.headers.contentType = ContentType.json;
-    request.write(jsonEncode(snapshot.toJson()));
+    request.write(jsonEncode(payload));
     final response = await request.close().timeout(timeout);
     final text = await utf8.decoder.bind(response).join().timeout(timeout);
     if (response.statusCode != HttpStatus.ok) {
@@ -313,6 +356,9 @@ Future<void> syncWithDevice({
       );
     }
     await db.applySnapshot(SyncSnapshot.fromJson(decoded));
+    final remote = decoded['household'];
+    if (remote is String && isHouseholdCode(remote)) return remote;
+    return null;
   } on SyncException {
     rethrow;
   } on SocketException {

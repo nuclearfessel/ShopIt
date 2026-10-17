@@ -98,8 +98,8 @@ class SettingsDialog extends ConsumerWidget {
               const Divider(height: 24),
               heading('Devices'),
               Text(
-                'Share on this Wi-Fi when both apps are nearby, or pair once '
-                'with a cloud code to sync over the internet.',
+                'Share lists on this Wi-Fi, and over the internet when Wi-Fi '
+                'is off. Both apps need to be open.',
                 style: theme.textTheme.bodyMedium,
               ),
               const SizedBox(height: 8),
@@ -135,7 +135,11 @@ class SettingsDialog extends ConsumerWidget {
                     context: context,
                     builder: (_) => const DeviceLinkDialog(),
                   ),
-                  child: Text(link.sharing ? 'Sharing on' : 'Share lists'),
+                  child: Text(
+                    link.sharing || link.cloudLinked
+                        ? 'Sharing on'
+                        : 'Share lists',
+                  ),
                 ),
               ),
               const Divider(height: 24),

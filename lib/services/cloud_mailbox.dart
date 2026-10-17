@@ -20,6 +20,47 @@ const cloudMailboxVersion = 1;
 const defaultCloudMqttHost = 'broker.hivemq.com';
 const defaultCloudMqttPort = 8883;
 
+/// One way to reach the mailbox. WebSocket is tried as well as MQTT-over-TLS
+/// because mobile networks often block port 8883 while still allowing the
+/// websocket ports.
+class CloudEndpoint {
+  const CloudEndpoint({
+    required this.server,
+    required this.port,
+    required this.websocket,
+  });
+
+  final String server;
+  final int port;
+  final bool websocket;
+
+  @override
+  bool operator ==(Object other) =>
+      other is CloudEndpoint &&
+      other.server == server &&
+      other.port == port &&
+      other.websocket == websocket;
+
+  @override
+  int get hashCode => Object.hash(server, port, websocket);
+}
+
+/// Order: websocket TLS first (works off Wi-Fi), then MQTT TLS, then plain
+/// websocket. A later attempt is only used when the earlier one cannot connect.
+const cloudEndpoints = <CloudEndpoint>[
+  CloudEndpoint(
+    server: 'wss://broker.hivemq.com/mqtt',
+    port: 8884,
+    websocket: true,
+  ),
+  CloudEndpoint(server: defaultCloudMqttHost, port: 8883, websocket: false),
+  CloudEndpoint(
+    server: 'ws://broker.hivemq.com/mqtt',
+    port: 8000,
+    websocket: true,
+  ),
+];
+
 const _mailboxMacBytes = 16;
 const _mailboxNonceBytes = 12;
 
@@ -121,6 +162,7 @@ class CloudMailbox {
 
   final String host;
   final int port;
+  CloudEndpoint? _preferred;
 
   /// Creates a household code. The mailbox is created when the first device
   /// uploads a snapshot.
@@ -165,10 +207,9 @@ class CloudMailbox {
     String code, {
     String? ignoreDeviceId,
   }) async {
-    final client = _client('r-${_shortId()}');
+    final client = await _open('r-${_shortId()}');
     final devices = <String, CloudDeviceEntry>{};
     try {
-      await _connect(client);
       final topic = _householdTopic(code);
       client.subscribe(topic, MqttQos.atLeastOnce);
       final pending = <Future<void>>[];
@@ -209,9 +250,8 @@ class CloudMailbox {
   }
 
   Future<void> _publish(String code, CloudDeviceEntry entry) async {
-    final client = _client('w-${_shortId()}');
+    final client = await _open('w-${_shortId()}');
     try {
-      await _connect(client);
       final topic = _deviceTopic(code, entry.deviceId);
       final builder = MqttClientPayloadBuilder();
       builder.addString(
@@ -240,16 +280,44 @@ class CloudMailbox {
     }
   }
 
-  MqttServerClient _client(String id) {
-    final client = MqttServerClient.withPort(host, id, port);
-    client.logging(on: false);
-    client.keepAlivePeriod = 20;
-    client.connectTimeoutPeriod = 10000;
-    client.secure = port == 8883 || port == 8884;
-    client.useWebSocket = port == 8000 || port == 8884;
-    client.setProtocolV311();
-    client.autoReconnect = false;
-    return client;
+  List<CloudEndpoint> get _endpoints {
+    if (host != defaultCloudMqttHost || port != defaultCloudMqttPort) {
+      return [
+        CloudEndpoint(
+          server: host,
+          port: port,
+          websocket: port == 8000 || port == 8884,
+        ),
+      ];
+    }
+    final preferred = _preferred;
+    if (preferred == null) return cloudEndpoints;
+    return [
+      preferred,
+      for (final endpoint in cloudEndpoints)
+        if (endpoint != preferred) endpoint,
+    ];
+  }
+
+  /// Connects through the first endpoint that answers. Remembers it so the
+  /// next sync does not wait on a port this network blocks.
+  Future<MqttServerClient> _open(String id) async {
+    Object? last;
+    for (final endpoint in _endpoints) {
+      final client = buildCloudMqttClient(endpoint: endpoint, clientId: id);
+      try {
+        await _connect(client);
+        _preferred = endpoint;
+        return client;
+      } on Object catch (error) {
+        last = error;
+        _disconnect(client);
+      }
+    }
+    if (last is SyncException) throw last;
+    throw const SyncException(
+      "Can't reach the cloud mailbox. Check the internet connection.",
+    );
   }
 
   Future<void> _connect(MqttServerClient client) async {
@@ -282,6 +350,31 @@ class CloudMailbox {
       // Already closed.
     }
   }
+}
+
+/// Builds a client for [endpoint]. WebSocket must not also set [MqttServerClient.secure]:
+/// that flag turns the websocket off and speaks MQTT-TLS instead.
+MqttServerClient buildCloudMqttClient({
+  required CloudEndpoint endpoint,
+  required String clientId,
+}) {
+  final client = MqttServerClient.withPort(
+    endpoint.server,
+    clientId,
+    endpoint.port,
+  );
+  client.logging(on: false);
+  client.keepAlivePeriod = 20;
+  client.connectTimeoutPeriod = 8000;
+  client.connectionTimeout = 8000;
+  client.useWebSocket = endpoint.websocket;
+  client.secure = !endpoint.websocket;
+  if (endpoint.websocket) {
+    client.websocketProtocols = MqttClientConstants.protocolsSingleDefault;
+  }
+  client.setProtocolV311();
+  client.autoReconnect = false;
+  return client;
 }
 
 String _householdTopic(String code) => 'shopit/p/$code/+';

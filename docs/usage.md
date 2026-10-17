@@ -4,19 +4,27 @@ Shop-it runs the same way on Windows and Android. Use <img src="icons/shopping.p
 
 Open **Settings** from <img src="icons/settings.png" width="22" height="22" alt="Settings"> for appearance, sales tax, sharing, and About. The list menu is <img src="icons/more.png" width="22" height="22" alt="List options">.
 
-## Icons
+## Controls
 
-| | Control | | Control |
-| --- | --- | --- | --- |
-| <img src="icons/shopping.png" width="28" height="28" alt=""> | Shopping | <img src="icons/pantry.png" width="28" height="28" alt=""> | Pantry |
-| <img src="icons/settings.png" width="28" height="28" alt=""> | Settings | <img src="icons/more.png" width="28" height="28" alt=""> | List options |
-| <img src="icons/search.png" width="28" height="28" alt=""> | Search or add | <img src="icons/plus.png" width="28" height="28" alt=""> | Add the typed name |
-| <img src="icons/pen.png" width="28" height="28" alt=""> | Edit before adding | <img src="icons/history.png" width="28" height="28" alt=""> | History |
-| <img src="icons/new-list.png" width="28" height="28" alt=""> | New list | <img src="icons/uncheck.png" width="28" height="28" alt=""> | Uncheck all |
-| <img src="icons/delete.png" width="28" height="28" alt=""> | Delete checked items | <img src="icons/bin.png" width="28" height="28" alt=""> | Delete one item |
-| <img src="icons/tax.png" width="28" height="28" alt=""> | Sales tax | <img src="icons/locate.png" width="28" height="28" alt=""> | Use my location |
-| <img src="icons/sun.png" width="28" height="28" alt=""> | Light | <img src="icons/moon.png" width="28" height="28" alt=""> | Dark |
-| <img src="icons/monitor.png" width="28" height="28" alt=""> | System theme | | |
+Each picture is a button on the screen.
+
+| | |
+| --- | --- |
+| <img src="icons/shopping.png" width="28" height="28" alt=""> | **Shopping** switches to the lists of things to buy. |
+| <img src="icons/pantry.png" width="28" height="28" alt=""> | **Pantry** switches to what you already have. |
+| <img src="icons/settings.png" width="28" height="28" alt=""> | **Settings** opens appearance, sales tax, sharing, and About. |
+| <img src="icons/more.png" width="28" height="28" alt=""> | **List options** opens the menu for the list you are looking at. |
+| <img src="icons/plus.png" width="28" height="28" alt=""> | **Add** puts the name in the search field onto the list. |
+| <img src="icons/pen.png" width="28" height="28" alt=""> | **Edit details** sets quantity, unit, category, price, tax, and a note before the item is added. |
+| <img src="icons/history.png" width="28" height="28" alt=""> | **History** opens names you have added before. |
+| <img src="icons/new-list.png" width="28" height="28" alt=""> | **New list** starts another shopping or pantry list. |
+| <img src="icons/uncheck.png" width="28" height="28" alt=""> | **Uncheck all** moves everything out of the cart and back onto the list. |
+| <img src="icons/delete.png" width="28" height="28" alt=""> | **Delete checked items** removes what is in the cart. |
+| <img src="icons/bin.png" width="28" height="28" alt=""> | **Delete** removes one item, list, category, or rate. |
+| <img src="icons/locate.png" width="28" height="28" alt=""> | **Use my location** looks up a sales-tax rate for where you are. |
+| <img src="icons/monitor.png" width="28" height="28" alt=""> | **System** follows the device theme. |
+| <img src="icons/sun.png" width="28" height="28" alt=""> | **Light** uses the light theme. |
+| <img src="icons/moon.png" width="28" height="28" alt=""> | **Dark** uses the dark theme. |
 
 ## Shopping
 
@@ -89,13 +97,15 @@ A failure stays on that channel. A successful Wi-Fi sync does not clear a cloud 
 
 ### Same Wi-Fi
 
-Turn on **Share on this Wi-Fi** on both devices. Keep both apps open on the same network. Lists and items appear on the other device without typing an address or code.
+Turn on **Share on this Wi-Fi** on both devices. Keep both apps open on the same network. Lists and items appear on the other device without typing an address or code. That also turns on internet sync and passes a household code to the other device, so lists keep syncing after you leave the network.
 
-If Windows asks whether to allow Shop-it on private networks, choose allow. The phone cannot reach the computer on Wi-Fi until you do.
+If Windows asks whether to allow Shop-it on private networks, choose allow. The phone cannot reach the computer on Wi-Fi until you do. Internet sync does not need that prompt.
 
 ### Over the internet
 
-When you are not on the same Wi-Fi (for example the phone is on mobile data):
+Lists keep syncing when Wi-Fi is off, including when the phone is on mobile data. Both apps need an internet connection while they are open. They do not need to be nearby, and they do not need to be online at the exact same moment.
+
+If the devices have not met on Wi-Fi yet, pair them by hand:
 
 1. On one device, tap **Create cloud code**.
 2. On the other, enter that eight-character code and tap **Join with code**.
