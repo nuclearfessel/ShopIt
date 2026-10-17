@@ -8,7 +8,7 @@
 PRODUCT_NAME = ShopIt
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = com.nuclearfessel.shop_it
+PRODUCT_BUNDLE_IDENTIFIER = com.nuclearfessel.shopit
 
 // The copyright displayed in application information
 PRODUCT_COPYRIGHT = Copyright © 2026 com.nuclearfessel. All rights reserved.

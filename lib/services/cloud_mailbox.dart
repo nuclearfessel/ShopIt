@@ -14,9 +14,10 @@ import '../data/device_sync.dart';
 const cloudMailboxVersion = 1;
 
 /// MQTT broker used only as an encrypted drop box. List JSON is sealed with
-/// the household code before it is published, so the broker never sees list
-/// contents. Retained messages hold the latest snapshot per device so the
-/// phone and computer do not need to be online at the same time.
+/// the secret half of the household code. The public mailbox id is the only
+/// part that appears in the topic, so seeing the topic does not reveal the
+/// key. Retained messages hold the latest snapshot per device so the phone
+/// and computer do not need to be online at the same time.
 const defaultCloudMqttHost = 'broker.hivemq.com';
 const defaultCloudMqttPort = 8883;
 
@@ -45,8 +46,8 @@ class CloudEndpoint {
   int get hashCode => Object.hash(server, port, websocket);
 }
 
-/// Order: websocket TLS first (works off Wi-Fi), then MQTT TLS, then plain
-/// websocket. A later attempt is only used when the earlier one cannot connect.
+/// TLS only. Plain websocket is not used, because it would expose the
+/// ciphertext and the mailbox id without encryption on the connection.
 const cloudEndpoints = <CloudEndpoint>[
   CloudEndpoint(
     server: 'wss://broker.hivemq.com/mqtt',
@@ -54,11 +55,6 @@ const cloudEndpoints = <CloudEndpoint>[
     websocket: true,
   ),
   CloudEndpoint(server: defaultCloudMqttHost, port: 8883, websocket: false),
-  CloudEndpoint(
-    server: 'ws://broker.hivemq.com/mqtt',
-    port: 8000,
-    websocket: true,
-  ),
 ];
 
 const _mailboxMacBytes = 16;
@@ -153,7 +149,7 @@ class CloudMailboxDoc {
 }
 
 /// Reads and writes the household mailbox. Payloads on the broker are
-/// ciphertext sealed with the household code.
+/// ciphertext sealed with the secret half of the household code.
 class CloudMailbox {
   CloudMailbox({
     this.host = defaultCloudMqttHost,
@@ -201,6 +197,29 @@ class CloudMailbox {
       snapshot: await db.exportSnapshot(),
     );
     await _publish(code, mine);
+  }
+
+  /// Removes this device's retained snapshot. An empty retained publish is
+  /// how the broker deletes the stored copy.
+  Future<void> forgetDevice({
+    required String code,
+    required String deviceId,
+  }) async {
+    final client = await _open('d-${_shortId()}');
+    try {
+      final topic = _deviceTopic(code, deviceId);
+      final empty = MqttClientPayloadBuilder().payload!;
+      client.publishMessage(topic, MqttQos.atLeastOnce, empty, retain: true);
+      await Future<void>.delayed(const Duration(milliseconds: 400));
+    } on SyncException {
+      rethrow;
+    } on Object {
+      throw const SyncException(
+        'Could not remove the stored cloud copy. Leave sync again when you are online.',
+      );
+    } finally {
+      _disconnect(client);
+    }
   }
 
   Future<Map<String, CloudDeviceEntry>> _collect(
@@ -282,13 +301,7 @@ class CloudMailbox {
 
   List<CloudEndpoint> get _endpoints {
     if (host != defaultCloudMqttHost || port != defaultCloudMqttPort) {
-      return [
-        CloudEndpoint(
-          server: host,
-          port: port,
-          websocket: port == 8000 || port == 8884,
-        ),
-      ];
+      return [CloudEndpoint(server: host, port: port, websocket: port == 8884)];
     }
     final preferred = _preferred;
     if (preferred == null) return cloudEndpoints;
@@ -377,9 +390,14 @@ MqttServerClient buildCloudMqttClient({
   return client;
 }
 
-String _householdTopic(String code) => 'shopit/p/$code/+';
+String _householdTopic(String code) => 'shopit/p/${householdMailboxId(code)}/+';
 
-String _deviceTopic(String code, String deviceId) => 'shopit/p/$code/$deviceId';
+String _deviceTopic(String code, String deviceId) =>
+    'shopit/p/${householdMailboxId(code)}/$deviceId';
+
+/// Topic for one device. The secret half of [code] is not included.
+String mailboxDeviceTopic(String code, String deviceId) =>
+    _deviceTopic(code, deviceId);
 
 String? _deviceIdFromTopic(String topic) {
   final parts = topic.split('/');
@@ -449,9 +467,34 @@ Future<String?> openMailboxPayload(String code, String stored) async {
 
 Future<SecretKey> _mailboxKey(String code) async {
   final hash = await Sha256().hash(
-    utf8.encode('shop-it-mailbox-v1:${code.trim().toLowerCase()}'),
+    utf8.encode('shop-it-mailbox-v2:${householdSecret(code)}'),
   );
   return SecretKey(hash.bytes);
+}
+
+/// HMAC of [body] using the secret half of [code]. Sent with a Wi-Fi sync
+/// so a device that does not know the code cannot read or change lists.
+Future<String> mailboxBodyMac(String code, List<int> body) async {
+  final mac = await Hmac.sha256().calculateMac(
+    body,
+    secretKey: await _mailboxKey(code),
+  );
+  return base64Url.encode(mac.bytes);
+}
+
+/// True when [presented] is the MAC this device would produce for [body].
+Future<bool> mailboxBodyMacMatches(
+  String code,
+  List<int> body,
+  String presented,
+) async {
+  final expected = await mailboxBodyMac(code, body);
+  if (expected.length != presented.length) return false;
+  var diff = 0;
+  for (var i = 0; i < expected.length; i++) {
+    diff |= expected.codeUnitAt(i) ^ presented.codeUnitAt(i);
+  }
+  return diff == 0;
 }
 
 String _shortId() {
@@ -459,21 +502,52 @@ String _shortId() {
   return List.generate(8, (_) => random.nextInt(16).toRadixString(16)).join();
 }
 
-/// Eight-character code one device shows and the other types in.
-String newHouseholdCode() {
+const householdMailboxIdLength = 10;
+const householdSecretLength = 26;
+
+String _randomCode(int length) {
   final random = Random.secure();
   const alphabet = 'abcdefghijklmnopqrstuvwxyz23456789';
   return List.generate(
-    8,
+    length,
     (_) => alphabet[random.nextInt(alphabet.length)],
   ).join();
 }
 
-/// True when [raw] looks like a household pairing code.
+/// A pairing code: a public mailbox id, a dot, then the secret.
+///
+/// Only the mailbox id is used in the cloud topic. The secret is the
+/// encryption key and is never placed in the topic.
+String newHouseholdCode() =>
+    '${_randomCode(householdMailboxIdLength)}.${_randomCode(householdSecretLength)}';
+
+/// True when [raw] is a mailbox id, a dot, and a secret of the expected length.
 bool isHouseholdCode(String raw) {
   final code = raw.trim().toLowerCase();
-  if (code.length != 8) return false;
-  return RegExp(r'^[a-z2-9]+$').hasMatch(code);
+  final parts = code.split('.');
+  if (parts.length != 2) return false;
+  if (parts[0].length != householdMailboxIdLength) return false;
+  if (parts[1].length != householdSecretLength) return false;
+  return RegExp(r'^[a-z2-9]+$').hasMatch(parts[0]) &&
+      RegExp(r'^[a-z2-9]+$').hasMatch(parts[1]);
+}
+
+/// The public half of a household code. This is the only part used in a topic.
+String householdMailboxId(String code) {
+  final normalized = code.trim().toLowerCase();
+  if (!isHouseholdCode(normalized)) {
+    throw const SyncException('That household code is not valid.');
+  }
+  return normalized.split('.').first;
+}
+
+/// The secret half of a household code. This is the encryption key material.
+String householdSecret(String code) {
+  final normalized = code.trim().toLowerCase();
+  if (!isHouseholdCode(normalized)) {
+    throw const SyncException('That household code is not valid.');
+  }
+  return normalized.split('.').last;
 }
 
 /// In-memory mailbox for tests. No network.
@@ -522,5 +596,13 @@ class MemoryCloudMailbox extends CloudMailbox {
       snapshot: await db.exportSnapshot(),
     );
     _store['$code/$deviceId'] = mine;
+  }
+
+  @override
+  Future<void> forgetDevice({
+    required String code,
+    required String deviceId,
+  }) async {
+    _store.remove('$code/$deviceId');
   }
 }

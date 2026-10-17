@@ -43,11 +43,10 @@ class _DeviceLinkDialogState extends ConsumerState<DeviceLinkDialog> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Turn sharing on here and on the other device. On the same '
-                'Wi-Fi they find each other. When Wi-Fi is off, lists still '
-                'sync over the internet while each app is open. The first '
-                'time they meet, they share a code so that can happen. You '
-                'can also create or enter that code below.',
+                'Create a code on one device and enter it on the other. The '
+                'code is the key, so it is not sent over Wi-Fi. After both '
+                'devices have it, lists sync on the same Wi-Fi and, while '
+                'the apps are open, over the internet.',
                 style: muted,
               ),
               const SizedBox(height: 12),
@@ -182,7 +181,7 @@ class _DeviceLinkDialogState extends ConsumerState<DeviceLinkDialog> {
                   ),
                   textCapitalization: TextCapitalization.none,
                   autocorrect: false,
-                  maxLength: 8,
+                  maxLength: 40,
                   enabled: !link.cloudBusy,
                 ),
                 Tip(

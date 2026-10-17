@@ -224,11 +224,19 @@ class _TaxRatesSectionState extends ConsumerState<TaxRatesSection> {
           ),
         const SizedBox(height: 8),
         Text(
-          'Using your location sends your coordinates to OpenStreetMap (to '
-          'name the place) and, in the US, to Ziptax (to find the rate). '
-          'Nothing is sent until you tap the button.',
+          'Using your location sends your coordinates to the place-name '
+          'service (OpenStreetMap Nominatim, unless you change it below) '
+          'and, in the US, to Ziptax. Place names © OpenStreetMap '
+          'contributors. Nothing is sent until you tap the button.',
           style: theme.textTheme.bodySmall?.copyWith(
             color: theme.colorScheme.onSurface.withValues(alpha: 0.55),
+          ),
+        ),
+        Tip(
+          'Change the service that turns your location into a place name',
+          child: TextButton(
+            onPressed: _busy ? null : () => _askForPlaceService(context),
+            child: const Text('Place lookup service...'),
           ),
         ),
         Tip(
@@ -241,6 +249,54 @@ class _TaxRatesSectionState extends ConsumerState<TaxRatesSection> {
       ],
     );
   }
+}
+
+/// Lets the user point place-name lookup at another Nominatim-compatible host.
+Future<void> _askForPlaceService(BuildContext context) async {
+  final controller = TextEditingController(text: await loadNominatimHost());
+  if (!context.mounted) return;
+  final saved = await showDialog<String>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: const Text('Place lookup service'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'ShopIt asks this host to turn coordinates into a place name. '
+            'The default is nominatim.openstreetmap.org. Clear the field '
+            'to use that again. Place names © OpenStreetMap contributors.',
+            style: Theme.of(ctx).textTheme.bodySmall,
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: controller,
+            autofocus: true,
+            autocorrect: false,
+            decoration: const InputDecoration(labelText: 'Host name'),
+          ),
+        ],
+      ),
+      actions: [
+        Tip(
+          'Close without saving',
+          child: TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+        ),
+        Tip(
+          'Save this place lookup service',
+          child: FilledButton(
+            onPressed: () => Navigator.pop(ctx, controller.text.trim()),
+            child: const Text('Save'),
+          ),
+        ),
+      ],
+    ),
+  );
+  if (saved == null) return;
+  await saveNominatimHost(saved);
 }
 
 /// Asks for (or clears) the user's own Ziptax API key. Returns the saved key,

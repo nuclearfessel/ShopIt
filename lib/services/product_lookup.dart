@@ -27,7 +27,8 @@ class ProductLookup {
           .get(
             uri,
             headers: const {
-              'User-Agent': 'Shop-it/0.1 (grocery list; Android scan)',
+              'User-Agent':
+                  'ShopIt/1.0 (https://github.com/nuclearfessel/ShopIt)',
               'Accept': 'application/json',
             },
           )
@@ -65,17 +66,24 @@ class ProductLookup {
     final tags = product['categories_tags'];
     if (tags is! List) return 'Other';
     final joined = tags.map((e) => e.toString().toLowerCase()).join(' ');
-    if (joined.contains('dairy') || joined.contains('cheese') || joined.contains('yogurt') || joined.contains('milk')) {
+    if (joined.contains('dairy') ||
+        joined.contains('cheese') ||
+        joined.contains('yogurt') ||
+        joined.contains('milk')) {
       return 'Dairy & Eggs';
     }
     if (joined.contains('ice-cream') || joined.contains('frozen')) {
       return 'Frozen';
     }
     if (joined.contains('bread') || joined.contains('bakery')) return 'Bakery';
-    if (joined.contains('beverage') || joined.contains('drink') || joined.contains('juice')) {
+    if (joined.contains('beverage') ||
+        joined.contains('drink') ||
+        joined.contains('juice')) {
       return 'Beverages';
     }
-    if (joined.contains('snack') || joined.contains('chocolate') || joined.contains('cookie')) {
+    if (joined.contains('snack') ||
+        joined.contains('chocolate') ||
+        joined.contains('cookie')) {
       return 'Snacks';
     }
     if (joined.contains('cereal') || joined.contains('breakfast')) {
@@ -84,7 +92,9 @@ class ProductLookup {
     if (joined.contains('meat') || joined.contains('poultry')) {
       return 'Meat & Poultry';
     }
-    if (joined.contains('fruit') || joined.contains('vegetable') || joined.contains('produce')) {
+    if (joined.contains('fruit') ||
+        joined.contains('vegetable') ||
+        joined.contains('produce')) {
       return 'Produce';
     }
     return 'Other';

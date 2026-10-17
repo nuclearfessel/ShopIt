@@ -90,10 +90,11 @@ void main() {
         db.shoppingLists,
       )..where((t) => t.deletedAt.isNull() & t.kind.equals('shopping'))).get();
       expect(lists, hasLength(1));
-      final items = await (db.select(db.shoppingItems)..where(
-            (t) => t.deletedAt.isNull() & t.listId.equals(lists.single.id),
-          ))
-          .get();
+      final items =
+          await (db.select(db.shoppingItems)..where(
+                (t) => t.deletedAt.isNull() & t.listId.equals(lists.single.id),
+              ))
+              .get();
       return [for (final item in items) item.name]..sort();
     }
 
@@ -112,26 +113,23 @@ void main() {
 
     expect(await pantryNames(host), containsAll(['Pantry', 'Garage']));
     expect(await pantryNames(client), containsAll(['Pantry', 'Garage']));
-    expect(
-      (await pantryNames(host)).where((n) => n == 'Garage'),
-      hasLength(1),
-    );
-    final garage = (await (host.select(host.shoppingLists)..where(
-          (t) =>
-              t.deletedAt.isNull() &
-              t.kind.equals('pantry') &
-              t.name.equals('Garage'),
-        ))
-        .get())
-        .single;
-    final items = await (host.select(host.pantryItems)..where(
-          (t) => t.deletedAt.isNull() & t.listId.equals(garage.id),
-        ))
-        .get();
-    expect(
-      [for (final item in items) item.name]..sort(),
-      ['Batteries', 'Water'],
-    );
+    expect((await pantryNames(host)).where((n) => n == 'Garage'), hasLength(1));
+    final garage =
+        (await (host.select(host.shoppingLists)..where(
+                  (t) =>
+                      t.deletedAt.isNull() &
+                      t.kind.equals('pantry') &
+                      t.name.equals('Garage'),
+                ))
+                .get())
+            .single;
+    final items = await (host.select(
+      host.pantryItems,
+    )..where((t) => t.deletedAt.isNull() & t.listId.equals(garage.id))).get();
+    expect([for (final item in items) item.name]..sort(), [
+      'Batteries',
+      'Water',
+    ]);
   });
 
   test('items and a pantry list come along with it', () async {
@@ -203,19 +201,12 @@ void main() {
   });
 
   test('two new household codes collapse to one', () {
-    expect(
-      pickHouseholdCode('mmmmmmmm', 'aaaaaaaa', keepLocal: false),
-      'aaaaaaaa',
-    );
-    expect(
-      pickHouseholdCode('aaaaaaaa', 'mmmmmmmm', keepLocal: false),
-      'aaaaaaaa',
-    );
-    expect(
-      pickHouseholdCode('mmmmmmmm', 'aaaaaaaa', keepLocal: true),
-      'mmmmmmmm',
-    );
-    expect(pickHouseholdCode(null, 'aaaaaaaa', keepLocal: false), 'aaaaaaaa');
+    const a = 'aaaaaaaaaa.aaaaaaaaaaaaaaaaaaaaaaaaaa';
+    const m = 'mmmmmmmmmm.mmmmmmmmmmmmmmmmmmmmmmmmmm';
+    expect(pickHouseholdCode(m, a, keepLocal: false), a);
+    expect(pickHouseholdCode(a, m, keepLocal: false), a);
+    expect(pickHouseholdCode(m, a, keepLocal: true), m);
+    expect(pickHouseholdCode(null, a, keepLocal: false), a);
   });
 
   test('a beacon says which device is sharing and where', () {
@@ -286,8 +277,14 @@ void main() {
     );
     expect(find.text('ABOUT'), findsOneWidget);
     expect(find.text('ShopIt'), findsOneWidget);
-    expect(find.text('An open source shopping and pantry list app.'), findsOneWidget);
-    expect(find.text('https://github.com/nuclearfessel/ShopIt'), findsOneWidget);
+    expect(
+      find.text('An open source shopping and pantry list app.'),
+      findsOneWidget,
+    );
+    expect(
+      find.text('https://github.com/nuclearfessel/ShopIt'),
+      findsOneWidget,
+    );
     expect(find.widgetWithText(AlertDialog, 'About'), findsNothing);
   });
 }

@@ -6,12 +6,22 @@ import 'package:shop_it/services/cloud_mailbox.dart';
 void main() {
   test('sealed mailbox payloads hide list contents', () async {
     const json = '{"name":"Milk","note":"2%"}';
-    final sealed = await sealMailboxPayload('abcd2345', json);
+    final code = newHouseholdCode();
+    final other = newHouseholdCode();
+    final sealed = await sealMailboxPayload(code, json);
     expect(sealed.startsWith('enc1:'), isTrue);
     expect(sealed.contains('Milk'), isFalse);
-    expect(await openMailboxPayload('abcd2345', sealed), json);
-    expect(await openMailboxPayload('zzzz9999', sealed), isNull);
-    expect(await openMailboxPayload('abcd2345', 'gz:not-ours'), isNull);
+    expect(sealed.contains(householdSecret(code)), isFalse);
+    expect(await openMailboxPayload(code, sealed), json);
+    expect(await openMailboxPayload(other, sealed), isNull);
+    expect(await openMailboxPayload(code, 'gz:not-ours'), isNull);
+  });
+
+  test('the cloud topic carries the mailbox id and not the secret', () {
+    final code = newHouseholdCode();
+    final topic = mailboxDeviceTopic(code, 'phone');
+    expect(topic, 'shopit/p/${householdMailboxId(code)}/phone');
+    expect(topic.contains(householdSecret(code)), isFalse);
   });
 
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;

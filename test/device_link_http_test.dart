@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:drift/drift.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shop_it/data/database.dart';
+import 'package:shop_it/services/cloud_mailbox.dart';
 import 'package:shop_it/services/device_link.dart';
 
 /// The widget-test binding replaces [HttpClient] with one that never connects.
@@ -17,11 +18,9 @@ Future<T> _realHttp<T>(Future<T> Function() body) {
 }
 
 Future<List<String>> shoppingNames(AppDatabase db) async {
-  final rows =
-      await (db.select(db.shoppingLists)..where(
-            (t) => t.deletedAt.isNull() & t.kind.equals('shopping'),
-          ))
-          .get();
+  final rows = await (db.select(
+    db.shoppingLists,
+  )..where((t) => t.deletedAt.isNull() & t.kind.equals('shopping'))).get();
   return [for (final row in rows) row.name];
 }
 
@@ -42,7 +41,9 @@ void main() {
   });
 
   test('syncing over the link copies lists both ways', () async {
+    final code = newHouseholdCode();
     final server = DeviceHost();
+    server.readHousehold = () => code;
     addTearDown(server.stop);
     final port = await server.start(
       db: host,
@@ -52,13 +53,23 @@ void main() {
 
     await client.addList('From the phone');
     await _realHttp(
-      () => syncWithDevice(db: client, host: '127.0.0.1', port: port),
+      () => syncWithDevice(
+        db: client,
+        host: '127.0.0.1',
+        port: port,
+        household: code,
+      ),
     );
     expect(await shoppingNames(host), contains('From the phone'));
 
     await host.addList('From the computer');
     await _realHttp(
-      () => syncWithDevice(db: client, host: '127.0.0.1', port: port),
+      () => syncWithDevice(
+        db: client,
+        host: '127.0.0.1',
+        port: port,
+        household: code,
+      ),
     );
     expect(await shoppingNames(client), contains('From the computer'));
     expect(await shoppingNames(host), contains('From the phone'));

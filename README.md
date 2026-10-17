@@ -26,7 +26,7 @@ On Windows, run the installer. On Android, allow installs from the APK, then ope
 - **Pantry** — what you already have. Each item can be **Low** or **Full**, or an exact amount. **Amounts** in the list menu applies **Low or stocked** or **Exact amounts** to every item on that list. Items that expire within seven days, or that are already past that date, show in a Use soon strip. On a phone or tablet, scan a barcode to add or increase that item.
 - **Recipes** — save a meal, scale the servings, and add the missing ingredients to a shopping list. ShopIt skips what the pantry already covers. Cook subtracts those amounts from the pantry.
 - **Sales tax** — saved rates, optional location lookup, and per-item control. Marking every item taxable, not taxable, or back on automatic rules is in List settings.
-- **Sync** — share lists on the same Wi-Fi, or over the internet with a household code. Cloud copies are encrypted with that code. Share lists shows the last Wi-Fi sync and the last cloud sync separately.
+- **Sync** — share lists after you type the same household code on both devices. The code is the key and is not sent over the network. Wi-Fi sync and internet sync both send encrypted lists. Share lists shows the last Wi-Fi sync and the last cloud sync separately. [Privacy](docs/privacy.md) says what leaves the device.
 
 When the shortest side of the window is under 600, Shopping, Pantry, Recipes, and Settings sit in the bottom bar, and Settings is a full page. That is a phone: an Android phone or an iPhone stays in portrait. A larger window uses the side rail. Settings is a dialog when that window is at least 700 pixels wide, and a full page when it is narrower. Changing the size switches Settings while it is open. Tablets, Windows, and Mac can rotate or be resized. Close the page with the X or with Done. Settings covers appearance, tax, sharing, and About. The walkthrough in [Using ShopIt](docs/usage.md) shows each button next to the step that uses it. Scanning a barcode is on Android and iOS, including tablets. Windows and Mac do not show it. A name scanned on a phone still appears on the computer through sync.
 
@@ -34,10 +34,10 @@ When the shortest side of the window is under 600, Shopping, Pantry, Recipes, an
 
 Open **Settings → Share lists** on both devices.
 
-- **Same Wi-Fi** — turn on **Share on this Wi-Fi** while both apps are open. That also turns on internet sync and passes a household code to the other device. If Windows asks to allow ShopIt on private networks, choose allow. The Wi-Fi line says when the last sync succeeded, or that it has not synced yet.
+- **Same Wi-Fi** — turn on **Share on this Wi-Fi** while both apps are open, after both have the same code. If Windows asks to allow ShopIt on private networks, choose allow. The Wi-Fi line says when the last sync succeeded, or that it has not synced yet.
 - **Wi-Fi off** — lists keep syncing over the internet while both apps are open, including on mobile data. If the devices have not met on Wi-Fi yet, create a cloud code on one and enter it on the other. List contents are encrypted with that code before they are stored. Closing the app sends one last cloud snapshot. The cloud line shows its own last sync time and its own error, separate from Wi-Fi.
 
-If you paired on a build before 0.0.8, leave the household on both devices and create a new code after updating.
+If you paired on an earlier build, leave the household on both devices and create a new code. Older codes are ignored.
 
 If both sides already have a list with the same name, sync merges them and appends items instead of creating a duplicate list.
 

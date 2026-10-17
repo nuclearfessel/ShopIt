@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'legal_copy.dart';
+
 const shopItSourceUrl = 'https://github.com/nuclearfessel/ShopIt';
 
 /// The About block at the bottom of Settings, on Windows and Android.
@@ -64,6 +66,34 @@ class _AboutSectionState extends State<AboutSection> {
             child: const Text(shopItSourceUrl),
           ),
         ),
+        const SizedBox(height: 4),
+        Tooltip(
+          message: 'Read what ShopIt sends and how to delete it',
+          child: TextButton(
+            style: TextButton.styleFrom(
+              padding: EdgeInsets.zero,
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              alignment: Alignment.centerLeft,
+            ),
+            onPressed: () =>
+                _showNotice(context, 'Privacy', shopItPrivacyNotice),
+            child: const Text('Privacy'),
+          ),
+        ),
+        Tooltip(
+          message: 'Read the licenses for ShopIt and the pieces it includes',
+          child: TextButton(
+            style: TextButton.styleFrom(
+              padding: EdgeInsets.zero,
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              alignment: Alignment.centerLeft,
+            ),
+            onPressed: () => _showNotice(context, 'Licenses', shopItLicenses),
+            child: const Text('Licenses'),
+          ),
+        ),
         if (version != null) ...[
           const SizedBox(height: 4),
           Text('Version $version', style: muted),
@@ -71,4 +101,26 @@ class _AboutSectionState extends State<AboutSection> {
       ],
     );
   }
+}
+
+void _showNotice(BuildContext context, String title, String body) {
+  showDialog<void>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: Text(title),
+      content: SizedBox(
+        width: 420,
+        child: SingleChildScrollView(child: Text(body)),
+      ),
+      actions: [
+        Tooltip(
+          message: 'Close',
+          child: TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ),
+      ],
+    ),
+  );
 }
