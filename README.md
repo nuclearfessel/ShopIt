@@ -19,7 +19,7 @@ On Windows, run the installer. On Android, allow installs from the APK, then ope
 
 ## Features
 
-- **Shopping** — lists with categories, quantities, prices, coupons, and a cart. Categories stay in alphabetical order. Search finds items already on the open list, items in the pantry, and names you have added before.
+- **Shopping** — lists with categories, quantities, prices, coupons, and a cart. Categories stay in alphabetical order. Search finds items already on the open list, items in the pantry, and names you have added before. A name Shop-it does not already know is saved when you add it, so it shows up next time.
 - **Pantry** — what you already have, with counts or full/low levels. Items that expire within seven days, or that are already past that date, show in a Use soon strip.
 - **Sales tax** — saved rates, optional location lookup, and per-item control. Marking every item taxable, not taxable, or back on automatic rules is in List settings.
 - **Sync** — share lists on the same Wi-Fi, or over the internet with a household code. Cloud copies are encrypted with that code. Share lists shows the last Wi-Fi sync and the last cloud sync separately.
