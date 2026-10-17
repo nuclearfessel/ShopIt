@@ -171,7 +171,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.memory() : super(NativeDatabase.memory());
 
   @override
-  int get schemaVersion => 11;
+  int get schemaVersion => 12;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -272,6 +272,10 @@ class AppDatabase extends _$AppDatabase {
         // v11: larger built-in catalog. Add names that are not already there.
         await mergeBuiltinCatalog();
       }
+      if (from < 12) {
+        // v12: more brand products, including Tillamook and Organic Valley dairy.
+        await mergeBuiltinCatalog();
+      }
     },
   );
 
@@ -348,7 +352,7 @@ class AppDatabase extends _$AppDatabase {
   /// that matched on their own name. Duplicate names are dropped.
   Future<List<CatalogItem>> searchCatalog(
     String query, {
-    int limit = 40,
+    int limit = 100,
   }) async {
     final q = query.trim().toLowerCase().replaceAll(RegExp(r'[%_\\]'), '');
     if (q.isEmpty) return const [];

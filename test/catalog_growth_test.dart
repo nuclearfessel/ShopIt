@@ -23,6 +23,53 @@ void main() {
     );
   });
 
+  test('Ghirardelli, Tillamook, and ice cream brands are searchable', () async {
+    final db = AppDatabase.memory();
+    addTearDown(db.close);
+
+    final ghirardelli = await db.searchCatalog('ghirardelli');
+    expect(ghirardelli.map((item) => item.name), containsAll([
+      'Ghirardelli chips',
+      'Ghirardelli squares',
+      'Ghirardelli brownie mix',
+      'Ghirardelli hot chocolate',
+    ]));
+
+    final tillamook = await db.searchCatalog('tillamook');
+    expect(tillamook.map((item) => item.name), containsAll([
+      'Tillamook cheddar',
+      "Tillamook Maker's Reserve",
+      'Tillamook ice cream',
+      'Tillamook marionberry pie',
+      'Tillamook extra creamy salted butter',
+      'Tillamook extra creamy unsalted butter',
+    ]));
+
+    final organic = await db.searchCatalog('organic valley');
+    expect(organic.map((item) => item.name), containsAll([
+      'Organic Valley whole milk',
+      'Organic Valley sharp cheddar',
+      'Organic Valley salted butter',
+      'Organic Valley sour cream',
+      'Organic Valley ghee',
+      'Organic Valley string cheese',
+    ]));
+
+    final haagen = await db.searchCatalog('haagen');
+    expect(haagen.map((item) => item.name), containsAll([
+      'Haagen-Dazs vanilla',
+      'Haagen-Dazs butter pecan',
+      'Haagen-Dazs matcha',
+    ]));
+
+    final ben = await db.searchCatalog('jerry');
+    expect(ben.map((item) => item.name), containsAll([
+      "Ben & Jerry's Cherry Garcia",
+      "Ben & Jerry's Chunky Monkey",
+      "Ben & Jerry's The Tonight Dough",
+    ]));
+  });
+
   test('a parent query does not list every brand', () async {
     final db = AppDatabase.memory();
     addTearDown(db.close);
