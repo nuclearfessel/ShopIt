@@ -23,5 +23,10 @@ bool hostIsPhone() {
   return shortest < phoneShortestSide;
 }
 
+/// Widget screenshots set this so a desktop test host can show the camera
+/// button. Production leaves it null.
+bool? debugPlatformScansBarcodes;
+
 /// Android and iOS have a camera. Windows and Mac do not scan.
-bool get platformScansBarcodes => Platform.isAndroid || Platform.isIOS;
+bool get platformScansBarcodes =>
+    debugPlatformScansBarcodes ?? (Platform.isAndroid || Platform.isIOS);
