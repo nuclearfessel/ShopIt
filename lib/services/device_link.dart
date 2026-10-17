@@ -80,6 +80,39 @@ class NearbyDevice {
   final int port;
 }
 
+/// Where a beacon is sent. Phones often drop the global broadcast and
+/// deliver only the subnet broadcast, such as 192.168.1.255.
+Future<List<InternetAddress>> beaconTargets() async {
+  final targets = <InternetAddress>[InternetAddress('255.255.255.255')];
+  final seen = <String>{'255.255.255.255'};
+  try {
+    final interfaces = await NetworkInterface.list(
+      type: InternetAddressType.IPv4,
+      includeLinkLocal: false,
+    );
+    for (final interface in interfaces) {
+      for (final address in interface.addresses) {
+        final directed = subnetBroadcast(address.address);
+        if (directed != null && seen.add(directed)) {
+          targets.add(InternetAddress(directed));
+        }
+      }
+    }
+  } on SocketException {
+    // Keep the global broadcast.
+  }
+  return targets;
+}
+
+/// The /24 broadcast for [ipv4], or null when [ipv4] is not a usable address.
+String? subnetBroadcast(String ipv4) {
+  if (ipv4.startsWith('127.')) return null;
+  final parts = ipv4.split('.');
+  if (parts.length != 4) return null;
+  if (parts.any((part) => int.tryParse(part) == null)) return null;
+  return '${parts[0]}.${parts[1]}.${parts[2]}.255';
+}
+
 /// Broadcasts "Shop-it is here" and remembers the replies.
 class DeviceDiscovery {
   RawDatagramSocket? _socket;
@@ -111,7 +144,12 @@ class DeviceDiscovery {
       shopItBeaconPort,
       reuseAddress: true,
     );
-    socket.broadcastEnabled = true;
+    try {
+      socket.broadcastEnabled = true;
+    } on Object {
+      // Android can reject this option. The socket still sends directed
+      // broadcasts, which is what most phones actually deliver.
+    }
     _socket = socket;
     socket.listen(_onEvent, onError: (_, _) {});
     _announce = Timer.periodic(const Duration(seconds: 2), (_) => _send());
@@ -137,11 +175,16 @@ class DeviceDiscovery {
     final bytes = utf8.encode(
       ShopItBeacon(port: _httpPort, id: _deviceId, name: _name).encode(),
     );
-    try {
-      socket.send(bytes, InternetAddress('255.255.255.255'), shopItBeaconPort);
-    } on SocketException {
-      // The network went away; the next announcement tries again.
-    }
+    unawaited(() async {
+      for (final target in await beaconTargets()) {
+        if (!identical(socket, _socket)) return;
+        try {
+          socket.send(bytes, target, shopItBeaconPort);
+        } on SocketException {
+          // The network went away; the next announcement tries again.
+        }
+      }
+    }());
   }
 
   void _onEvent(RawSocketEvent event) {

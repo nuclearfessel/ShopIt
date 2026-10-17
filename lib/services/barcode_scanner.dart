@@ -11,11 +11,14 @@ class BarcodeScanner {
 
   final MethodChannel _channel;
 
-  Future<String?> scan() async {
+  /// [sync] reads the QR code from the computer. Otherwise this reads a
+  /// product barcode.
+  Future<String?> scan({bool sync = false}) async {
     if (!platformScansBarcodes) return null;
     try {
       final code = await _channel.invokeMethod<String>('scan', {
         'portrait': hostIsPhone(),
+        'sync': sync,
       });
       final trimmed = code?.trim() ?? '';
       return trimmed.isEmpty ? null : trimmed;

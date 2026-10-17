@@ -22,7 +22,9 @@ import UIKit
         result(FlutterMethodNotImplemented)
         return
       }
-      let portrait = (call.arguments as? [String: Any])?["portrait"] as? Bool ?? false
+      let args = call.arguments as? [String: Any]
+      let portrait = args?["portrait"] as? Bool ?? false
+      let sync = args?["sync"] as? Bool ?? false
       DispatchQueue.main.async {
         guard let presenter = Self.topViewController() else {
           result(nil)
@@ -30,6 +32,7 @@ import UIKit
         }
         let scanner = BarcodeScannerController()
         scanner.lockPortrait = portrait
+        scanner.readsSyncQr = sync
         scanner.onCode = { code in result(code) }
         scanner.modalPresentationStyle = .fullScreen
         presenter.present(scanner, animated: true)
@@ -53,6 +56,7 @@ import UIKit
 final class BarcodeScannerController: UIViewController, AVCaptureMetadataOutputObjectsDelegate {
   var onCode: ((String?) -> Void)?
   var lockPortrait = false
+  var readsSyncQr = false
 
   private let session = AVCaptureSession()
   private var finished = false
@@ -120,7 +124,7 @@ final class BarcodeScannerController: UIViewController, AVCaptureMetadataOutputO
     }
     session.addOutput(output)
     output.setMetadataObjectsDelegate(self, queue: .main)
-    output.metadataObjectTypes = [.ean8, .ean13, .upce]
+    output.metadataObjectTypes = readsSyncQr ? [.qr] : [.ean8, .ean13, .upce]
     preview.session = session
     DispatchQueue.global(qos: .userInitiated).async {
       self.session.startRunning()
