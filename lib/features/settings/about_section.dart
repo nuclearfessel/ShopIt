@@ -49,17 +49,20 @@ class _AboutSectionState extends State<AboutSection> {
           style: theme.textTheme.bodyMedium,
         ),
         const SizedBox(height: 4),
-        TextButton(
-          style: TextButton.styleFrom(
-            padding: EdgeInsets.zero,
-            minimumSize: Size.zero,
-            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            alignment: Alignment.centerLeft,
+        Tooltip(
+          message: 'Open the ShopIt source on GitHub',
+          child: TextButton(
+            style: TextButton.styleFrom(
+              padding: EdgeInsets.zero,
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              alignment: Alignment.centerLeft,
+            ),
+            onPressed: () {
+              launchUrl(Uri.parse(shopItSourceUrl));
+            },
+            child: const Text(shopItSourceUrl),
           ),
-          onPressed: () {
-            launchUrl(Uri.parse(shopItSourceUrl));
-          },
-          child: const Text(shopItSourceUrl),
         ),
         if (version != null) ...[
           const SizedBox(height: 4),
