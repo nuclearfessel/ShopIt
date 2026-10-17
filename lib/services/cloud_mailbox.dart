@@ -502,8 +502,18 @@ String _shortId() {
   return List.generate(8, (_) => random.nextInt(16).toRadixString(16)).join();
 }
 
-const householdMailboxIdLength = 10;
-const householdSecretLength = 26;
+/// Public half of a new code. It only has to be unique, so it is shorter
+/// than the secret.
+const householdMailboxIdLength = 8;
+
+/// Secret half of a new code. Thirty-two letters at this length is 100 bits,
+/// which is still far past a practical guess of a snapshot the broker can
+/// already download.
+const householdSecretLength = 20;
+
+/// Codes created by the first 1.0.0 rebuild. They still join.
+const legacyHouseholdMailboxIdLength = 10;
+const legacyHouseholdSecretLength = 26;
 
 String _randomCode(int length) {
   final random = Random.secure();
@@ -521,15 +531,21 @@ String _randomCode(int length) {
 String newHouseholdCode() =>
     '${_randomCode(householdMailboxIdLength)}.${_randomCode(householdSecretLength)}';
 
-/// True when [raw] is a mailbox id, a dot, and a secret of the expected length.
+/// True when [raw] is a mailbox id, a dot, and a secret of a known length.
 bool isHouseholdCode(String raw) {
   final code = raw.trim().toLowerCase();
   final parts = code.split('.');
   if (parts.length != 2) return false;
-  if (parts[0].length != householdMailboxIdLength) return false;
-  if (parts[1].length != householdSecretLength) return false;
-  return RegExp(r'^[a-z2-9]+$').hasMatch(parts[0]) &&
-      RegExp(r'^[a-z2-9]+$').hasMatch(parts[1]);
+  final id = parts[0];
+  final secret = parts[1];
+  final known =
+      (id.length == householdMailboxIdLength &&
+          secret.length == householdSecretLength) ||
+      (id.length == legacyHouseholdMailboxIdLength &&
+          secret.length == legacyHouseholdSecretLength);
+  if (!known) return false;
+  return RegExp(r'^[a-z2-9]+$').hasMatch(id) &&
+      RegExp(r'^[a-z2-9]+$').hasMatch(secret);
 }
 
 /// The public half of a household code. This is the only part used in a topic.

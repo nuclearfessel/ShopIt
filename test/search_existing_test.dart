@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'support/harness.dart';
@@ -75,6 +77,54 @@ void main() {
     await tester.tap(find.text('Chips'));
     await tester.pump();
     expect(find.text('Recent'), findsNothing);
+  });
+
+  testWidgets('arrow keys cycle search results on desktop', (tester) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+    try {
+      await pumpShopIt(tester, items: [fakeItem('a', 'Milk')]);
+      await tester.enterText(find.byType(TextField).first, 'oni');
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      List<ListTile> suggestionTiles() {
+        final card = find.ancestor(
+          of: find.text('Onions').first,
+          matching: find.byType(Card),
+        );
+        return tester
+            .widgetList<ListTile>(
+              find.descendant(of: card, matching: find.byType(ListTile)),
+            )
+            .toList();
+      }
+
+      expect(suggestionTiles().where((tile) => tile.selected), isEmpty);
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      await tester.pump();
+      expect(suggestionTiles().first.selected, isTrue);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      await tester.pump();
+      expect(suggestionTiles()[1].selected, isTrue);
+      expect(suggestionTiles().first.selected, isFalse);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+      await tester.pump();
+      expect(suggestionTiles().first.selected, isTrue);
+
+      final count = suggestionTiles().length;
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+      await tester.pump();
+      expect(suggestionTiles().last.selected, isTrue);
+      expect(suggestionTiles().length, count);
+
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pump();
+      expect(find.text('Red onions'), findsNothing);
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
   });
 
   testWidgets('choosing a catalog match closes the menu', (tester) async {

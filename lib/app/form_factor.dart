@@ -1,6 +1,7 @@
 import 'dart:io' show Platform;
 import 'dart:math' show min;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
 /// A phone is a window whose shortest side is under this. Tablets and desktop
@@ -8,8 +9,7 @@ import 'package:flutter/widgets.dart';
 const phoneShortestSide = 600.0;
 
 /// True when [size] is a phone rather than a tablet or desktop window.
-bool isPhoneSize(Size size) =>
-    min(size.width, size.height) < phoneShortestSide;
+bool isPhoneSize(Size size) => min(size.width, size.height) < phoneShortestSide;
 
 /// True when the current view is phone-sized. Used before a widget exists,
 /// for the portrait lock and the name announced to another device.
@@ -30,3 +30,8 @@ bool? debugPlatformScansBarcodes;
 /// Android and iOS have a camera. Windows and Mac do not scan.
 bool get platformScansBarcodes =>
     debugPlatformScansBarcodes ?? (Platform.isAndroid || Platform.isIOS);
+
+/// Arrow keys move through search results on Windows and Mac.
+bool get desktopSearchKeys =>
+    defaultTargetPlatform == TargetPlatform.windows ||
+    defaultTargetPlatform == TargetPlatform.macOS;
