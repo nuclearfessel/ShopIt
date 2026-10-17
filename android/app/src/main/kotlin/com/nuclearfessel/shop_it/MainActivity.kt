@@ -44,11 +44,7 @@ class MainActivity : FlutterActivity() {
                 }
                 IntentIntegrator(this)
                     .setDesiredBarcodeFormats(
-                        if (sync) {
-                            IntentIntegrator.QR_CODE_TYPES
-                        } else {
-                            IntentIntegrator.PRODUCT_CODE_TYPES
-                        },
+                        if (sync) listOf("QR_CODE") else IntentIntegrator.PRODUCT_CODE_TYPES,
                     )
                     .setPrompt(if (sync) "Scan the ShopIt QR code" else "Scan a barcode")
                     .setBeepEnabled(false)
