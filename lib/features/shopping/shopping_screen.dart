@@ -1,7 +1,9 @@
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../app/form_factor.dart';
 import '../../data/database.dart';
 import '../../data/providers.dart';
 import '../catalog/catalog_suggestions.dart';
@@ -37,6 +39,7 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
   String? _listId;
   final _controller = TextEditingController();
   final _searchFocus = FocusNode();
+  final _suggestions = GlobalKey<CatalogSuggestionsState>();
   final _itemKeys = <String, GlobalKey>{};
 
   @override
@@ -557,53 +560,76 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
               ),
               Padding(
                 padding: const EdgeInsets.all(12),
-                child: TextField(
-                  controller: _controller,
-                  focusNode: _searchFocus,
-                  onChanged: (_) => setState(() {}),
-                  decoration: InputDecoration(
-                    hintText: 'Search or add an item',
-                    prefixIcon: const Padding(
-                      padding: EdgeInsets.only(left: 8),
-                      child: KeylineIcon(KeylineIcons.search),
-                    ),
-                    border: const OutlineInputBorder(),
-                    suffixIcon: Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (_controller.text.trim().isNotEmpty)
-                            IconButton(
-                              tooltip: 'Edit details before adding',
-                              icon: const KeylineIcon(KeylineIcons.pen),
-                              onPressed: () => _addWithDetails(
-                                current,
-                                taxCtx,
-                                categoryNames,
-                              ),
-                            ),
-                          IconButton(
-                            tooltip: 'History',
-                            icon: const KeylineIcon(KeylineIcons.history),
-                            onPressed: () => showDialog<void>(
-                              context: context,
-                              builder: (_) => HistoryDialog(list: current),
-                            ),
-                          ),
-                          ScanItemButton(
-                            onScan: () => _scan(current, categoryNames),
-                          ),
-                          IconButton(
-                            tooltip: 'Add item',
-                            icon: const KeylineIcon(KeylineIcons.plus),
-                            onPressed: () => _submit(current),
-                          ),
-                        ],
+                child: Shortcuts(
+                  shortcuts: desktopSearchKeys
+                      ? <ShortcutActivator, Intent>{
+                          SingleActivator(LogicalKeyboardKey.arrowDown):
+                              const CycleSuggestionsIntent(1),
+                          SingleActivator(LogicalKeyboardKey.arrowUp):
+                              const CycleSuggestionsIntent(-1),
+                        }
+                      : const <ShortcutActivator, Intent>{},
+                  child: Actions(
+                    actions: <Type, Action<Intent>>{
+                      CycleSuggestionsIntent: CycleSuggestionsAction(
+                        _suggestions,
                       ),
+                    },
+                    child: TextField(
+                      controller: _controller,
+                      focusNode: _searchFocus,
+                      onChanged: (_) => setState(() {}),
+                      decoration: InputDecoration(
+                        hintText: 'Search or add an item',
+                        prefixIcon: const Padding(
+                          padding: EdgeInsets.only(left: 8),
+                          child: KeylineIcon(KeylineIcons.search),
+                        ),
+                        border: const OutlineInputBorder(),
+                        suffixIcon: Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (_controller.text.trim().isNotEmpty)
+                                IconButton(
+                                  tooltip: 'Edit details before adding',
+                                  icon: const KeylineIcon(KeylineIcons.pen),
+                                  onPressed: () => _addWithDetails(
+                                    current,
+                                    taxCtx,
+                                    categoryNames,
+                                  ),
+                                ),
+                              IconButton(
+                                tooltip: 'History',
+                                icon: const KeylineIcon(KeylineIcons.history),
+                                onPressed: () => showDialog<void>(
+                                  context: context,
+                                  builder: (_) => HistoryDialog(list: current),
+                                ),
+                              ),
+                              ScanItemButton(
+                                onScan: () => _scan(current, categoryNames),
+                              ),
+                              IconButton(
+                                tooltip: 'Add item',
+                                icon: const KeylineIcon(KeylineIcons.plus),
+                                onPressed: () => _submit(current),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      onSubmitted: (_) {
+                        if (_suggestions.currentState?.activateHighlighted() ==
+                            true) {
+                          return;
+                        }
+                        _submit(current);
+                      },
                     ),
                   ),
-                  onSubmitted: (_) => _submit(current),
                 ),
               ),
               Expanded(
@@ -645,7 +671,9 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
                       left: 0,
                       right: 0,
                       child: CatalogSuggestions(
+                        key: _suggestions,
                         query: _controller.text,
+                        keyboardCycling: desktopSearchKeys,
                         showRecent: _searchFocus.hasFocus,
                         onList: items.value ?? const [],
                         inPantry: pantryItems,

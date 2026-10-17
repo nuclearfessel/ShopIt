@@ -17,6 +17,17 @@ void main() {
     expect(await openMailboxPayload(code, 'gz:not-ours'), isNull);
   });
 
+  test('new household codes are shorter and older codes still join', () {
+    final code = newHouseholdCode();
+    final parts = code.split('.');
+    expect(isHouseholdCode(code), isTrue);
+    expect(parts[0].length, householdMailboxIdLength);
+    expect(parts[1].length, householdSecretLength);
+    expect(isHouseholdCode('aaaaaaaaaa.aaaaaaaaaaaaaaaaaaaaaaaaaa'), isTrue);
+    expect(isHouseholdCode('short'), isFalse);
+    expect(isHouseholdCode('aaaaaaaa.aaaaaaaaaaaaaaaaaaaaaaaaaa'), isFalse);
+  });
+
   test('the cloud topic carries the mailbox id and not the secret', () {
     final code = newHouseholdCode();
     final topic = mailboxDeviceTopic(code, 'phone');
