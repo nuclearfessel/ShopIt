@@ -8,12 +8,13 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:shop_it/app/form_factor.dart';
 import 'package:shop_it/data/database.dart';
 
 import '../test/support/harness.dart';
 
 /// One-shot: `flutter test tool/capture_readme_shots.dart`
-/// Writes docs/screenshots/windows.png and android.png with real type.
+/// Writes a screenshot of each platform into docs/screenshots/.
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -42,7 +43,9 @@ void main() {
       required String name,
       required double width,
       required double height,
+      required bool scan,
     }) async {
+      debugPlatformScansBarcodes = scan;
       final key = GlobalKey();
       await pumpShopIt(
         tester,
@@ -81,8 +84,18 @@ void main() {
       expect(file.lengthSync(), greaterThan(20000));
     }
 
-    await shot(name: 'windows.png', width: 1200, height: 760);
-    await shot(name: 'android.png', width: 390, height: 844);
+    await shot(name: 'windows.png', width: 1200, height: 760, scan: false);
+    await shot(name: 'macos.png', width: 1440, height: 900, scan: false);
+    await shot(name: 'android.png', width: 412, height: 915, scan: true);
+    await shot(
+      name: 'android-tablet.png',
+      width: 1280,
+      height: 800,
+      scan: true,
+    );
+    await shot(name: 'iphone.png', width: 393, height: 852, scan: true);
+    await shot(name: 'ipad.png', width: 1194, height: 834, scan: true);
+    debugPlatformScansBarcodes = null;
   });
 }
 

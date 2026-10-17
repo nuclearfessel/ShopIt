@@ -6,6 +6,22 @@ ShopIt runs the same way on Windows, Mac, Android, and iOS. Use <img src="icons/
 
 The list menu is <img src="icons/more.png" width="22" height="22" alt="List options">.
 
+## On each platform
+
+Windows and Mac use the side rail. An Android phone and an iPhone use the bottom bar and stay in portrait. An Android tablet and an iPad use the side rail and can turn. The barcode button is on the phones and tablets.
+
+![ShopIt on Windows](screenshots/windows.png)
+
+![ShopIt on Mac](screenshots/macos.png)
+
+<img src="screenshots/android.png" alt="ShopIt on an Android phone" width="280" />
+
+![ShopIt on an Android tablet](screenshots/android-tablet.png)
+
+<img src="screenshots/iphone.png" alt="ShopIt on an iPhone" width="260" />
+
+![ShopIt on an iPad](screenshots/ipad.png)
+
 ## Controls
 
 Each picture is a button on the screen.

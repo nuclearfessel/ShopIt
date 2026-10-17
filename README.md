@@ -4,7 +4,15 @@ ShopIt is a shopping, pantry, and recipe app for Windows, Mac, Android, and iOS.
 
 ![ShopIt on Windows](docs/screenshots/windows.png)
 
-<img src="docs/screenshots/android.png" alt="ShopIt on Android" width="280" />
+![ShopIt on Mac](docs/screenshots/macos.png)
+
+<img src="docs/screenshots/android.png" alt="ShopIt on an Android phone" width="280" />
+
+![ShopIt on an Android tablet](docs/screenshots/android-tablet.png)
+
+<img src="docs/screenshots/iphone.png" alt="ShopIt on an iPhone" width="260" />
+
+![ShopIt on an iPad](docs/screenshots/ipad.png)
 
 ## Download
 
