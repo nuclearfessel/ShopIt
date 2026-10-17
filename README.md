@@ -8,12 +8,12 @@ Shop-it is a shopping, pantry, and recipe app for Windows and Android. The same 
 
 ## Download
 
-**Current version: 0.1.2**
+**Current version: 0.1.3**
 
 | Platform | Package |
 | --- | --- |
-| Windows | [Shop-it-Setup-0.1.2.exe](https://github.com/nuclearfessel/Shop-it/releases/download/v0.1.2/Shop-it-Setup-0.1.2.exe) |
-| Android | [Shop-it-0.1.2.apk](https://github.com/nuclearfessel/Shop-it/releases/download/v0.1.2/Shop-it-0.1.2.apk) |
+| Windows | [Shop-it-Setup-0.1.3.exe](https://github.com/nuclearfessel/Shop-it/releases/download/v0.1.3/Shop-it-Setup-0.1.3.exe) |
+| Android | [Shop-it-0.1.3.apk](https://github.com/nuclearfessel/Shop-it/releases/download/v0.1.3/Shop-it-0.1.3.apk) |
 
 On Windows, run the installer. On Android, allow installs from the APK, then open it. Older packages stay in [Releases](https://github.com/nuclearfessel/Shop-it/releases) until a newer build replaces them; only the three newest releases are kept.
 
@@ -25,7 +25,7 @@ On Windows, run the installer. On Android, allow installs from the APK, then ope
 - **Sales tax** — saved rates, optional location lookup, and per-item control. Marking every item taxable, not taxable, or back on automatic rules is in List settings.
 - **Sync** — share lists on the same Wi-Fi, or over the internet with a household code. Cloud copies are encrypted with that code. Share lists shows the last Wi-Fi sync and the last cloud sync separately.
 
-On a wide window, Shopping, Pantry, and Recipes sit in the left rail. On a phone, they sit in the bottom bar. Open **Settings** for appearance, tax, sharing, and About. The walkthrough in [Using Shop-it](docs/usage.md) shows each button next to the step that uses it. Scanning a barcode is on the phone only. A name scanned there still appears on the computer through sync.
+On Windows, Shopping, Pantry, and Recipes sit at the top of the left rail when the window is at least 700 pixels wide, and Settings sits at the bottom as a dialog. Below 700, all four sit in the bottom bar and Settings is a full page. Resizing across 700 switches Settings between the dialog and the page. On Android, Settings is always that full page, and the app stays in portrait. Close it with the X or with Done. Settings covers appearance, tax, sharing, and About. The walkthrough in [Using Shop-it](docs/usage.md) shows each button next to the step that uses it. Scanning a barcode is on the phone only. A name scanned there still appears on the computer through sync.
 
 ## Sync
 

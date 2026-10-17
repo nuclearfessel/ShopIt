@@ -50,6 +50,21 @@ final historyProvider = StreamProvider<List<HistoryEntry>>(
   (ref) => ref.watch(databaseProvider).watchHistory(),
 );
 
+/// The shopping list on screen, so Settings can assign that list's tax rate.
+final openShoppingListProvider =
+    NotifierProvider<OpenShoppingList, ShoppingList?>(OpenShoppingList.new);
+
+class OpenShoppingList extends Notifier<ShoppingList?> {
+  @override
+  ShoppingList? build() => null;
+
+  void set(ShoppingList? list) {
+    final current = state;
+    if (current?.id == list?.id && current?.name == list?.name) return;
+    state = list;
+  }
+}
+
 final recipesProvider = StreamProvider<List<Recipe>>(
   (ref) => ref.watch(databaseProvider).watchRecipes(),
 );

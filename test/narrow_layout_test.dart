@@ -1,10 +1,14 @@
 import 'package:drift/drift.dart' show driftRuntimeOptions;
+import 'package:flutter/foundation.dart'
+    show debugDefaultTargetPlatformOverride;
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shop_it/app/app.dart';
 import 'package:shop_it/data/database.dart';
 import 'package:shop_it/data/providers.dart';
+import 'package:shop_it/features/settings/settings_dialog.dart';
 
 final _t = DateTime(2026, 1, 1);
 const _longName = 'Extra mature cheddar cheese block family size';
@@ -207,18 +211,32 @@ void main() {
         expect(find.byTooltip('Delete all'), findsOneWidget);
       }
       // Settings: theme options and the tax rates, from the gear icon.
+      // Wide windows use a dialog. Narrow windows use a full-screen page.
       await tester.tap(find.byTooltip('Settings'));
       await tester.pumpAndSettle();
-      expect(tester.takeException(), isNull, reason: 'settings dialog');
-      expect(find.text('Settings'), findsOneWidget);
+      expect(tester.takeException(), isNull, reason: 'settings');
+      if (width >= 700) {
+        expect(
+          find.descendant(
+            of: find.byType(AlertDialog),
+            matching: find.text('Settings'),
+          ),
+          findsOneWidget,
+        );
+      } else {
+        expect(find.byType(SettingsPage), findsOneWidget);
+        expect(find.byTooltip('Close'), findsOneWidget);
+      }
       expect(find.text('APPEARANCE'), findsOneWidget);
       // A segmented control: System / Light / Dark.
       expect(find.byType(SegmentedButton<ThemeMode>), findsOneWidget);
       for (final tip in ['Match system', 'Light', 'Dark']) {
         expect(find.byTooltip(tip), findsOneWidget, reason: tip);
       }
-      // Wide dialogs show the labels, narrow ones just the icons.
-      expect(find.text('Light'), width >= 480 ? findsOneWidget : findsNothing);
+      // The words stay whole on a narrow page and inside the dialog.
+      expect(find.text('System'), findsOneWidget);
+      expect(find.text('Light'), findsOneWidget);
+      expect(find.text('Dark'), findsOneWidget);
       await tester.tap(find.byTooltip('Light'));
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull, reason: 'theme segments');
@@ -262,4 +280,168 @@ void main() {
       await tester.pump(const Duration(seconds: 2));
     });
   }
+
+  test('android never uses the settings dialog', () {
+    expect(settingsUsesDialog(android: true, width: 1200), isFalse);
+    expect(settingsUsesDialog(android: false, width: 700), isTrue);
+    expect(settingsUsesDialog(android: false, width: 699), isFalse);
+  });
+
+  testWidgets('windows settings switches as the window crosses 700', (
+    tester,
+  ) async {
+    Future<void> show(Size size) async {
+      tester.view.physicalSize = size;
+      tester.view.devicePixelRatio = 1;
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            databaseProvider.overrideWithValue(AppDatabase.memory()),
+            listsProvider.overrideWith(
+              (_) => Stream.value(const <ShoppingList>[]),
+            ),
+            taxRatesProvider.overrideWith(
+              (_) => Stream.value(const <TaxRate>[]),
+            ),
+            pantryListsProvider.overrideWith(
+              (_) => Stream.value(const <ShoppingList>[]),
+            ),
+            pantryProvider.overrideWith(
+              (ref, id) => Stream.value(const <PantryItem>[]),
+            ),
+          ],
+          child: const ShopItApp(windowChrome: false),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 300));
+    }
+
+    addTearDown(tester.view.reset);
+    await show(const Size(640, 700));
+    await tester.tap(find.byTooltip('Settings'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(find.byType(SettingsPage), findsOneWidget);
+    expect(find.byType(SettingsDialog), findsNothing);
+
+    tester.view.physicalSize = const Size(900, 700);
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull, reason: 'grew past 700');
+    expect(find.byType(SettingsDialog), findsOneWidget);
+    expect(find.byType(SettingsPage), findsNothing);
+    expect(find.text('Shopping'), findsWidgets);
+
+    tester.view.physicalSize = const Size(640, 700);
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull, reason: 'shrank below 700');
+    expect(find.byType(SettingsPage), findsOneWidget);
+    expect(find.byType(SettingsDialog), findsNothing);
+    final page = tester.getRect(find.byType(SettingsPage));
+    expect(page.width, 640);
+    expect(page.height, 700);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(seconds: 2));
+  });
+
+  testWidgets('android settings stay full screen and keep appearance words', (
+    tester,
+  ) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.android;
+
+    // A small phone, a common phone, and a larger phone with bigger text.
+    // Android stays portrait, so these are portrait sizes under the
+    // full-screen breakpoint.
+    const cases = [
+      (size: Size(320, 640), scale: 1.0),
+      (size: Size(360, 800), scale: 1.0),
+      (size: Size(412, 915), scale: 1.3),
+    ];
+    try {
+      for (final (:size, :scale) in cases) {
+        tester.view.physicalSize = size;
+        tester.view.devicePixelRatio = 1;
+        tester.view.padding = const FakeViewPadding(top: 24, bottom: 48);
+        tester.view.viewPadding = const FakeViewPadding(top: 24, bottom: 48);
+        tester.platformDispatcher.textScaleFactorTestValue = scale;
+        addTearDown(tester.view.reset);
+        addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              databaseProvider.overrideWithValue(AppDatabase.memory()),
+              listsProvider.overrideWith((_) => Stream.value([_list])),
+              taxRatesProvider.overrideWith((_) => Stream.value([_rate])),
+              categoriesProvider.overrideWith(
+                (_) => Stream.value([
+                  Category(name: 'Dairy & Eggs', sortOrder: 0),
+                ]),
+              ),
+              shoppingItemsProvider.overrideWith(
+                (ref, id) => Stream.value([_item('b', 'Milk')]),
+              ),
+              pantryListsProvider.overrideWith(
+                (_) => Stream.value(const <ShoppingList>[]),
+              ),
+              pantryProvider.overrideWith(
+                (ref, id) => Stream.value(const <PantryItem>[]),
+              ),
+            ],
+            child: const ShopItApp(windowChrome: false),
+          ),
+        );
+        await tester.pump(const Duration(milliseconds: 300));
+        expect(tester.takeException(), isNull);
+
+        await tester.tap(find.byTooltip('Settings'));
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull, reason: 'android settings');
+        expect(find.byType(AlertDialog), findsNothing);
+        expect(find.byType(SettingsPage), findsOneWidget);
+
+        final page = tester.getRect(find.byType(SettingsPage));
+        expect(page.left, 0, reason: 'page covers the left edge');
+        expect(page.top, 0, reason: 'page covers the top edge');
+        expect(page.width, size.width, reason: 'page is as wide as the screen');
+        expect(
+          page.height,
+          size.height,
+          reason: 'page is as tall as the screen',
+        );
+
+        final done = tester.getRect(find.widgetWithText(FilledButton, 'Done'));
+        expect(
+          done.bottom,
+          closeTo(size.height - 48 - 12, 2),
+          reason: 'Done stays at the bottom, above the system inset',
+        );
+
+        for (final word in ['System', 'Light', 'Dark']) {
+          final paragraph = tester.renderObject<RenderParagraph>(
+            find.text(word),
+          );
+          expect(paragraph.didExceedMaxLines, isFalse, reason: word);
+          expect(paragraph.text.toPlainText(), word);
+          final textRect = tester.getRect(find.text(word));
+          final tip = word == 'System' ? 'Match system' : word;
+          final segment = tester.getRect(find.byTooltip(tip));
+          expect(textRect.left, greaterThanOrEqualTo(segment.left - 1));
+          expect(textRect.right, lessThanOrEqualTo(segment.right + 1));
+          expect(textRect.top, greaterThanOrEqualTo(segment.top - 1));
+          expect(textRect.bottom, lessThanOrEqualTo(segment.bottom + 1));
+          expect(
+            textRect.height,
+            greaterThan(8),
+            reason: '$word stays readable',
+          );
+        }
+
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.pump(const Duration(seconds: 2));
+      }
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
+  });
 }

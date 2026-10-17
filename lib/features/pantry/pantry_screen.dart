@@ -20,7 +20,6 @@ import '../categories/category_color_dialog.dart';
 import '../categories/manage_categories_dialog.dart';
 import '../lists/manage_lists_dialog.dart';
 import '../lists/move_copy_dialog.dart';
-import '../settings/settings_dialog.dart';
 import 'items_setting_dialog.dart';
 
 class PantryScreen extends ConsumerStatefulWidget {
@@ -43,24 +42,13 @@ class _PantryScreenState extends ConsumerState<PantryScreen> {
   @override
   Widget build(BuildContext context) {
     final lists = ref.watch(pantryListsProvider);
-    final settingsButton = IconButton(
-      tooltip: 'Settings',
-      icon: const KeylineIcon(KeylineIcons.settings),
-      onPressed: () => showDialog<void>(
-        context: context,
-        builder: (_) => const SettingsDialog(),
-      ),
-    );
     return lists.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (e, _) => Center(child: Text('Error: $e')),
       data: (all) {
         if (all.isEmpty) {
           return Scaffold(
-            appBar: AppBar(
-              title: const Text('Pantry'),
-              actions: [settingsButton],
-            ),
+            appBar: AppBar(title: const Text('Pantry')),
             body: Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -90,7 +78,6 @@ class _PantryScreenState extends ConsumerState<PantryScreen> {
           onSelect: (id) => setState(() => _listId = id),
           onNewList: _newList,
           onListGone: () => setState(() => _listId = null),
-          settingsButton: settingsButton,
         );
       },
     );
@@ -104,7 +91,6 @@ class _PantryBody extends ConsumerWidget {
     required this.onSelect,
     required this.onNewList,
     required this.onListGone,
-    required this.settingsButton,
   });
 
   final List<ShoppingList> lists;
@@ -112,7 +98,6 @@ class _PantryBody extends ConsumerWidget {
   final ValueChanged<String> onSelect;
   final Future<void> Function() onNewList;
   final VoidCallback onListGone;
-  final Widget settingsButton;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -146,7 +131,6 @@ class _PantryBody extends ConsumerWidget {
           ScanItemButton(
             onScan: () => _scanPantry(context, db, categories, current.id),
           ),
-          settingsButton,
           PopupMenuButton<String>(
             tooltip: 'List options',
             icon: const KeylineIcon(KeylineIcons.moreVertical),

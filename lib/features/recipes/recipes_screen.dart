@@ -6,7 +6,6 @@ import '../../data/providers.dart';
 import '../../ui/dialogs.dart';
 import '../../ui/keyline/keyline_icon.dart';
 import '../../ui/tip.dart';
-import '../settings/settings_dialog.dart';
 import 'recipe_editor.dart';
 
 /// Saved recipes. Add one to a shopping list after subtracting pantry stock,
@@ -18,19 +17,7 @@ class RecipesScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final recipes = ref.watch(recipesProvider);
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Recipes'),
-        actions: [
-          IconButton(
-            tooltip: 'Settings',
-            icon: const KeylineIcon(KeylineIcons.settings),
-            onPressed: () => showDialog<void>(
-              context: context,
-              builder: (_) => const SettingsDialog(),
-            ),
-          ),
-        ],
-      ),
+      appBar: AppBar(title: const Text('Recipes')),
       floatingActionButton: FloatingActionButton(
         tooltip: 'New recipe',
         onPressed: () => _newRecipe(context, ref),
@@ -50,13 +37,8 @@ class RecipesScreen extends ConsumerWidget {
               for (final recipe in rows)
                 ListTile(
                   leading: const KeylineIcon(KeylineIcons.bookOpen),
-                  title: Tip(
-                    'Open ${recipe.name}',
-                    child: Text(recipe.name),
-                  ),
-                  subtitle: Text(
-                    '${_servingsLabel(recipe.servings)} servings',
-                  ),
+                  title: Tip('Open ${recipe.name}', child: Text(recipe.name)),
+                  subtitle: Text('${_servingsLabel(recipe.servings)} servings'),
                   onTap: () => showRecipeEditor(context, recipe: recipe),
                 ),
             ],
