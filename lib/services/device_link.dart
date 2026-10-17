@@ -320,7 +320,7 @@ String? pickHouseholdCode(
   if (!remoteOk) return localOk ? local : null;
   if (!localOk) return remote;
   if (local == remote) return local;
-  return local!.compareTo(remote!) <= 0 ? local : remote;
+  return local.compareTo(remote) <= 0 ? local : remote;
 }
 
 /// Sends this device's lists to [host] and applies what comes back.
