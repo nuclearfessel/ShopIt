@@ -25,6 +25,8 @@ class SyncSnapshot {
     required this.catalog,
     required this.categories,
     required this.categoryOrders,
+    this.recipes = const [],
+    this.recipeIngredients = const [],
   });
 
   final List<Map<String, Object?>> lists;
@@ -35,6 +37,8 @@ class SyncSnapshot {
   final List<Map<String, Object?>> catalog;
   final List<Map<String, Object?>> categories;
   final List<Map<String, Object?>> categoryOrders;
+  final List<Map<String, Object?>> recipes;
+  final List<Map<String, Object?>> recipeIngredients;
 
   Map<String, Object?> toJson() => {
     'v': syncSnapshotVersion,
@@ -46,6 +50,8 @@ class SyncSnapshot {
     'catalog': catalog,
     'categories': categories,
     'categoryOrders': categoryOrders,
+    'recipes': recipes,
+    'recipeIngredients': recipeIngredients,
   };
 
   factory SyncSnapshot.fromJson(Map<dynamic, dynamic> json) {
@@ -63,6 +69,8 @@ class SyncSnapshot {
       catalog: _mapList(json['catalog']),
       categories: _mapList(json['categories']),
       categoryOrders: _mapList(json['categoryOrders']),
+      recipes: _mapList(json['recipes']),
+      recipeIngredients: _mapList(json['recipeIngredients']),
     );
   }
 }
@@ -78,7 +86,9 @@ extension DeviceSync on AppDatabase {
     final history = await select(itemHistory).get();
     final catalog = await (select(
       catalogItems,
-    )..where((t) => t.isCustom.equals(true))).get();
+    )..where((t) => t.isCustom.equals(true) | t.barcode.equals('').not())).get();
+    final recipeRows = await select(recipes).get();
+    final ingredientRows = await select(recipeIngredients).get();
     final categories = await select(this.categories).get();
     final orders = await select(listCategoryOrders).get();
     return SyncSnapshot(
@@ -99,6 +109,10 @@ extension DeviceSync on AppDatabase {
             'category': row.category,
             'position': row.position,
           },
+      ],
+      recipes: [for (final row in recipeRows) _recipeJson(row)],
+      recipeIngredients: [
+        for (final row in ingredientRows) _recipeIngredientJson(row),
       ],
     );
   });
@@ -127,6 +141,8 @@ extension DeviceSync on AppDatabase {
     await _applyCategories(remote.categories, itemCategories);
     await _applyHistory(remote.history);
     await _applyCatalog(remote.catalog);
+    await _applyRecipes(remote.recipes);
+    await _applyRecipeIngredients(remote.recipeIngredients);
     await _applyOrders(remote.categoryOrders, lists);
   });
 
@@ -488,7 +504,9 @@ extension DeviceSync on AppDatabase {
 
   Future<void> _applyCatalog(List<Map<String, Object?>> rows) async {
     for (final row in rows) {
-      if (!_bool(row, 'isCustom', false)) continue;
+      final barcode = _string(row, 'barcode');
+      final custom = _bool(row, 'isCustom', false);
+      if (!custom && barcode.isEmpty) continue;
       final id = _id(row);
       final at = _updatedAt(row);
       final name = _string(row, 'name');
@@ -505,16 +523,102 @@ extension DeviceSync on AppDatabase {
         name: Value(name),
         category: Value(category.isEmpty ? 'Other' : category),
         defaultUnit: Value(_string(row, 'defaultUnit')),
-        isCustom: const Value(true),
+        isCustom: Value(custom),
         parentName: Value(_string(row, 'parentName')),
+        barcode: Value(barcode),
         updatedAt: Value(at),
         deletedAt: Value(_date(row, 'deletedAt')),
       );
       if (local == null) {
-        await into(catalogItems).insert(values.copyWith(id: Value(id)));
+        final sameName =
+            await (select(catalogItems)
+                  ..where((t) => t.name.lower().equals(name.toLowerCase()))
+                  ..limit(1))
+                .getSingleOrNull();
+        if (sameName != null) {
+          if (barcode.isNotEmpty) {
+            await (update(
+              catalogItems,
+            )..where((t) => t.id.equals(sameName.id))).write(
+              CatalogItemsCompanion(barcode: Value(barcode), updatedAt: Value(at)),
+            );
+          }
+          continue;
+        }
+        await into(catalogItems).insert(
+          values.copyWith(id: Value(id), isCustom: const Value(true)),
+        );
       } else {
         await (update(
           catalogItems,
+        )..where((t) => t.id.equals(id))).write(values);
+      }
+    }
+  }
+
+  Future<void> _applyRecipes(List<Map<String, Object?>> rows) async {
+    for (final row in rows) {
+      final id = _id(row);
+      final at = _updatedAt(row);
+      final name = _string(row, 'name');
+      if (id == null || at == null || name.isEmpty) continue;
+      final local = await (select(
+        recipes,
+      )..where((t) => t.id.equals(id))).getSingleOrNull();
+      if (local != null &&
+          !_take(at, local.updatedAt, _identical(_recipeJson(local), row))) {
+        continue;
+      }
+      final values = RecipesCompanion(
+        name: Value(name),
+        servings: Value(_double(row, 'servings', 4)),
+        note: Value(_string(row, 'note')),
+        updatedAt: Value(at),
+        deletedAt: Value(_date(row, 'deletedAt')),
+      );
+      if (local == null) {
+        await into(recipes).insert(values.copyWith(id: Value(id)));
+      } else {
+        await (update(recipes)..where((t) => t.id.equals(id))).write(values);
+      }
+    }
+  }
+
+  Future<void> _applyRecipeIngredients(List<Map<String, Object?>> rows) async {
+    for (final row in rows) {
+      final id = _id(row);
+      final at = _updatedAt(row);
+      final recipeId = _string(row, 'recipeId');
+      final name = _string(row, 'name');
+      if (id == null || at == null || recipeId.isEmpty || name.isEmpty) {
+        continue;
+      }
+      final local = await (select(
+        recipeIngredients,
+      )..where((t) => t.id.equals(id))).getSingleOrNull();
+      if (local != null &&
+          !_take(
+            at,
+            local.updatedAt,
+            _identical(_recipeIngredientJson(local), row),
+          )) {
+        continue;
+      }
+      final values = RecipeIngredientsCompanion(
+        recipeId: Value(recipeId),
+        name: Value(name),
+        quantity: Value(_double(row, 'quantity', 1)),
+        unit: Value(_string(row, 'unit')),
+        category: Value(_string(row, 'category')),
+        sortOrder: Value(_int(row, 'sortOrder')),
+        updatedAt: Value(at),
+        deletedAt: Value(_date(row, 'deletedAt')),
+      );
+      if (local == null) {
+        await into(recipeIngredients).insert(values.copyWith(id: Value(id)));
+      } else {
+        await (update(
+          recipeIngredients,
         )..where((t) => t.id.equals(id))).write(values);
       }
     }
@@ -657,6 +761,28 @@ Map<String, Object?> _catalogJson(CatalogItem row) => {
   'defaultUnit': row.defaultUnit,
   'isCustom': row.isCustom,
   'parentName': row.parentName,
+  'barcode': row.barcode,
+};
+
+Map<String, Object?> _recipeJson(Recipe row) => {
+  'id': row.id,
+  'updatedAt': _iso(row.updatedAt),
+  'deletedAt': row.deletedAt == null ? null : _iso(row.deletedAt!),
+  'name': row.name,
+  'servings': row.servings,
+  'note': row.note,
+};
+
+Map<String, Object?> _recipeIngredientJson(RecipeIngredient row) => {
+  'id': row.id,
+  'updatedAt': _iso(row.updatedAt),
+  'deletedAt': row.deletedAt == null ? null : _iso(row.deletedAt!),
+  'recipeId': row.recipeId,
+  'name': row.name,
+  'quantity': row.quantity,
+  'unit': row.unit,
+  'category': row.category,
+  'sortOrder': row.sortOrder,
 };
 
 List<Map<String, Object?>> _mapList(Object? value) {

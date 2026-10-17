@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
-/// Reads assets/catalog.json and writes lib/data/catalog_seed.g.dart.
+/// Reads assets/catalog.json and writes lib/data/catalog_seed_data.dart.
 ///
 /// Run from the repo root: `dart run tool/build_catalog.dart`
 void main() {
@@ -62,7 +62,7 @@ void main() {
   }
   buffer.writeln('};');
 
-  final out = File('lib/data/catalog_seed.g.dart');
+  final out = File('lib/data/catalog_seed_data.dart');
   out.writeAsStringSync(buffer.toString());
   stdout.writeln('Wrote ${out.path}');
 }

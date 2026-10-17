@@ -88,6 +88,7 @@ CatalogItem fakeCatalog(String name, {String parent = ''}) => CatalogItem(
   defaultUnit: '',
   isCustom: false,
   parentName: parent,
+  barcode: '',
 );
 
 /// Pumps the whole app at [width] x [height] with fake data (no database).
@@ -165,6 +166,7 @@ Future<void> pumpShopIt(
         ]),
       ),
       historyProvider.overrideWith((_) => Stream.value(history)),
+      recipesProvider.overrideWith((_) => Stream.value(const [])),
       catalogSearchProvider.overrideWith(
         (ref, q) async => [
           fakeCatalog('Onions'),

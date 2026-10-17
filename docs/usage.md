@@ -1,6 +1,6 @@
 # Using Shop-it
 
-Shop-it runs the same way on Windows and Android. Use <img src="icons/shopping.png" width="22" height="22" alt=""> **Shopping** for what you need to buy and <img src="icons/pantry.png" width="22" height="22" alt=""> **Pantry** for what you already have. On a wide window those sections are in the left rail; on a phone they are in the bottom bar.
+Shop-it runs the same way on Windows and Android. Use <img src="icons/shopping.png" width="22" height="22" alt=""> **Shopping** for what you need to buy, <img src="icons/pantry.png" width="22" height="22" alt=""> **Pantry** for what you already have, and <img src="icons/recipes.png" width="22" height="22" alt=""> **Recipes** for meals you plan to cook. On a wide window those sections are in the left rail; on a phone they are in the bottom bar.
 
 Open **Settings** from <img src="icons/settings.png" width="22" height="22" alt="Settings"> for appearance, sales tax, sharing, and About. The list menu is <img src="icons/more.png" width="22" height="22" alt="List options">.
 
@@ -12,9 +12,11 @@ Each picture is a button on the screen.
 | --- | --- |
 | <img src="icons/shopping.png" width="28" height="28" alt=""> | **Shopping** switches to the lists of things to buy. |
 | <img src="icons/pantry.png" width="28" height="28" alt=""> | **Pantry** switches to what you already have. |
+| <img src="icons/recipes.png" width="28" height="28" alt=""> | **Recipes** opens meals you have saved. |
 | <img src="icons/settings.png" width="28" height="28" alt=""> | **Settings** opens appearance, sales tax, sharing, and About. |
 | <img src="icons/more.png" width="28" height="28" alt=""> | **List options** opens the menu for the list you are looking at. |
 | <img src="icons/plus.png" width="28" height="28" alt=""> | **Add** puts the name in the search field onto the list. A name Shop-it does not already know is saved, so search can find it later. |
+| <img src="icons/scan.png" width="28" height="28" alt=""> | **Scan** (Android) reads a barcode and adds that product. Windows does not show this button. |
 | <img src="icons/pen.png" width="28" height="28" alt=""> | **Edit details** sets quantity, unit, category, price, tax, and a note before the item is added. |
 | <img src="icons/history.png" width="28" height="28" alt=""> | **History** opens names you have added to a shopping list before. The trash can removes one of those recents. The saved name stays in search. |
 | <img src="icons/new-list.png" width="28" height="28" alt=""> | **New list** starts another shopping or pantry list. |
@@ -33,7 +35,7 @@ Each picture is a button on the screen.
 1. Open <img src="icons/shopping.png" width="22" height="22" alt=""> **Shopping**.
 2. Create a list from the empty screen, or choose **New list** from <img src="icons/more.png" width="22" height="22" alt="List options">.
 3. If you have more than one list, use the name at the top to switch between them.
-4. Type in **Search or add an item**, then press Enter or tap <img src="icons/plus.png" width="22" height="22" alt="Add">. Use <img src="icons/pen.png" width="22" height="22" alt="Edit"> to set quantity, unit, category, price, tax, and a note before you add.
+4. Type in **Search or add an item**, then press Enter or tap <img src="icons/plus.png" width="22" height="22" alt="Add">. Use <img src="icons/pen.png" width="22" height="22" alt="Edit"> to set quantity, unit, category, price, tax, and a note before you add. On Android, tap <img src="icons/scan.png" width="22" height="22" alt="Scan"> to add from a barcode instead of typing.
 5. Tap an item to edit it. Check an item to move it into the cart.
 
 From the cart you can uncheck everything (<img src="icons/uncheck.png" width="22" height="22" alt="Uncheck all">) or delete the checked items (<img src="icons/delete.png" width="22" height="22" alt="Delete all">).
@@ -55,6 +57,8 @@ With the field focused and empty, Shop-it shows up to six recent names so repeat
 
 A name that is not already in Shop-it is saved when you add it to a shopping list or to the pantry. The next search offers it with the built-in items. Adding that same name again does not store a second copy. A new name is filed under **Other**. To pick the category first, tap <img src="icons/pen.png" width="22" height="22" alt="Edit">, choose the category, then add. That category is what the name uses from then on. A pantry name is saved for search, and it does not appear under Recent. Recent is names you have added to a shopping list.
 
+On Android, <img src="icons/scan.png" width="22" height="22" alt="Scan"> sits next to Add. A known code adds that name. An unknown code looks up the package, then adds it. If there is no match, you name it; the code is kept so the next scan finds it. Windows has no scan button. A name added from a scan on the phone still appears on the computer through sync.
+
 ### List settings and categories
 
 Categories are alphabetical on every list. A new category slots into that order on its own.
@@ -71,11 +75,23 @@ Tap a category header to change its color. Manage the full category list from th
 
 <img src="screenshots/pantry.png" alt="Pantry with a Use soon strip for expired Milk and Yogurt expiring in two days" width="720" />
 
-Open <img src="icons/pantry.png" width="22" height="22" alt=""> **Pantry** for stock you already have. Add items the same way as on a shopping list, including the <img src="icons/plus.png" width="22" height="22" alt="Add"> button. An item can use a count or a level (full or low), and it can include a place and an expiry date.
+Open <img src="icons/pantry.png" width="22" height="22" alt=""> **Pantry** for stock you already have. Add items the same way as on a shopping list, including the <img src="icons/plus.png" width="22" height="22" alt="Add"> button. An item can use a count or a level (full or low), and it can include a place and an expiry date. On Android, <img src="icons/scan.png" width="22" height="22" alt="Scan"> adds that product or increases the count if it is already there.
 
 **Use soon** appears at the top when something expires within the next seven days, or is already past its date. Each name says **today**, **tomorrow**, **in N days**, or **expired**.
 
 **Move/Copy items** sends items between shopping lists and pantry lists—handy when you restock or finish something.
+
+## Recipes
+
+Open <img src="icons/recipes.png" width="22" height="22" alt=""> **Recipes** to save a meal.
+
+1. Tap the new-recipe button and name it.
+2. Set how many it serves.
+3. Add ingredients by the same names you would search for in Shop-it, with an amount and unit.
+4. **Add to list** asks which shopping list and how many servings to shop for. Amounts scale from the recipe. Names the pantry already covers are skipped; the rest go on the list. A new line's note says which recipe it is for.
+5. **Cook** takes those amounts off the pantry. A full/low item is marked low.
+
+Recipes use the same item names as Shopping and Pantry. They are not a second catalog.
 
 ## Sales tax
 

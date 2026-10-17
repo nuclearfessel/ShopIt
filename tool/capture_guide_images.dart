@@ -34,6 +34,8 @@ void main() {
     const icons = <String, KeylineIconData>{
       'shopping': KeylineIcons.shoppingCart,
       'pantry': KeylineIcons.archive,
+      'recipes': KeylineIcons.bookOpen,
+      'scan': KeylineIcons.scanBarcode,
       'settings': KeylineIcons.settings,
       'more': KeylineIcons.moreVertical,
       'search': KeylineIcons.search,

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/database.dart';
 import '../../data/providers.dart';
 import '../catalog/catalog_suggestions.dart';
+import '../catalog/scan_item.dart';
 import '../../data/tax_rules.dart';
 import '../../data/totals.dart';
 import '../catalog/item_editor.dart';
@@ -162,6 +163,32 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
       await db.assignCategory(e.name, e.category);
     }
     if (mounted) _dismissSearch();
+  }
+
+  Future<void> _scan(
+    ShoppingList list,
+    List<String> categories,
+  ) async {
+    final db = ref.read(databaseProvider);
+    final resolved = await scanAndResolve(context, db);
+    if (resolved == null || !mounted) return;
+    if (resolved.needsName) {
+      final edit = await nameUnknownBarcode(
+        context,
+        barcode: resolved.barcode,
+        categories: categories,
+      );
+      if (edit == null || !mounted) return;
+      await db.linkBarcode(
+        resolved.barcode,
+        edit.name,
+        category: edit.category,
+        unit: edit.unit,
+      );
+      _add(list, edit.name, edit.category);
+      return;
+    }
+    _add(list, resolved.name, resolved.category);
   }
 
   /// Clears the query and closes the suggestion menu.
@@ -577,6 +604,9 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
                               context: context,
                               builder: (_) => HistoryDialog(list: current),
                             ),
+                          ),
+                          ScanItemButton(
+                            onScan: () => _scan(current, categoryNames),
                           ),
                           IconButton(
                             tooltip: 'Add item',
