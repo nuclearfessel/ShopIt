@@ -209,6 +209,13 @@ void main() {
     expect(pickHouseholdCode(null, a, keepLocal: false), a);
   });
 
+  test('beacon targets include the subnet broadcast phones deliver', () {
+    expect(subnetBroadcast('192.168.1.20'), '192.168.1.255');
+    expect(subnetBroadcast('10.0.0.4'), '10.0.0.255');
+    expect(subnetBroadcast('127.0.0.1'), null);
+    expect(subnetBroadcast('not-an-address'), null);
+  });
+
   test('a beacon says which device is sharing and where', () {
     final beacon = ShopItBeacon.tryParse('SHOPIT1\t47821\tabc\tthe phone');
     expect(beacon?.port, shopItSyncPort);

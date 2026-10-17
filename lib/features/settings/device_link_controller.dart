@@ -11,6 +11,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../data/providers.dart';
 import '../../services/cloud_mailbox.dart';
 import '../../services/device_link.dart';
+import '../../services/sync_qr.dart';
 
 const _prefKey = 'device_link';
 const _deviceIdKey = 'device_id';
@@ -177,6 +178,10 @@ class DeviceLinkController extends Notifier<DeviceLinkState> {
     if (!state.sharing) {
       state = state.copyWith(busy: true, clearWifiError: true);
       try {
+        // The phone drops incoming announcements unless this lock is held
+        // before the beacon socket opens.
+        await _multicast(true);
+        if (token != _token) return;
         final db = ref.read(databaseProvider);
         final port = await _host.start(db: db);
         if (token != _token) return;
@@ -186,7 +191,6 @@ class DeviceLinkController extends Notifier<DeviceLinkState> {
           name: thisDeviceName(),
         );
         if (token != _token) return;
-        await _multicast(true);
         state = state.copyWith(
           sharing: true,
           busy: false,
@@ -238,13 +242,9 @@ class DeviceLinkController extends Notifier<DeviceLinkState> {
       );
       await _save();
       _startTimer(token);
+      // The code is local. A broker that does not answer must not erase it,
+      // or Wi-Fi sharing has nothing to prove the other device with.
       await _syncCloud(token);
-      if (token != _token) return;
-      if (state.cloudError != null) {
-        state = state.copyWith(clearCloud: true, cloudBusy: false);
-        await _save();
-        _startTimer(token);
-      }
     } on Object catch (error) {
       if (token != _token) return;
       state = state.copyWith(
@@ -254,6 +254,26 @@ class DeviceLinkController extends Notifier<DeviceLinkState> {
       );
       await _save();
     }
+  }
+
+  /// Joins the household in a scanned QR code and starts Wi-Fi sharing.
+  Future<void> joinFromQr(String raw) async {
+    final code = householdFromQr(raw);
+    if (code == null) {
+      state = state.copyWith(
+        cloudError: 'That QR code is not a ShopIt sync code.',
+      );
+      return;
+    }
+    if (state.cloudLinked && state.cloudCode != code) {
+      state = state.copyWith(
+        cloudError: 'Leave cloud sync before scanning a different code.',
+      );
+      return;
+    }
+    if (!state.cloudLinked) await joinCloudHousehold(code);
+    if (!state.cloudLinked || state.cloudCode != code) return;
+    if (!state.sharing) await startSharing();
   }
 
   /// Joins an existing household with the code from the other device.

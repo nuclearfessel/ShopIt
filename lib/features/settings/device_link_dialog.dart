@@ -4,8 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../app/form_factor.dart';
+import '../../services/barcode_scanner.dart';
+import '../../services/cloud_mailbox.dart';
+import '../../services/sync_qr.dart';
 import '../../ui/tip.dart';
 import 'device_link_controller.dart';
+import 'sync_qr_view.dart';
 
 /// Turn sharing on for Wi-Fi and, optionally, over the internet.
 class DeviceLinkDialog extends ConsumerStatefulWidget {
@@ -30,6 +35,9 @@ class _DeviceLinkDialogState extends ConsumerState<DeviceLinkDialog> {
     final link = ref.watch(deviceLinkProvider);
     final muted = theme.textTheme.bodyMedium?.copyWith(
       color: theme.colorScheme.onSurface.withValues(alpha: 0.75),
+    );
+    final errorStyle = theme.textTheme.bodyMedium?.copyWith(
+      color: theme.colorScheme.error,
     );
     final notifier = ref.read(deviceLinkProvider.notifier);
 
@@ -58,29 +66,11 @@ class _DeviceLinkDialogState extends ConsumerState<DeviceLinkDialog> {
                   style: theme.textTheme.bodySmall,
                 ),
               ],
-              if (link.wifiError != null) ...[
-                const SizedBox(height: 4),
-                Text(
-                  link.wifiError!,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.error,
-                  ),
-                ),
-              ],
               if (link.cloudLinked) ...[
                 const SizedBox(height: 4),
                 Text(
                   _when('Cloud', link.lastCloudSync),
                   style: theme.textTheme.bodySmall,
-                ),
-              ],
-              if (link.cloudError != null) ...[
-                const SizedBox(height: 4),
-                Text(
-                  link.cloudError!,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.error,
-                  ),
                 ),
               ],
               if (link.sharing && Platform.isWindows) ...[
@@ -117,6 +107,18 @@ class _DeviceLinkDialogState extends ConsumerState<DeviceLinkDialog> {
                     child: const Text('Share on this Wi-Fi'),
                   ),
                 ),
+              if (link.sharing && !link.cloudLinked) ...[
+                const SizedBox(height: 8),
+                Text(
+                  'This Wi-Fi is on. Lists move after both devices have the '
+                  'same code.',
+                  style: muted,
+                ),
+              ],
+              if (link.wifiError != null) ...[
+                const SizedBox(height: 4),
+                Text(link.wifiError!, style: errorStyle),
+              ],
               const SizedBox(height: 20),
               Text(
                 'OVER THE INTERNET',
@@ -156,6 +158,10 @@ class _DeviceLinkDialogState extends ConsumerState<DeviceLinkDialog> {
                     child: const Text('Leave cloud sync'),
                   ),
                 ),
+                if (link.cloudError != null) ...[
+                  const SizedBox(height: 4),
+                  Text(link.cloudError!, style: errorStyle),
+                ],
               ] else ...[
                 Text(
                   'Create a code on one device, then enter it on the other. '
@@ -193,6 +199,30 @@ class _DeviceLinkDialogState extends ConsumerState<DeviceLinkDialog> {
                     child: const Text('Join with code'),
                   ),
                 ),
+                if (link.cloudError != null) ...[
+                  const SizedBox(height: 4),
+                  Text(link.cloudError!, style: errorStyle),
+                ],
+              ],
+              if (desktopSearchKeys) ...[
+                const SizedBox(height: 12),
+                Tip(
+                  'Show a QR code the phone can scan to start sync',
+                  child: OutlinedButton(
+                    onPressed: link.cloudBusy ? null : _showSyncQr,
+                    child: const Text('Show QR code'),
+                  ),
+                ),
+              ],
+              if (platformScansBarcodes) ...[
+                const SizedBox(height: 12),
+                Tip(
+                  'Scan the QR code shown on the computer',
+                  child: OutlinedButton(
+                    onPressed: link.cloudBusy ? null : _scanSyncQr,
+                    child: const Text('Scan QR code'),
+                  ),
+                ),
               ],
             ],
           ),
@@ -208,6 +238,54 @@ class _DeviceLinkDialogState extends ConsumerState<DeviceLinkDialog> {
         ),
       ],
     );
+  }
+
+  Future<void> _showSyncQr() async {
+    final notifier = ref.read(deviceLinkProvider.notifier);
+    if (!ref.read(deviceLinkProvider).cloudLinked) {
+      await notifier.createCloudHousehold();
+    }
+    if (!mounted) return;
+    final code = ref.read(deviceLinkProvider).cloudCode;
+    if (code == null || !isHouseholdCode(code)) return;
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Scan to sync'),
+        content: SizedBox(
+          width: 280,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'On the phone, open Share lists and tap Scan QR code.',
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: 240,
+                height: 240,
+                child: SyncQrView(payload: syncQrPayload(code)),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          Tip(
+            'Close',
+            child: TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Close'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _scanSyncQr() async {
+    final raw = await barcodeScanner.scan(sync: true);
+    if (!mounted || raw == null) return;
+    await ref.read(deviceLinkProvider.notifier).joinFromQr(raw);
   }
 
   String _when(String channel, DateTime? time) {
