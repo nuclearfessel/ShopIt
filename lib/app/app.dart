@@ -4,9 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../data/providers.dart';
 import '../features/pantry/pantry_screen.dart';
 import '../features/recipes/recipes_screen.dart';
 import '../features/settings/device_link_controller.dart';
+import '../features/settings/settings_dialog.dart';
 import 'theme_mode.dart';
 import 'title_bar.dart';
 import '../features/shopping/shopping_screen.dart';
@@ -104,7 +106,10 @@ ThemeData _buildTheme(Brightness brightness) {
       backgroundColor: scheme.surface,
       foregroundColor: scheme.onSurface,
       surfaceTintColor: Colors.transparent,
-      // The title keeps the text colour; the icons in the bar are key lime.
+      // Titles sit 16px from the left. An action button's drawn shape is
+      // 40px inside a 48px tap target, so 12px of bar padding puts that
+      // shape 16px from the right edge.
+      actionsPadding: const EdgeInsets.only(right: 12),
       iconTheme: IconThemeData(color: lime),
       actionsIconTheme: IconThemeData(color: lime),
     ),
@@ -170,14 +175,14 @@ class _ShopItAppState extends ConsumerState<ShopItApp> {
 }
 
 /// Side rail on wide windows (Windows), bottom bar on narrow ones (Android).
-class AppShell extends StatelessWidget {
+class AppShell extends ConsumerWidget {
   const AppShell({super.key, required this.shell});
   final StatefulNavigationShell shell;
 
-  static const _destinations = [
-    (KeylineIcons.shoppingCart, KeylineIcons.shoppingCart, 'Shopping'),
-    (KeylineIcons.archive, KeylineIcons.archive, 'Pantry'),
-    (KeylineIcons.bookOpen, KeylineIcons.bookOpen, 'Recipes'),
+  static const _sections = [
+    (KeylineIcons.shoppingCart, 'Shopping'),
+    (KeylineIcons.archive, 'Pantry'),
+    (KeylineIcons.bookOpen, 'Recipes'),
   ];
 
   /// Switches screen. A message (like "Deleted 2 items - UNDO") belongs to the
@@ -187,8 +192,28 @@ class AppShell extends StatelessWidget {
     shell.goBranch(i, initialLocation: i == shell.currentIndex);
   }
 
+  /// Opens settings over the current section. From Shopping, it can assign
+  /// that list's tax rate.
+  void _openSettings(BuildContext context, WidgetRef ref) {
+    final list = shell.currentIndex == 0
+        ? ref.read(openShoppingListProvider)
+        : null;
+    showAppSettings(context, listId: list?.id, listName: list?.name);
+  }
+
+  void _select(BuildContext context, WidgetRef ref, int i) {
+    if (i == _sections.length) {
+      _openSettings(context, ref);
+      return;
+    }
+    _go(context, i);
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final lime = Theme.of(context).brightness == Brightness.dark
+        ? keyLimeOnDark
+        : keyLimeOnLight;
     final wide = MediaQuery.sizeOf(context).width >= 700;
     if (wide) {
       return Scaffold(
@@ -198,17 +223,22 @@ class AppShell extends StatelessWidget {
               selectedIndex: shell.currentIndex,
               onDestinationSelected: (i) => _go(context, i),
               labelType: NavigationRailLabelType.all,
+              trailingAtBottom: true,
               destinations: [
-                for (final d in _destinations)
+                for (final d in _sections)
                   NavigationRailDestination(
-                    icon: Tip('Go to ${d.$3}', child: KeylineIcon(d.$1)),
+                    icon: Tip('Go to ${d.$2}', child: KeylineIcon(d.$1)),
                     selectedIcon: Tip(
-                      'Go to ${d.$3}',
-                      child: KeylineIcon(d.$2),
+                      'Go to ${d.$2}',
+                      child: KeylineIcon(d.$1),
                     ),
-                    label: Text(d.$3),
+                    label: Text(d.$2),
                   ),
               ],
+              trailing: _SettingsRailButton(
+                color: lime,
+                onPressed: () => _openSettings(context, ref),
+              ),
             ),
             const VerticalDivider(width: 1),
             Expanded(child: shell),
@@ -220,17 +250,107 @@ class AppShell extends StatelessWidget {
       body: shell,
       bottomNavigationBar: NavigationBar(
         selectedIndex: shell.currentIndex,
-        onDestinationSelected: (i) => _go(context, i),
+        onDestinationSelected: (i) => _select(context, ref, i),
         destinations: [
-          for (final d in _destinations)
+          for (final d in _sections)
             NavigationDestination(
               icon: KeylineIcon(d.$1),
-              selectedIcon: KeylineIcon(d.$2),
-              label: d.$3,
-              tooltip: 'Go to ${d.$3}',
+              selectedIcon: KeylineIcon(d.$1),
+              label: d.$2,
+              tooltip: 'Go to ${d.$2}',
             ),
+          NavigationDestination(
+            icon: KeylineIcon(KeylineIcons.settings, color: lime),
+            selectedIcon: KeylineIcon(KeylineIcons.settings, color: lime),
+            label: 'Settings',
+            tooltip: 'Settings',
+          ),
         ],
       ),
     );
+  }
+}
+
+/// Settings pinned to the bottom of the side rail.
+///
+/// The press and hover mark is the same 56×32 stadium the rail draws behind
+/// Shopping, Pantry, and Recipes, not a shape around the icon and the label.
+class _SettingsRailButton extends StatelessWidget {
+  const _SettingsRailButton({required this.color, required this.onPressed});
+
+  final Color color;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final label =
+        NavigationRailTheme.of(context).unselectedLabelTextStyle ??
+        theme.textTheme.labelMedium;
+    final splash = colors.primary.a < 1
+        ? colors.primary
+        : colors.primary.withValues(alpha: 0.12);
+    final hover = colors.primary.a < 1
+        ? colors.primary
+        : colors.primary.withValues(alpha: 0.04);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: _RailIconInk(
+        onTap: onPressed,
+        splashColor: splash,
+        hoverColor: hover,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                width: _RailIconInk.indicatorWidth,
+                height: _RailIconInk.indicatorHeight,
+                child: Center(
+                  child: Tip(
+                    'Settings',
+                    child: KeylineIcon(KeylineIcons.settings, color: color),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text('Settings', style: label),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Ink highlight limited to the rail's icon stadium (56 wide, 32 tall).
+class _RailIconInk extends InkResponse {
+  const _RailIconInk({
+    required super.child,
+    required super.onTap,
+    required super.splashColor,
+    required super.hoverColor,
+  }) : super(
+         containedInkWell: true,
+         highlightShape: BoxShape.rectangle,
+         customBorder: const StadiumBorder(),
+       );
+
+  static const indicatorWidth = 56.0;
+  static const indicatorHeight = 32.0;
+
+  @override
+  RectCallback getRectCallback(RenderBox referenceBox) {
+    return () {
+      final boxWidth = referenceBox.size.width;
+      return Rect.fromLTWH(
+        (boxWidth - indicatorWidth) / 2,
+        0,
+        indicatorWidth,
+        indicatorHeight,
+      );
+    };
   }
 }

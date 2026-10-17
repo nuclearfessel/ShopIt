@@ -18,7 +18,6 @@ import '../history/history_dialog.dart';
 import '../lists/list_settings_dialog.dart';
 import '../lists/move_copy_dialog.dart';
 import '../lists/manage_lists_dialog.dart';
-import '../settings/settings_dialog.dart';
 import 'tax_rates_dialog.dart';
 import '../../ui/keyline/keyline_icon.dart';
 import '../../ui/category_header.dart';
@@ -165,10 +164,7 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
     if (mounted) _dismissSearch();
   }
 
-  Future<void> _scan(
-    ShoppingList list,
-    List<String> categories,
-  ) async {
+  Future<void> _scan(ShoppingList list, List<String> categories) async {
     final db = ref.read(databaseProvider);
     final resolved = await scanAndResolve(context, db);
     if (resolved == null || !mounted) return;
@@ -243,6 +239,17 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
     );
   }
 
+  /// Settings lives in the navigation and uses this to assign the open list's
+  /// tax rate. Publishing waits until after this build.
+  void _rememberOpenList(ShoppingList? list) {
+    final open = ref.read(openShoppingListProvider);
+    if (open?.id == list?.id && open?.name == list?.name) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.read(openShoppingListProvider.notifier).set(list);
+    });
+  }
+
   List<PantryItem> _pantryNow() {
     final lists = ref.read(pantryListsProvider).value ?? const <ShoppingList>[];
     return [
@@ -259,20 +266,9 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
       error: (e, _) => Center(child: Text('Error: $e')),
       data: (all) {
         if (all.isEmpty) {
+          _rememberOpenList(null);
           return Scaffold(
-            appBar: AppBar(
-              title: const Text('Shopping'),
-              actions: [
-                IconButton(
-                  tooltip: 'Settings',
-                  icon: const KeylineIcon(KeylineIcons.settings),
-                  onPressed: () => showDialog<void>(
-                    context: context,
-                    builder: (_) => const SettingsDialog(),
-                  ),
-                ),
-              ],
-            ),
+            appBar: AppBar(title: const Text('Shopping')),
             body: Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -296,6 +292,7 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
           (l) => l.id == _listId,
           orElse: () => all.first,
         );
+        _rememberOpenList(current);
         final db = ref.read(databaseProvider);
         final items = ref.watch(shoppingItemsProvider(current.id));
         // Watched (not read) so they are loaded by the time Move/Copy needs them.
@@ -337,17 +334,6 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
           appBar: AppBar(
             title: const Text('Shopping'),
             actions: [
-              IconButton(
-                tooltip: 'Settings',
-                icon: const KeylineIcon(KeylineIcons.settings),
-                onPressed: () => showDialog<void>(
-                  context: context,
-                  builder: (_) => SettingsDialog(
-                    listId: current.id,
-                    listName: current.name,
-                  ),
-                ),
-              ),
               PopupMenuButton<String>(
                 tooltip: 'List options',
                 icon: const KeylineIcon(KeylineIcons.moreVertical),

@@ -1,8 +1,8 @@
 # Using Shop-it
 
-Shop-it runs the same way on Windows and Android. Use <img src="icons/shopping.png" width="22" height="22" alt=""> **Shopping** for what you need to buy, <img src="icons/pantry.png" width="22" height="22" alt=""> **Pantry** for what you already have, and <img src="icons/recipes.png" width="22" height="22" alt=""> **Recipes** for meals you plan to cook. On a wide window those sections are in the left rail; on a phone they are in the bottom bar.
+Shop-it runs the same way on Windows and Android. Use <img src="icons/shopping.png" width="22" height="22" alt=""> **Shopping** for what you need to buy, <img src="icons/pantry.png" width="22" height="22" alt=""> **Pantry** for what you already have, and <img src="icons/recipes.png" width="22" height="22" alt=""> **Recipes** for meals you plan to cook. On Windows, Shopping, Pantry, and Recipes sit at the top of the left rail when the window is at least 700 pixels wide, and <img src="icons/settings.png" width="22" height="22" alt="Settings"> **Settings** sits at the bottom and opens in a dialog. Below 700, all four sit in the bottom bar and Settings is a full page. Dragging the window across 700 switches Settings between the dialog and the page while it is open. On Android, Settings is always that full page. Close it with the X at the top right or with Done. The phone stays in portrait.
 
-Open **Settings** from <img src="icons/settings.png" width="22" height="22" alt="Settings"> for appearance, sales tax, sharing, and About. The list menu is <img src="icons/more.png" width="22" height="22" alt="List options">.
+The list menu is <img src="icons/more.png" width="22" height="22" alt="List options">.
 
 ## Controls
 
@@ -13,7 +13,7 @@ Each picture is a button on the screen.
 | <img src="icons/shopping.png" width="28" height="28" alt=""> | **Shopping** switches to the lists of things to buy. |
 | <img src="icons/pantry.png" width="28" height="28" alt=""> | **Pantry** switches to what you already have. |
 | <img src="icons/recipes.png" width="28" height="28" alt=""> | **Recipes** opens meals you have saved. |
-| <img src="icons/settings.png" width="28" height="28" alt=""> | **Settings** opens appearance, sales tax, sharing, and About. |
+| <img src="icons/settings.png" width="28" height="28" alt=""> | **Settings** opens appearance, sales tax, sharing, and About. On Windows it is a dialog when the window is at least 700 pixels wide, and a full page below that. Resizing across 700 switches it while it is open. On Android it is always a full page. The X at the top right and **Done** both leave that page. |
 | <img src="icons/more.png" width="28" height="28" alt=""> | **List options** opens the menu for the list you are looking at. |
 | <img src="icons/plus.png" width="28" height="28" alt=""> | **Add** puts the name in the search field onto the list. A name Shop-it does not already know is saved, so search can find it later. |
 | <img src="icons/scan.png" width="28" height="28" alt=""> | **Scan** (Android) reads a barcode and adds that product. Windows does not show this button. |
@@ -100,7 +100,7 @@ In **Settings** (<img src="icons/settings.png" width="22" height="22" alt="">), 
 - Choose **No tax**, or add a saved rate.
 - **Use my location** (<img src="icons/locate.png" width="22" height="22" alt="">) looks up a rate for where you are. In the US that lookup can use a Ziptax key saved in the same section. Nothing is sent until you tap the button.
 
-Open Settings from a shopping list to pick which rate that list uses. Each rate has its own tax rules (what is taxed). New items start taxable. You can turn tax off for one item in the item editor. To change every item on the list, open **List settings** from <img src="icons/more.png" width="22" height="22" alt="List options">.
+Open Settings while Shopping is on screen to pick which rate that list uses. Each rate has its own tax rules (what is taxed). New items start taxable. You can turn tax off for one item in the item editor. To change every item on the list, open **List settings** from <img src="icons/more.png" width="22" height="22" alt="List options">.
 
 ## Sync between phone and computer
 

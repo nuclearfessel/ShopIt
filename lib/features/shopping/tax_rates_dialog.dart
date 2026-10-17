@@ -182,8 +182,8 @@ class _TaxRatesSectionState extends ConsumerState<TaxRatesSection> {
           Padding(
             padding: const EdgeInsets.only(top: 4),
             child: Text(
-              'Open Settings from a shopping list to choose which rate that '
-              'list uses.',
+              'Open Settings while a shopping list is on screen to choose which '
+              'rate that list uses.',
               style: theme.textTheme.bodySmall,
             ),
           ),

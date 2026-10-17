@@ -19,7 +19,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # Each app update merged to main bumps this by 0.0.1 (0.0.3, 0.0.4, …).
 # The release workflow publishes this version and keeps only the three newest
 # releases.
-version: 0.1.2+13
+version: 0.1.3+14
 
 environment:
   sdk: ^3.13.3
