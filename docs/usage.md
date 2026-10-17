@@ -1,6 +1,6 @@
 # Using ShopIt
 
-The app is named **ShopIt** on the window title, under the icon, in the Mac menu bar, and in Windows Installed apps. The installer and the download files keep the older `Shop-it` spelling in the file name.
+The app is named **ShopIt** on the window title, under the icon, in the Mac menu bar, in Windows Installed apps, and on the download files.
 
 ShopIt runs the same way on Windows, Mac, Android, and iOS. Use <img src="icons/shopping.png" width="22" height="22" alt=""> **Shopping** for what you need to buy, <img src="icons/pantry.png" width="22" height="22" alt=""> **Pantry** for what you already have, and <img src="icons/recipes.png" width="22" height="22" alt=""> **Recipes** for meals you plan to cook. When the shortest side is under 600, all four sit in the bottom bar and <img src="icons/settings.png" width="22" height="22" alt="Settings"> **Settings** is a full page. An Android phone or an iPhone stays in portrait. A larger window uses the side rail. Settings is a dialog when that window is at least 700 pixels wide, and a full page when it is narrower. Changing the size switches Settings while it is open. Close the page with the X at the top right or with Done.
 

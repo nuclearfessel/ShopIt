@@ -20,11 +20,11 @@ ShopIt is a shopping, pantry, and recipe app for Windows, Mac, Android, and iOS.
 
 | Platform | Package |
 | --- | --- |
-| Windows | [Shop-it-Setup-1.0.0.exe](https://github.com/nuclearfessel/Shop-it/releases/download/v1.0.0/Shop-it-Setup-1.0.0.exe) |
-| Android | [Shop-it-1.0.0.apk](https://github.com/nuclearfessel/Shop-it/releases/download/v1.0.0/Shop-it-1.0.0.apk) |
-| Mac | [Shop-it-1.0.0-macos.zip](https://github.com/nuclearfessel/Shop-it/releases/download/v1.0.0/Shop-it-1.0.0-macos.zip) |
+| Windows | [ShopIt-Setup-1.0.0.exe](https://github.com/nuclearfessel/ShopIt/releases/download/v1.0.0/ShopIt-Setup-1.0.0.exe) |
+| Android | [ShopIt-1.0.0.apk](https://github.com/nuclearfessel/ShopIt/releases/download/v1.0.0/ShopIt-1.0.0.apk) |
+| Mac | [ShopIt-1.0.0-macos.zip](https://github.com/nuclearfessel/ShopIt/releases/download/v1.0.0/ShopIt-1.0.0-macos.zip) |
 
-On Windows, run the installer. On Android, allow installs from the APK, then open it. On a Mac, unzip the app and open ShopIt. iPhone and iPad installs go through TestFlight once an Apple Developer account is connected, so they are not a file on this page. Older packages stay in [Releases](https://github.com/nuclearfessel/Shop-it/releases) until a newer build replaces them; only the three newest releases are kept.
+On Windows, run the installer. On Android, allow installs from the APK, then open it. On a Mac, unzip the app and open ShopIt. iPhone and iPad installs go through TestFlight once an Apple Developer account is connected, so they are not a file on this page. Older packages stay in [Releases](https://github.com/nuclearfessel/ShopIt/releases) until a newer build replaces them; only the three newest releases are kept.
 
 ## Features
 
