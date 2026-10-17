@@ -258,6 +258,13 @@ class _DeviceLinkDialogState extends ConsumerState<DeviceLinkDialog> {
       await notifier.createCloudHousehold();
     }
     if (!mounted) return;
+    // The phone turns listening on when it scans. This computer has to be
+    // listening too, or the scan joins a household that nothing answers on.
+    if (!ref.read(deviceLinkProvider).sharing &&
+        ref.read(deviceLinkProvider).cloudLinked) {
+      await notifier.startSharing();
+    }
+    if (!mounted) return;
     final code = ref.read(deviceLinkProvider).cloudCode;
     if (code == null || !isHouseholdCode(code)) return;
     await showDialog<void>(

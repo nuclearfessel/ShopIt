@@ -245,6 +245,8 @@ class DeviceLinkController extends Notifier<DeviceLinkState> {
       // The code is local. A broker that does not answer must not erase it,
       // or Wi-Fi sharing has nothing to prove the other device with.
       await _syncCloud(token);
+      if (token != _token) return;
+      if (!state.sharing) await startSharing();
     } on Object catch (error) {
       if (token != _token) return;
       state = state.copyWith(
@@ -298,6 +300,8 @@ class DeviceLinkController extends Notifier<DeviceLinkState> {
       _startTimer(token);
       // First sync proves the mailbox is reachable.
       await _syncCloud(token);
+      if (token != _token) return;
+      if (!state.sharing) await startSharing();
     } on Object catch (error) {
       if (token != _token) return;
       state = state.copyWith(
