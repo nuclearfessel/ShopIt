@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+const shopItSourceUrl = 'https://github.com/nuclearfessel/ShopIt';
 
 /// The About block at the bottom of Settings, on Windows and Android.
 class AboutSection extends StatefulWidget {
@@ -42,8 +45,21 @@ class _AboutSectionState extends State<AboutSection> {
         Text('ShopIt', style: theme.textTheme.titleMedium),
         const SizedBox(height: 4),
         Text(
-          'A shopping and pantry list app.',
+          'An open source shopping and pantry list app.',
           style: theme.textTheme.bodyMedium,
+        ),
+        const SizedBox(height: 4),
+        TextButton(
+          style: TextButton.styleFrom(
+            padding: EdgeInsets.zero,
+            minimumSize: Size.zero,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            alignment: Alignment.centerLeft,
+          ),
+          onPressed: () {
+            launchUrl(Uri.parse(shopItSourceUrl));
+          },
+          child: const Text(shopItSourceUrl),
         ),
         if (version != null) ...[
           const SizedBox(height: 4),

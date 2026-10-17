@@ -1,18 +1,12 @@
 # ShopIt
 
-ShopIt is a shopping, pantry, and recipe app for Windows, Mac, Android, and iOS. The window title, the icon, and Windows Installed apps all say ShopIt. The same lists, categories, prices, recipes, and tax settings work on each of them.
+ShopIt is an open source shopping, pantry, and recipe app for Windows, Mac, Android, and iOS. The source is in this repository. The window title, the icon, and Windows Installed apps all say ShopIt. The same lists, categories, prices, recipes, and tax settings work on each of them.
 
 ![ShopIt on Windows](docs/screenshots/windows.png)
-
-![ShopIt on Mac](docs/screenshots/macos.png)
 
 <img src="docs/screenshots/android.png" alt="ShopIt on an Android phone" width="280" />
 
 ![ShopIt on an Android tablet](docs/screenshots/android-tablet.png)
-
-<img src="docs/screenshots/iphone.png" alt="ShopIt on an iPhone" width="260" />
-
-![ShopIt on an iPad](docs/screenshots/ipad.png)
 
 ## Download
 
@@ -50,3 +44,7 @@ If both sides already have a list with the same name, sync merges them and appen
 ## Docs
 
 Full walkthrough: [Using ShopIt](docs/usage.md).
+
+## License
+
+ShopIt is open source under the [MIT License](LICENSE).

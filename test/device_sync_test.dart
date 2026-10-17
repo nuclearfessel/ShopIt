@@ -281,12 +281,13 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.scrollUntilVisible(
-      find.text('A shopping and pantry list app.'),
+      find.text('An open source shopping and pantry list app.'),
       200,
     );
     expect(find.text('ABOUT'), findsOneWidget);
     expect(find.text('ShopIt'), findsOneWidget);
-    expect(find.text('A shopping and pantry list app.'), findsOneWidget);
+    expect(find.text('An open source shopping and pantry list app.'), findsOneWidget);
+    expect(find.text('https://github.com/nuclearfessel/ShopIt'), findsOneWidget);
     expect(find.widgetWithText(AlertDialog, 'About'), findsNothing);
   });
 }
