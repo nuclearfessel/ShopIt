@@ -85,7 +85,6 @@ void main() {
     }
 
     await shot(name: 'windows.png', width: 1200, height: 760, scan: false);
-    await shot(name: 'macos.png', width: 1440, height: 900, scan: false);
     await shot(name: 'android.png', width: 412, height: 915, scan: true);
     await shot(
       name: 'android-tablet.png',
@@ -93,8 +92,6 @@ void main() {
       height: 800,
       scan: true,
     );
-    await shot(name: 'iphone.png', width: 393, height: 852, scan: true);
-    await shot(name: 'ipad.png', width: 1194, height: 834, scan: true);
     debugPlatformScansBarcodes = null;
   });
 }

@@ -211,8 +211,15 @@ jobs:
           VERSION: ${{ needs.version.outputs.name }}
           TAG: ${{ needs.version.outputs.tag }}
         run: |
+          notes="ShopIt ${VERSION}. Install ShopIt-Setup-${VERSION}.exe on Windows, ShopIt-${VERSION}.apk on Android, or unzip ShopIt-${VERSION}-macos.zip on a Mac."
           if gh release view "$TAG" >/dev/null 2>&1; then
-            echo "Release $TAG already exists; leaving it in place."
+            echo "Release $TAG already exists; replacing its packages."
+            gh release upload "$TAG" \
+              "packages/ShopIt-${VERSION}.apk" \
+              "packages/ShopIt-Setup-${VERSION}.exe" \
+              "packages/ShopIt-${VERSION}-macos.zip" \
+              --clobber
+            gh release edit "$TAG" --notes "$notes"
             exit 0
           fi
           gh release create "$TAG" \
@@ -220,7 +227,7 @@ jobs:
             "packages/ShopIt-Setup-${VERSION}.exe" \
             "packages/ShopIt-${VERSION}-macos.zip" \
             --title "$VERSION" \
-            --notes "ShopIt ${VERSION}. Install ShopIt-Setup-${VERSION}.exe on Windows, ShopIt-${VERSION}.apk on Android, or unzip ShopIt-${VERSION}-macos.zip on a Mac."
+            --notes "$notes"
           # The release section keeps the three newest releases.
           gh release list --limit 50 --json tagName,publishedAt \
             --jq 'sort_by(.publishedAt) | reverse | .[3:] | .[].tagName' \
