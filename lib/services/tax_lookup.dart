@@ -106,16 +106,49 @@ PlaceInfo? parseNominatim(Map<String, dynamic> json) {
   );
 }
 
-/// Names the place at [lat],[lng]. Sends the coordinates to OpenStreetMap's
-/// Nominatim service (no account needed).
+const defaultNominatimHost = 'nominatim.openstreetmap.org';
+const _nominatimHostKey = 'nominatim_host';
+
+/// Host used for place names. Change it in Settings without an app update.
+Future<String> loadNominatimHost() async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getString(_nominatimHostKey)?.trim() ?? '';
+    final host = saved
+        .replaceFirst(RegExp(r'^https?://'), '')
+        .split('/')
+        .first
+        .trim();
+    if (host.isEmpty || host.contains(' ')) return defaultNominatimHost;
+    return host;
+  } on Object {
+    return defaultNominatimHost;
+  }
+}
+
+/// Saves a replacement place-name host. An empty value restores the default.
+Future<void> saveNominatimHost(String? host) async {
+  final prefs = await SharedPreferences.getInstance();
+  final trimmed = host?.trim() ?? '';
+  if (trimmed.isEmpty || trimmed == defaultNominatimHost) {
+    await prefs.remove(_nominatimHostKey);
+    return;
+  }
+  await prefs.setString(_nominatimHostKey, trimmed);
+}
+
+/// Names the place at [lat],[lng]. Sends the coordinates to the configured
+/// Nominatim-compatible host. The default is OpenStreetMap Nominatim.
 Future<PlaceInfo?> reversePlace(
   double lat,
   double lng, {
   http.Client? client,
+  String? host,
 }) async {
   final c = client ?? http.Client();
   try {
-    final uri = Uri.https('nominatim.openstreetmap.org', '/reverse', {
+    final service = host ?? await loadNominatimHost();
+    final uri = Uri.https(service, '/reverse', {
       'format': 'jsonv2',
       'lat': lat.toStringAsFixed(5),
       'lon': lng.toStringAsFixed(5),
@@ -126,7 +159,10 @@ Future<PlaceInfo?> reversePlace(
     final res = await c
         .get(
           uri,
-          headers: {'User-Agent': 'Shop-it/1.0 (personal shopping list)'},
+          headers: {
+            'User-Agent':
+                'ShopIt/1.0 (https://github.com/nuclearfessel/ShopIt)',
+          },
         )
         .timeout(const Duration(seconds: 15));
     if (res.statusCode != 200) return null;

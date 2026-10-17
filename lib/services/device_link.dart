@@ -14,7 +14,7 @@ const shopItSyncPort = 47821;
 /// Port used to notice other copies of Shop-it on the same Wi-Fi.
 const shopItBeaconPort = 47822;
 
-const shopItSyncHeader = 'x-shop-it';
+const shopItSyncHeader = 'x-shop-it-mac';
 
 /// A name the other device can show, such as "the phone" or "the iPad".
 String thisDeviceName() {
@@ -186,11 +186,8 @@ class DeviceHost {
   /// Called after a sync has been merged into the local database.
   void Function()? onSynced;
 
-  /// Household code to send back, when this device already has one.
+  /// Household code both devices typed in. Lists are refused without it.
   String? Function()? readHousehold;
-
-  /// The other device included a household code in its sync.
-  void Function(String code)? onHousehold;
 
   bool get running => _server != null;
   int? get port => _server?.port;
@@ -241,12 +238,16 @@ class DeviceHost {
   Future<void> _handle(HttpRequest request) async {
     final response = request.response;
     try {
-      final body = await _readBody(request);
+      final body = await _readBytes(request);
       if (request.method != 'POST' || request.uri.path != '/v1/sync') {
         response.statusCode = HttpStatus.notFound;
         return;
       }
-      if (request.headers.value(shopItSyncHeader) != '1') {
+      final code = readHousehold?.call();
+      final presented = request.headers.value(shopItSyncHeader) ?? '';
+      if (code == null ||
+          !isHouseholdCode(code) ||
+          !await mailboxBodyMacMatches(code, body, presented)) {
         response.statusCode = HttpStatus.unauthorized;
         return;
       }
@@ -255,25 +256,20 @@ class DeviceHost {
         response.statusCode = HttpStatus.serviceUnavailable;
         return;
       }
-      final decoded = jsonDecode(body);
+      final opened = await openMailboxPayload(code, utf8.decode(body));
+      if (opened == null) {
+        response.statusCode = HttpStatus.unauthorized;
+        return;
+      }
+      final decoded = jsonDecode(opened);
       if (decoded is! Map) {
         throw const SyncException('Could not read that sync.');
       }
-      final remoteCode = decoded['household'];
-      if (remoteCode is String && isHouseholdCode(remoteCode)) {
-        try {
-          onHousehold?.call(remoteCode);
-        } on Object {
-          // The lists still merge if the code cannot be saved yet.
-        }
-      }
       await db.applySnapshot(SyncSnapshot.fromJson(decoded));
       final reply = await db.exportSnapshot();
-      final json = reply.toJson();
-      final mine = readHousehold?.call();
-      if (mine != null && isHouseholdCode(mine)) json['household'] = mine;
-      response.headers.contentType = ContentType.json;
-      response.write(jsonEncode(json));
+      final sealed = await sealMailboxPayload(code, jsonEncode(reply.toJson()));
+      response.headers.contentType = ContentType.text;
+      response.write(sealed);
       try {
         onSynced?.call();
       } on Object {
@@ -298,7 +294,7 @@ class DeviceHost {
   }
 }
 
-Future<String> _readBody(HttpRequest request) async {
+Future<List<int>> _readBytes(HttpRequest request) async {
   final builder = BytesBuilder(copy: false);
   await for (final chunk in request) {
     builder.add(chunk);
@@ -306,7 +302,7 @@ Future<String> _readBody(HttpRequest request) async {
       throw const SyncException('That sync was too large.');
     }
   }
-  return utf8.decode(builder.takeBytes());
+  return builder.takeBytes();
 }
 
 /// Picks the household code both devices should use.
@@ -337,31 +333,49 @@ Future<String?> syncWithDevice({
   String? household,
   Duration timeout = const Duration(seconds: 8),
 }) async {
-  final snapshot = await db.exportSnapshot();
-  final payload = snapshot.toJson();
-  if (household != null && isHouseholdCode(household)) {
-    payload['household'] = household;
+  if (household == null || !isHouseholdCode(household)) {
+    throw const SyncException(
+      'Enter the same household code on both devices before sharing lists.',
+    );
   }
+  final snapshot = await db.exportSnapshot();
+  final sealed = await sealMailboxPayload(
+    household,
+    jsonEncode(snapshot.toJson()),
+  );
+  final bytes = utf8.encode(sealed);
   final client = HttpClient();
   try {
     final request = await client.post(host, port, '/v1/sync').timeout(timeout);
-    request.headers.set(shopItSyncHeader, '1');
-    request.headers.contentType = ContentType.json;
-    request.write(jsonEncode(payload));
+    request.headers.set(
+      shopItSyncHeader,
+      await mailboxBodyMac(household, bytes),
+    );
+    request.headers.contentType = ContentType.text;
+    request.add(bytes);
     final response = await request.close().timeout(timeout);
     final text = await utf8.decoder.bind(response).join().timeout(timeout);
+    if (response.statusCode == HttpStatus.unauthorized) {
+      throw const SyncException(
+        'The other device refused the sync. Use the same household code on both.',
+      );
+    }
     if (response.statusCode != HttpStatus.ok) {
       throw const SyncException('The other device could not sync.');
     }
-    final decoded = jsonDecode(text);
+    final opened = await openMailboxPayload(household, text);
+    if (opened == null) {
+      throw const SyncException(
+        'The other device sent a reply this app cannot read.',
+      );
+    }
+    final decoded = jsonDecode(opened);
     if (decoded is! Map) {
       throw const SyncException(
         'The other device sent a reply this app cannot read.',
       );
     }
     await db.applySnapshot(SyncSnapshot.fromJson(decoded));
-    final remote = decoded['household'];
-    if (remote is String && isHouseholdCode(remote)) return remote;
     return null;
   } on SyncException {
     rethrow;

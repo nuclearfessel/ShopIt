@@ -1,16 +1,14 @@
 # Cloud mailbox
 
-Cloud sync stores each device’s latest list snapshot so the phone and computer can stay in sync without sharing a Wi-Fi network, and without both being online at once.
+Internet sync is optional. Both devices must have the same household code, which you type in. The code is `mailboxId.secret`.
 
-The snapshot is sealed with the household code (AES-GCM) before it leaves the device. The MQTT broker only stores that ciphertext. It never receives list names, items, or prices. Anyone who can see the topic still cannot read the lists without the code.
+The snapshot is sealed with the secret (AES-GCM) before it leaves the device. The MQTT topic is `shopit/p/{mailboxId}/{deviceId}`. The secret is not part of the topic, so seeing the topic does not reveal the key.
 
-ShopIt publishes one retained message per device on `broker.hivemq.com`, port 8883. The household code is part of the topic and is also the key. No ShopIt account is required.
+ShopIt publishes one retained message per device to `broker.hivemq.com` over TLS (port 8883, or secure WebSocket port 8884). There is no unencrypted connection. HiveMQ's public broker is a testing service. It stores the ciphertext. Leaving cloud sync while online publishes an empty retained message, which deletes that device's copy.
 
-## Topics
-
-| Topic | Purpose |
+| Topic | Use |
 | --- | --- |
-| `shopit/p/{code}/{deviceId}` | Retained encrypted snapshot for one device |
-| `shopit/p/{code}/+` | Subscribe to every device in the household |
+| `shopit/p/{mailboxId}/{deviceId}` | One device's latest encrypted snapshot |
+| `shopit/p/{mailboxId}/+` | Subscribe to every device in the mailbox |
 
-Payloads start with `enc1:` and are gzipped JSON inside the cipher. Older `shopit/1/` messages were plaintext and are ignored.
+A code from a build that used the whole code as both the topic and the key is ignored.

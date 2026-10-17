@@ -129,7 +129,7 @@ A failure stays on that channel. A successful Wi-Fi sync does not clear a cloud 
 
 ### Same Wi-Fi
 
-Turn on **Share on this Wi-Fi** on both devices. Keep both apps open on the same network. Lists and items appear on the other device without typing an address or code. That also turns on internet sync and passes a household code to the other device, so lists keep syncing after you leave the network.
+Create a code on one device and type it on the other. The code is the key, so ShopIt does not send it over the network. Then turn on **Share on this Wi-Fi** on both devices and keep both apps open on the same network. Lists appear on the other device only after both have that code.
 
 If Windows asks whether to allow ShopIt on private networks, choose allow. The phone cannot reach the computer on Wi-Fi until you do. Internet sync does not need that prompt.
 
@@ -137,16 +137,16 @@ If Windows asks whether to allow ShopIt on private networks, choose allow. The p
 
 Lists keep syncing when Wi-Fi is off, including when the phone is on mobile data. Both apps need an internet connection while they are open. They do not need to be nearby, and they do not need to be online at the exact same moment.
 
-If the devices have not met on Wi-Fi yet, pair them by hand:
+Pair them by hand:
 
 1. On one device, tap **Create cloud code**.
-2. On the other, enter that eight-character code and tap **Join with code**.
+2. On the other, enter that full code and tap **Join with code**.
 
 Both apps need an internet connection while they are open. They do not need to be nearby, and they do not need to be online at the exact same moment. Closing the app, or sending it to the background, publishes one last cloud snapshot.
 
-List contents are encrypted with the household code before they are stored. The sync service only keeps that encrypted copy. It does not receive item names, prices, or notes. Anyone who can see the stored message still cannot read the lists without the code.
+List contents are encrypted with the secret half of the household code before they are stored. The cloud topic contains only the mailbox id, the part before the dot. The broker can store that encrypted copy. It does not receive the key, item names, prices, or notes. Leave cloud sync while online to delete this device's stored copy.
 
-If you paired on a build before 0.0.8, leave the household on both devices and create a new code after updating. Older cloud messages are ignored.
+If you paired on an earlier build, leave the household on both devices and create a new code. Older codes and older cloud messages are ignored. What ShopIt sends is described in [Privacy](privacy.md).
 
 ### Lists with the same name
 
@@ -156,7 +156,7 @@ If both devices already have a shopping or pantry list with the same name, sync 
 
 In **Settings**, choose <img src="icons/monitor.png" width="22" height="22" alt=""> **System**, <img src="icons/sun.png" width="22" height="22" alt=""> **Light**, or <img src="icons/moon.png" width="22" height="22" alt=""> **Dark**.
 
-**About** is the last section in Settings. It shows ShopIt, the version, and a link to the source on GitHub. It does not open another dialog.
+**About** is the last section in Settings. It shows ShopIt, the version, a link to the source on GitHub, and **Privacy** and **Licenses**. Those open in place. They do not open another app.
 
 ## Releases
 
