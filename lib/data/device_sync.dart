@@ -84,9 +84,11 @@ extension DeviceSync on AppDatabase {
     final pantry = await select(pantryItems).get();
     final rates = await select(taxRates).get();
     final history = await select(itemHistory).get();
-    final catalog = await (select(
-      catalogItems,
-    )..where((t) => t.isCustom.equals(true) | t.barcode.equals('').not())).get();
+    final catalog =
+        await (select(catalogItems)..where(
+              (t) => t.isCustom.equals(true) | t.barcode.equals('').not(),
+            ))
+            .get();
     final recipeRows = await select(recipes).get();
     final ingredientRows = await select(recipeIngredients).get();
     final categories = await select(this.categories).get();
@@ -133,11 +135,7 @@ extension DeviceSync on AppDatabase {
       itemCategories,
       lists.aliases,
     );
-    await _applyPantryItems(
-      remote.pantryItems,
-      itemCategories,
-      lists.aliases,
-    );
+    await _applyPantryItems(remote.pantryItems, itemCategories, lists.aliases);
     await _applyCategories(remote.categories, itemCategories);
     await _applyHistory(remote.history);
     await _applyCatalog(remote.catalog);
@@ -177,7 +175,9 @@ extension DeviceSync on AppDatabase {
 
   /// Returns the ids of lists that were inserted or updated, which of those
   /// are deleted, and remote-to-local id aliases for same-name merges.
-  Future<({Set<String> changed, Set<String> deleted, Map<String, String> aliases})>
+  Future<
+    ({Set<String> changed, Set<String> deleted, Map<String, String> aliases})
+  >
   _applyLists(List<Map<String, Object?>> rows) async {
     final changed = <String>{};
     final deleted = <String>{};
@@ -254,10 +254,9 @@ extension DeviceSync on AppDatabase {
 
   Future<List<ShoppingList>> _listsByName(String name, String kind) async {
     final needle = name.trim().toLowerCase();
-    final rows = await (select(shoppingLists)..where(
-          (t) => t.deletedAt.isNull() & t.kind.equals(kind),
-        ))
-        .get();
+    final rows = await (select(
+      shoppingLists,
+    )..where((t) => t.deletedAt.isNull() & t.kind.equals(kind))).get();
     final matches = [
       for (final row in rows)
         if (row.name.trim().toLowerCase() == needle) row,
@@ -283,10 +282,7 @@ extension DeviceSync on AppDatabase {
         );
       } else {
         await (update(shoppingItems)..where((t) => t.id.equals(item.id))).write(
-          ShoppingItemsCompanion(
-            deletedAt: Value(now),
-            updatedAt: Value(now),
-          ),
+          ShoppingItemsCompanion(deletedAt: Value(now), updatedAt: Value(now)),
         );
       }
     }
@@ -297,10 +293,7 @@ extension DeviceSync on AppDatabase {
       final twin = await _pantryItemByName(keeper.id, item.name);
       if (twin == null) {
         await (update(pantryItems)..where((t) => t.id.equals(item.id))).write(
-          PantryItemsCompanion(
-            listId: Value(keeper.id),
-            updatedAt: Value(now),
-          ),
+          PantryItemsCompanion(listId: Value(keeper.id), updatedAt: Value(now)),
         );
       } else {
         await (update(pantryItems)..where((t) => t.id.equals(item.id))).write(
@@ -364,10 +357,9 @@ extension DeviceSync on AppDatabase {
 
   Future<ShoppingItem?> _shoppingItemByName(String listId, String name) async {
     final needle = name.trim().toLowerCase();
-    final rows = await (select(shoppingItems)..where(
-          (t) => t.deletedAt.isNull() & t.listId.equals(listId),
-        ))
-        .get();
+    final rows = await (select(
+      shoppingItems,
+    )..where((t) => t.deletedAt.isNull() & t.listId.equals(listId))).get();
     for (final row in rows) {
       if (row.name.trim().toLowerCase() == needle) return row;
     }
@@ -426,10 +418,9 @@ extension DeviceSync on AppDatabase {
 
   Future<PantryItem?> _pantryItemByName(String listId, String name) async {
     final needle = name.trim().toLowerCase();
-    final rows = await (select(pantryItems)..where(
-          (t) => t.deletedAt.isNull() & t.listId.equals(listId),
-        ))
-        .get();
+    final rows = await (select(
+      pantryItems,
+    )..where((t) => t.deletedAt.isNull() & t.listId.equals(listId))).get();
     for (final row in rows) {
       if (row.name.trim().toLowerCase() == needle) return row;
     }
@@ -540,14 +531,17 @@ extension DeviceSync on AppDatabase {
             await (update(
               catalogItems,
             )..where((t) => t.id.equals(sameName.id))).write(
-              CatalogItemsCompanion(barcode: Value(barcode), updatedAt: Value(at)),
+              CatalogItemsCompanion(
+                barcode: Value(barcode),
+                updatedAt: Value(at),
+              ),
             );
           }
           continue;
         }
-        await into(catalogItems).insert(
-          values.copyWith(id: Value(id), isCustom: const Value(true)),
-        );
+        await into(
+          catalogItems,
+        ).insert(values.copyWith(id: Value(id), isCustom: const Value(true)));
       } else {
         await (update(
           catalogItems,
@@ -645,9 +639,11 @@ extension DeviceSync on AppDatabase {
             ..sort(
               (a, b) => _int(a, 'position').compareTo(_int(b, 'position')),
             );
+      final seen = <String>{};
       for (final row in mine) {
         final category = _string(row, 'category');
-        if (category.isEmpty) continue;
+        // Two lists folded into one can both order the same category.
+        if (category.isEmpty || !seen.add(category)) continue;
         await into(listCategoryOrders).insert(
           ListCategoryOrdersCompanion.insert(
             listId: id,

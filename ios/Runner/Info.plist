@@ -54,7 +54,12 @@
 	<key>UIMainStoryboardFile</key>
 	<string>Main</string>
 	<key>NSCameraUsageDescription</key>
-	<string>ShopIt uses the camera to scan a barcode onto your list.</string>
+	<string>ShopIt uses the camera to scan a barcode onto your list, or the QR code shown on a Windows PC or Mac.</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>ShopIt uses your location when you tap Use my location to look up a sales tax rate.</string>
 	<key>NSLocalNetworkUsageDescription</key>

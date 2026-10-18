@@ -117,6 +117,7 @@ class DeviceLinkController extends Notifier<DeviceLinkState> {
   final _discovery = DeviceDiscovery();
   Timer? _wifiTimer;
   Timer? _cloudTimer;
+  Future<void> _turn = Future<void>.value();
   Object _token = Object();
   var _syncing = false;
   var _cloudSyncing = false;
@@ -427,21 +428,23 @@ class DeviceLinkController extends Notifier<DeviceLinkState> {
     if (peers.isEmpty) return;
     _syncing = true;
     try {
-      final db = ref.read(databaseProvider);
-      for (final peer in peers) {
-        await syncWithDevice(
-          db: db,
-          host: peer.host,
-          port: peer.port,
-          household: code,
-        );
-        if (token != _token) return;
-        state = state.copyWith(
-          lastWifiSync: DateTime.now(),
-          clearWifiError: true,
-        );
-        await _save();
-      }
+      await _oneAtATime(() async {
+        final db = ref.read(databaseProvider);
+        for (final peer in peers) {
+          await syncWithDevice(
+            db: db,
+            host: peer.host,
+            port: peer.port,
+            household: code,
+          );
+          if (token != _token) return;
+          state = state.copyWith(
+            lastWifiSync: DateTime.now(),
+            clearWifiError: true,
+          );
+          await _save();
+        }
+      });
     } on Object catch (error) {
       if (token != _token) return;
       state = state.copyWith(wifiError: friendlySyncError(error));
@@ -456,19 +459,21 @@ class DeviceLinkController extends Notifier<DeviceLinkState> {
     if (code == null) return;
     _cloudSyncing = true;
     try {
-      final db = ref.read(databaseProvider);
-      await mailbox.syncDevice(
-        code: code,
-        deviceId: await _deviceId(),
-        deviceName: thisDeviceName(),
-        db: db,
-      );
-      if (token != _token) return;
-      state = state.copyWith(
-        lastCloudSync: DateTime.now(),
-        clearCloudError: true,
-      );
-      await _save();
+      await _oneAtATime(() async {
+        final db = ref.read(databaseProvider);
+        await mailbox.syncDevice(
+          code: code,
+          deviceId: await _deviceId(),
+          deviceName: thisDeviceName(),
+          db: db,
+        );
+        if (token != _token) return;
+        state = state.copyWith(
+          lastCloudSync: DateTime.now(),
+          clearCloudError: true,
+        );
+        await _save();
+      });
     } on Object catch (error) {
       if (token != _token) return;
       state = state.copyWith(cloudError: friendlySyncError(error));
@@ -518,6 +523,16 @@ class DeviceLinkController extends Notifier<DeviceLinkState> {
       // Sharing still works this session if the choice cannot be saved.
     }
   }
+
+  /// Runs [action] after the previous list merge finishes.
+  ///
+  /// Wi-Fi and cloud sync both write the database. Overlapping merges were
+  /// throwing, and that failure was shown as a generic sync error.
+  Future<void> _oneAtATime(Future<void> Function() action) {
+    final next = _turn.then((_) => action());
+    _turn = next.then((_) {}, onError: (Object _, StackTrace _) {});
+    return next;
+  }
 }
 
 String _newId() {
@@ -535,7 +550,10 @@ bool _sameNames(List<String> a, List<String> b) {
 }
 
 Future<void> _multicast(bool on) async {
-  if (!Platform.isAndroid) return;
+  // Android holds a Wi-Fi lock. iOS and Mac use the same call to ask for
+  // local-network permission, which is required before a phone can see a
+  // computer on this Wi-Fi or open its QR sync.
+  if (!Platform.isAndroid && !Platform.isIOS && !Platform.isMacOS) return;
   try {
     await _network.invokeMethod<void>('multicastLock', on);
   } on Object {

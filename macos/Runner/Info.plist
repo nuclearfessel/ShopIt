@@ -26,6 +26,11 @@
 	<string>$(PRODUCT_COPYRIGHT)</string>
 	<key>NSLocationUsageDescription</key>
 	<string>ShopIt uses your location when you tap Use my location to look up a sales tax rate.</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>ShopIt looks for another device on this Wi-Fi so you can share lists.</string>
 	<key>NSBonjourServices</key>

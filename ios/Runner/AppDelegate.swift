@@ -1,5 +1,6 @@
 import AVFoundation
 import Flutter
+import Network
 import UIKit
 
 @main
@@ -13,6 +14,19 @@ import UIKit
 
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
+    let network = FlutterMethodChannel(
+      name: "shop.it/network",
+      binaryMessenger: engineBridge.applicationRegistrar.messenger()
+    )
+    let probe = LocalNetworkProbe()
+    network.setMethodCallHandler { call, result in
+      guard call.method == "multicastLock" else {
+        result(FlutterMethodNotImplemented)
+        return
+      }
+      probe.setEnabled(call.arguments as? Bool ?? false)
+      result(nil)
+    }
     let channel = FlutterMethodChannel(
       name: "shop_it/barcode",
       binaryMessenger: engineBridge.applicationRegistrar.messenger()
@@ -79,10 +93,26 @@ final class BarcodeScannerController: UIViewController, AVCaptureMetadataOutputO
     close.addTarget(self, action: #selector(cancel), for: .touchUpInside)
     close.translatesAutoresizingMaskIntoConstraints = false
     view.addSubview(close)
-    NSLayoutConstraint.activate([
+    var constraints = [
       close.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 12),
       close.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-    ])
+    ]
+    if readsSyncQr {
+      let hint = UILabel()
+      hint.text = "Point at the QR code on the Windows PC or Mac"
+      hint.textColor = .white
+      hint.textAlignment = .center
+      hint.numberOfLines = 0
+      hint.font = .systemFont(ofSize: 17, weight: .semibold)
+      hint.translatesAutoresizingMaskIntoConstraints = false
+      view.addSubview(hint)
+      constraints.append(contentsOf: [
+        hint.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 24),
+        hint.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -24),
+        hint.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -24),
+      ])
+    }
+    NSLayoutConstraint.activate(constraints)
 
     switch AVCaptureDevice.authorizationStatus(for: .video) {
     case .authorized:
@@ -161,5 +191,28 @@ final class BarcodeScannerController: UIViewController, AVCaptureMetadataOutputO
     } else {
       deliver?(code)
     }
+  }
+}
+
+/// Asks iOS for local-network permission by browsing the service named in
+/// Info.plist. Wi-Fi discovery and a QR scan both need that permission.
+final class LocalNetworkProbe {
+  private var browser: NWBrowser?
+
+  func setEnabled(_ on: Bool) {
+    if !on {
+      browser?.cancel()
+      browser = nil
+      return
+    }
+    if browser != nil { return }
+    let browser = NWBrowser(
+      for: .bonjour(type: "_shopit._udp", domain: "local."),
+      using: .tcp
+    )
+    browser.stateUpdateHandler = { _ in }
+    browser.browseResultsChangedHandler = { _, _ in }
+    browser.start(queue: .main)
+    self.browser = browser
   }
 }

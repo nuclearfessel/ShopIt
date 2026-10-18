@@ -232,7 +232,9 @@ class CloudMailbox {
       final topic = _householdTopic(code);
       client.subscribe(topic, MqttQos.atLeastOnce);
       final pending = <Future<void>>[];
+      var closed = false;
       final sub = client.updates?.listen((messages) {
+        if (closed) return;
         for (final message in messages) {
           final rec = message.payload;
           if (rec is! MqttPublishMessage) continue;
@@ -247,12 +249,34 @@ class CloudMailbox {
             if (entry != null) devices[deviceId] = entry;
           }());
         }
-      });
-      // Retained messages arrive right after subscribe; wait briefly for them.
-      await Future<void>.delayed(const Duration(seconds: 2));
-      await Future.wait(pending);
+      }, onError: (Object _, StackTrace _) {});
+      // Retained messages can arrive after the first wait, especially on a
+      // phone. Keep draining until the connection has been quiet, and do not
+      // touch the map again once it has been returned.
+      final started = DateTime.now();
+      var quietSince = started;
+      while (DateTime.now().difference(started) < const Duration(seconds: 4)) {
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+        if (pending.isEmpty) {
+          final waited = DateTime.now().difference(started);
+          final quiet = DateTime.now().difference(quietSince);
+          if (waited >= const Duration(seconds: 2) &&
+              quiet >= const Duration(milliseconds: 300)) {
+            break;
+          }
+          continue;
+        }
+        final batch = List<Future<void>>.from(pending);
+        pending.clear();
+        await Future.wait(batch);
+        quietSince = DateTime.now();
+      }
+      closed = true;
+      if (pending.isNotEmpty) {
+        await Future.wait(List<Future<void>>.from(pending));
+      }
       await sub?.cancel();
-      return devices;
+      return Map<String, CloudDeviceEntry>.from(devices);
     } on SyncException {
       rethrow;
     } on SocketException {
