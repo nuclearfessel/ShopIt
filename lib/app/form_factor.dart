@@ -35,3 +35,8 @@ bool get platformScansBarcodes =>
 bool get desktopSearchKeys =>
     defaultTargetPlatform == TargetPlatform.windows ||
     defaultTargetPlatform == TargetPlatform.macOS;
+
+/// Windows is already on Wi-Fi, so a household code syncs over the internet
+/// without turning Share on this Wi-Fi on. Phones and Mac still start it.
+bool get householdCodeStartsWifiSharing =>
+    defaultTargetPlatform != TargetPlatform.windows;

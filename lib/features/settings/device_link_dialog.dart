@@ -12,7 +12,7 @@ import '../../ui/tip.dart';
 import 'device_link_controller.dart';
 import 'sync_qr_view.dart';
 
-/// Turn sharing on for Wi-Fi and, optionally, over the internet.
+/// Share lists over the internet, and separately on this Wi-Fi.
 class DeviceLinkDialog extends ConsumerStatefulWidget {
   const DeviceLinkDialog({super.key});
 
@@ -51,10 +51,17 @@ class _DeviceLinkDialogState extends ConsumerState<DeviceLinkDialog> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Create a code on one device and enter it on the other. The '
-                'code is the key, so it is not sent over Wi-Fi. After both '
-                'devices have it, lists sync on the same Wi-Fi and, while '
-                'the apps are open, over the internet.',
+                householdCodeStartsWifiSharing
+                    ? 'Create a code on one device and enter it on the other. '
+                          'The code is the key, so it is not sent over Wi-Fi. '
+                          'After both devices have it, lists sync on the same '
+                          'Wi-Fi and, while the apps are open, over the '
+                          'internet.'
+                    : 'Create a code on one device and enter it on the other. '
+                          'This computer is already on Wi-Fi, so the code '
+                          'syncs over the internet without turning on Share '
+                          'on this Wi-Fi. The code is the key and is not sent '
+                          'over the network.',
                 style: muted,
               ),
               const SizedBox(height: 12),
@@ -175,8 +182,12 @@ class _DeviceLinkDialogState extends ConsumerState<DeviceLinkDialog> {
                 ],
               ] else ...[
                 Text(
-                  'Create a code on one device, then enter it on the other. '
-                  'Works on mobile data, not only Wi-Fi.',
+                  householdCodeStartsWifiSharing
+                      ? 'Create a code on one device, then enter it on the '
+                            'other. Works on mobile data, not only Wi-Fi.'
+                      : 'Create a code on one device, then enter it on the '
+                            'other. Windows is already on Wi-Fi, so Share on '
+                            'this Wi-Fi can stay off.',
                   style: muted,
                 ),
                 const SizedBox(height: 8),
@@ -267,9 +278,8 @@ class _DeviceLinkDialogState extends ConsumerState<DeviceLinkDialog> {
       await notifier.createCloudHousehold();
     }
     if (!mounted) return;
-    // The phone turns listening on when it scans. This computer has to be
-    // listening too, or the scan joins a household that nothing answers on.
-    if (!ref.read(deviceLinkProvider).sharing &&
+    if (householdCodeStartsWifiSharing &&
+        !ref.read(deviceLinkProvider).sharing &&
         ref.read(deviceLinkProvider).cloudLinked) {
       await notifier.startSharing();
     }
@@ -285,9 +295,14 @@ class _DeviceLinkDialogState extends ConsumerState<DeviceLinkDialog> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
-                'On an iPhone or Android phone, open Share lists and tap '
-                'Scan QR code. This works from a Windows PC or a Mac.',
+              Text(
+                householdCodeStartsWifiSharing
+                    ? 'On an iPhone or Android phone, open Share lists and '
+                          'tap Scan QR code. This works from a Windows PC or '
+                          'a Mac.'
+                    : 'On an iPhone or Android phone, open Share lists and '
+                          'tap Scan QR code. This computer is already on '
+                          'Wi-Fi, so Share on this Wi-Fi can stay off.',
               ),
               const SizedBox(height: 12),
               SizedBox(

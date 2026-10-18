@@ -252,8 +252,12 @@ class SettingsForm extends ConsumerWidget {
         const Divider(height: 24),
         heading('Devices'),
         Text(
-          'Share lists on this Wi-Fi, and over the internet when Wi-Fi '
-          'is off. Both apps need to be open.',
+          householdCodeStartsWifiSharing
+              ? 'Share lists on this Wi-Fi, and over the internet when '
+                    'Wi-Fi is off. Both apps need to be open.'
+              : 'Share lists over the internet with a household code. This '
+                    'computer is already on Wi-Fi, so Share on this Wi-Fi '
+                    'can stay off. Both apps need to be open.',
           style: theme.textTheme.bodyMedium,
         ),
         const SizedBox(height: 8),

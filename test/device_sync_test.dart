@@ -246,6 +246,16 @@ void main() {
     expect(announcesOnInterface('Wi-Fi'), isTrue);
     expect(announcesOnInterface('wlan0'), isTrue);
     expect(announcesOnInterface('en0'), isTrue);
+    try {
+      debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+      expect(householdCodeStartsWifiSharing, isFalse);
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      expect(householdCodeStartsWifiSharing, isTrue);
+      debugDefaultTargetPlatformOverride = TargetPlatform.macOS;
+      expect(householdCodeStartsWifiSharing, isTrue);
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
     expect(announcesOnInterface('awdl0'), isFalse);
     expect(announcesOnInterface('vEthernet (Default Switch)'), isFalse);
     expect(announcesOnInterface('rmnet_data0'), isFalse);

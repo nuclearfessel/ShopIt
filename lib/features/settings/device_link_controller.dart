@@ -7,6 +7,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../app/form_factor.dart';
 import '../../data/providers.dart';
 import '../../services/cloud_mailbox.dart';
 import '../../services/device_link.dart';
@@ -243,11 +244,13 @@ class DeviceLinkController extends Notifier<DeviceLinkState> {
       );
       await _save();
       _startTimer(token);
-      // The code is local. A broker that does not answer must not erase it,
-      // or Wi-Fi sharing has nothing to prove the other device with.
+      // The code is local. A broker that does not answer must not erase it.
+      // Windows is already on Wi-Fi, so the code does not turn sharing on.
       await _syncCloud(token);
       if (token != _token) return;
-      if (!state.sharing) await startSharing();
+      if (householdCodeStartsWifiSharing && !state.sharing) {
+        await startSharing();
+      }
     } on Object catch (error) {
       if (token != _token) return;
       state = state.copyWith(
@@ -259,7 +262,10 @@ class DeviceLinkController extends Notifier<DeviceLinkState> {
     }
   }
 
-  /// Joins the household in a scanned QR code and starts Wi-Fi sharing.
+  /// Joins the household in a scanned QR code.
+  ///
+  /// Windows keeps Share on this Wi-Fi off. A phone or Mac starts it so the
+  /// other device can be found on the same network.
   Future<void> joinFromQr(String raw) async {
     final code = householdFromQr(raw);
     if (code == null) {
@@ -276,7 +282,9 @@ class DeviceLinkController extends Notifier<DeviceLinkState> {
     }
     if (!state.cloudLinked) await joinCloudHousehold(code);
     if (!state.cloudLinked || state.cloudCode != code) return;
-    if (!state.sharing) await startSharing();
+    if (householdCodeStartsWifiSharing && !state.sharing) {
+      await startSharing();
+    }
   }
 
   /// Joins an existing household with the code from the other device.
@@ -299,10 +307,13 @@ class DeviceLinkController extends Notifier<DeviceLinkState> {
       );
       await _save();
       _startTimer(token);
-      // First sync proves the mailbox is reachable.
+      // Windows is already on Wi-Fi, so this code does not require that
+      // switch. A phone or Mac still listens on the local network.
       await _syncCloud(token);
       if (token != _token) return;
-      if (!state.sharing) await startSharing();
+      if (householdCodeStartsWifiSharing && !state.sharing) {
+        await startSharing();
+      }
     } on Object catch (error) {
       if (token != _token) return;
       state = state.copyWith(
@@ -314,11 +325,10 @@ class DeviceLinkController extends Notifier<DeviceLinkState> {
     }
   }
 
-  /// Leaves the household and stops Wi-Fi sharing.
+  /// Leaves the household and stops Wi-Fi sharing when it is on.
   ///
-  /// Scanning a QR code joins the household and turns Wi-Fi on, so leaving
-  /// has to undo both. The code is forgotten on this device even when the
-  /// broker cannot be reached.
+  /// The code is forgotten on this device even when the broker cannot be
+  /// reached. On Windows, creating the code does not turn Wi-Fi sharing on.
   Future<void> stopAllSharing() async {
     final token = _token;
     final code = state.cloudCode;
@@ -347,8 +357,8 @@ class DeviceLinkController extends Notifier<DeviceLinkState> {
     _startTimer(token);
   }
 
-  /// Leaves the household. Wi-Fi sharing is turned off with it, because the
-  /// two were started together and lists cannot move without the code.
+  /// Leaves the household. Wi-Fi sharing stops when it was on, because lists
+  /// on this Wi-Fi move only while both devices still have this code.
   Future<void> leaveCloud() => stopAllSharing();
 
   Future<void> _restore(Object token) async {
