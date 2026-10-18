@@ -1,13 +1,16 @@
 import 'dart:io';
 
 import 'package:drift/drift.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:shop_it/app/form_factor.dart';
 import 'package:shop_it/data/database.dart';
 import 'package:shop_it/data/device_sync.dart';
 import 'package:shop_it/data/providers.dart';
+import 'package:shop_it/features/settings/device_link_dialog.dart';
 import 'package:shop_it/features/settings/settings_dialog.dart';
 import 'package:shop_it/services/device_link.dart';
 
@@ -103,6 +106,29 @@ void main() {
     expect(await itemNames(host), ['Bread', 'Eggs', 'Milk']);
     expect(await itemNames(client), ['Bread', 'Eggs', 'Milk']);
   });
+
+  test(
+    'two grocery lists with the same category order still share items',
+    () async {
+      final first = await host.addList('Groceries');
+      final second = await host.addList('Groceries');
+      await host.addShoppingItem(first, 'Blueberries');
+      await host.addShoppingItem(second, 'Chocolate bars');
+      await host.setListCategoryOrder(first, const ['Produce']);
+      await host.setListCategoryOrder(second, const ['Produce']);
+
+      await client.applySnapshot(await host.exportSnapshot());
+
+      expect(await shoppingNames(client), ['Groceries']);
+      final items = await (client.select(
+        client.shoppingItems,
+      )..where((t) => t.deletedAt.isNull())).get();
+      expect([for (final item in items) item.name]..sort(), [
+        'Blueberries',
+        'Chocolate bars',
+      ]);
+    },
+  );
 
   test('same pantry list name merges instead of duplicating', () async {
     final phone = await client.addList('Garage', kind: 'pantry');
@@ -218,6 +244,8 @@ void main() {
     expect(subnetBroadcast('not-an-address'), null);
     expect(announcesOnInterface('Wi-Fi'), isTrue);
     expect(announcesOnInterface('wlan0'), isTrue);
+    expect(announcesOnInterface('en0'), isTrue);
+    expect(announcesOnInterface('awdl0'), isFalse);
     expect(announcesOnInterface('vEthernet (Default Switch)'), isFalse);
     expect(announcesOnInterface('rmnet_data0'), isFalse);
     final sends = beaconSendsFor(const [
@@ -317,4 +345,66 @@ void main() {
     );
     expect(find.widgetWithText(AlertDialog, 'About'), findsNothing);
   });
+
+  testWidgets(
+    'Windows and Mac show the QR code an iPhone or Android phone scans',
+    (tester) async {
+      SharedPreferences.setMockInitialValues({});
+      final db = AppDatabase.memory();
+      addTearDown(db.close);
+
+      Future<void> expectControls({
+        required TargetPlatform platform,
+        required bool scans,
+        required bool showsQr,
+      }) async {
+        debugDefaultTargetPlatformOverride = platform;
+        debugPlatformScansBarcodes = scans;
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [databaseProvider.overrideWithValue(db)],
+            child: MaterialApp(
+              key: ValueKey(platform),
+              home: const DeviceLinkDialog(),
+            ),
+          ),
+        );
+        await tester.pump();
+        expect(
+          find.text('Show QR code'),
+          showsQr ? findsOneWidget : findsNothing,
+        );
+        expect(
+          find.text('Scan QR code'),
+          scans ? findsOneWidget : findsNothing,
+        );
+      }
+
+      try {
+        await expectControls(
+          platform: TargetPlatform.windows,
+          scans: false,
+          showsQr: true,
+        );
+        await expectControls(
+          platform: TargetPlatform.macOS,
+          scans: false,
+          showsQr: true,
+        );
+        await expectControls(
+          platform: TargetPlatform.iOS,
+          scans: true,
+          showsQr: false,
+        );
+        await expectControls(
+          platform: TargetPlatform.android,
+          scans: true,
+          showsQr: false,
+        );
+      } finally {
+        debugDefaultTargetPlatformOverride = null;
+        debugPlatformScansBarcodes = null;
+      }
+    },
+  );
 }

@@ -77,8 +77,17 @@ class _DeviceLinkDialogState extends ConsumerState<DeviceLinkDialog> {
                 const SizedBox(height: 12),
                 Text(
                   'If Windows asks whether to allow ShopIt on private '
-                  'networks, choose allow. The phone cannot connect on Wi-Fi '
-                  'until you do.',
+                  'networks, choose allow. An iPhone or Android phone cannot '
+                  'connect on Wi-Fi until you do.',
+                  style: theme.textTheme.bodySmall,
+                ),
+              ],
+              if (link.sharing && Platform.isMacOS) ...[
+                const SizedBox(height: 12),
+                Text(
+                  'If the Mac asks to allow incoming connections, or to find '
+                  'devices on the local network, choose allow. An iPhone or '
+                  'Android phone cannot connect on Wi-Fi until you do.',
                   style: theme.textTheme.bodySmall,
                 ),
               ],
@@ -277,7 +286,8 @@ class _DeviceLinkDialogState extends ConsumerState<DeviceLinkDialog> {
             mainAxisSize: MainAxisSize.min,
             children: [
               const Text(
-                'On the phone, open Share lists and tap Scan QR code.',
+                'On an iPhone or Android phone, open Share lists and tap '
+                'Scan QR code. This works from a Windows PC or a Mac.',
               ),
               const SizedBox(height: 12),
               SizedBox(

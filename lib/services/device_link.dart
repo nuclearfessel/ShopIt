@@ -40,7 +40,14 @@ String friendlySyncError(Object error) {
   if (error is TimeoutException) {
     return 'The other device did not answer.';
   }
-  return 'Could not sync with the other device.';
+  final type = error.runtimeType.toString();
+  if (type.contains('Sqlite') || type.contains('Drift')) {
+    return 'Could not save the lists from the other device.';
+  }
+  final detail = error.toString().replaceAll(RegExp(r'\s+'), ' ').trim();
+  if (detail.isEmpty) return 'Could not sync with the other device.';
+  final short = detail.length > 140 ? '${detail.substring(0, 137)}...' : detail;
+  return 'Could not sync with the other device. $short';
 }
 
 /// What one device announces so the others can find it.
@@ -110,6 +117,11 @@ bool announcesOnInterface(String name) {
     'npcap',
     'tunnel',
     'tun',
+    'awdl',
+    'llw',
+    'bridge',
+    'anpi',
+    'ipsec',
     'rmnet',
     'ccmni',
     'pdp',
