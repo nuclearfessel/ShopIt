@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -265,6 +266,36 @@ void main() {
       friendlySyncError(const HttpException('closed')),
       "Can't reach the other device. Keep both apps open on the same Wi-Fi.",
     );
+    expect(
+      friendlySyncError(
+        PlatformException(
+          code: 'error',
+          message: 'WifiLock.acquire() requires android.permission.WAKE_LOCK',
+        ),
+      ),
+      'Could not sync with the other device.',
+    );
+  });
+
+  test('sharing still gets a device id when preferences fail', () async {
+    final saved = await resolveDeviceId(
+      readSaved: () async => '6f97ac34a9a65b87b2d722e057837da6',
+      write: (_) async => fail('already saved'),
+    );
+    expect(saved, '6f97ac34a9a65b87b2d722e057837da6');
+
+    final created = await resolveDeviceId(
+      readSaved: () async => null,
+      write: (_) async => throw PlatformException(code: 'error'),
+    );
+    expect(created, matches(RegExp(r'^[0-9a-f]{32}$')));
+
+    final again = await resolveDeviceId(
+      remembered: created,
+      readSaved: () async => throw PlatformException(code: 'error'),
+      write: (_) async => fail('remembered'),
+    );
+    expect(again, created);
   });
 
   test('a beacon says which device is sharing and where', () {

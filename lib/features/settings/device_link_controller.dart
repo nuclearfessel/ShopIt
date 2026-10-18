@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io' show Platform;
-import 'dart:math';
 
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
@@ -121,6 +120,7 @@ class DeviceLinkController extends Notifier<DeviceLinkState> {
   Object _token = Object();
   var _syncing = false;
   var _cloudSyncing = false;
+  String? _rememberedDeviceId;
 
   CloudMailbox get mailbox => _mailbox ?? CloudMailbox();
 
@@ -489,12 +489,19 @@ class DeviceLinkController extends Notifier<DeviceLinkState> {
   }
 
   Future<String> _deviceId() async {
-    final prefs = await SharedPreferences.getInstance();
-    final saved = prefs.getString(_deviceIdKey);
-    if (saved != null && saved.isNotEmpty) return saved;
-    final next = _newId();
-    await prefs.setString(_deviceIdKey, next);
-    return next;
+    final id = await resolveDeviceId(
+      remembered: _rememberedDeviceId,
+      readSaved: () async {
+        final prefs = await SharedPreferences.getInstance();
+        return prefs.getString(_deviceIdKey);
+      },
+      write: (next) async {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(_deviceIdKey, next);
+      },
+    );
+    _rememberedDeviceId = id;
+    return id;
   }
 
   Future<void> _save() async {
@@ -533,12 +540,6 @@ class DeviceLinkController extends Notifier<DeviceLinkState> {
     _turn = next.then((_) {}, onError: (Object _, StackTrace _) {});
     return next;
   }
-}
-
-String _newId() {
-  final random = Random.secure();
-  final bytes = List<int>.generate(16, (_) => random.nextInt(256));
-  return bytes.map((byte) => byte.toRadixString(16).padLeft(2, '0')).join();
 }
 
 bool _sameNames(List<String> a, List<String> b) {

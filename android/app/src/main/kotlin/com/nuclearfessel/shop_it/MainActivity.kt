@@ -22,7 +22,12 @@ class MainActivity : FlutterActivity() {
                     result.notImplemented()
                     return@setMethodCallHandler
                 }
-                if (call.arguments == true) acquireMulticastLock() else releaseMulticastLock()
+                // A refused lock must not fail the call. Sharing still works,
+                // and a thrown SecurityException was reaching the share dialog.
+                try {
+                    if (call.arguments == true) acquireMulticastLock() else releaseMulticastLock()
+                } catch (_: RuntimeException) {
+                }
                 result.success(null)
             }
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "shop_it/barcode")
@@ -35,22 +40,33 @@ class MainActivity : FlutterActivity() {
                     result.error("busy", "A scan is already open", null)
                     return@setMethodCallHandler
                 }
-                scanResult = result
                 val args = call.arguments as? Map<*, *>
                 val portrait = args?.get("portrait") == true
                 val sync = args?.get("sync") == true
                 if (portrait) {
-                    requestedOrientation =
-                        android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                    try {
+                        requestedOrientation =
+                            android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                    } catch (_: RuntimeException) {
+                        // Phones are already locked to portrait. Android
+                        // refuses another change on a non-opaque window, and
+                        // that must not cancel the scan.
+                    }
                 }
-                IntentIntegrator(this)
-                    .setDesiredBarcodeFormats(
-                        if (sync) listOf("QR_CODE") else IntentIntegrator.PRODUCT_CODE_TYPES,
-                    )
-                    .setPrompt(if (sync) "Scan the ShopIt QR code" else "Scan a barcode")
-                    .setBeepEnabled(false)
-                    .setOrientationLocked(portrait)
-                    .initiateScan()
+                try {
+                    scanResult = result
+                    IntentIntegrator(this)
+                        .setDesiredBarcodeFormats(
+                            if (sync) listOf("QR_CODE") else IntentIntegrator.PRODUCT_CODE_TYPES,
+                        )
+                        .setPrompt(if (sync) "Scan the ShopIt QR code" else "Scan a barcode")
+                        .setBeepEnabled(false)
+                        .setOrientationLocked(portrait)
+                        .initiateScan()
+                } catch (error: RuntimeException) {
+                    scanResult = null
+                    result.error("scan", error.message, null)
+                }
             }
     }
 
@@ -71,27 +87,48 @@ class MainActivity : FlutterActivity() {
     }
 
     private fun acquireMulticastLock() {
-        if (multicastLock?.isHeld == true) return
         val wifi = applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
-        multicastLock = wifi.createMulticastLock("shop-it").apply {
-            setReferenceCounted(false)
-            acquire()
+        if (multicastLock?.isHeld != true) {
+            try {
+                multicastLock = wifi.createMulticastLock("shop-it").apply {
+                    setReferenceCounted(false)
+                    acquire()
+                }
+            } catch (_: RuntimeException) {
+                multicastLock = null
+            }
         }
-        if (wifiLock?.isHeld != true) {
-            wifiLock = wifi.createWifiLock(
-                WifiManager.WIFI_MODE_FULL_HIGH_PERF,
-                "shop-it-wifi",
-            ).apply {
-                setReferenceCounted(false)
-                acquire()
+        if (wifiLock?.isHeld == true) return
+        // High-perf keeps the radio awake for UDP announcements. Newer
+        // Android releases reject that mode, so the low-latency lock is tried
+        // first. Either failure leaves the multicast lock in place.
+        val modes = intArrayOf(
+            WifiManager.WIFI_MODE_FULL_LOW_LATENCY,
+            WifiManager.WIFI_MODE_FULL_HIGH_PERF,
+        )
+        for (mode in modes) {
+            try {
+                wifiLock = wifi.createWifiLock(mode, "shop-it-wifi").apply {
+                    setReferenceCounted(false)
+                    acquire()
+                }
+                return
+            } catch (_: RuntimeException) {
+                wifiLock = null
             }
         }
     }
 
     private fun releaseMulticastLock() {
-        multicastLock?.let { if (it.isHeld) it.release() }
+        try {
+            multicastLock?.let { if (it.isHeld) it.release() }
+        } catch (_: RuntimeException) {
+        }
         multicastLock = null
-        wifiLock?.let { if (it.isHeld) it.release() }
+        try {
+            wifiLock?.let { if (it.isHeld) it.release() }
+        } catch (_: RuntimeException) {
+        }
         wifiLock = null
     }
 }

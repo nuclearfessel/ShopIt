@@ -1,7 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 import 'dart:typed_data';
+
+import 'package:flutter/services.dart';
 
 import '../app/form_factor.dart';
 import '../data/database.dart';
@@ -15,6 +18,33 @@ const shopItSyncPort = 47821;
 const shopItBeaconPort = 47822;
 
 const shopItSyncHeader = 'x-shop-it-mac';
+
+/// The id this install announces as. Preferences failing must not stop
+/// sharing, so a new id is used for the session when they do.
+Future<String> resolveDeviceId({
+  String? remembered,
+  required Future<String?> Function() readSaved,
+  required Future<void> Function(String id) write,
+}) async {
+  if (remembered != null && remembered.isNotEmpty) return remembered;
+  var created = '';
+  try {
+    final saved = await readSaved();
+    if (saved != null && saved.isNotEmpty) return saved;
+    created = _newDeviceId();
+    await write(created);
+    return created;
+  } on Object {
+    if (created.isNotEmpty) return created;
+    return _newDeviceId();
+  }
+}
+
+String _newDeviceId() {
+  final random = Random.secure();
+  final bytes = List<int>.generate(16, (_) => random.nextInt(256));
+  return bytes.map((byte) => byte.toRadixString(16).padLeft(2, '0')).join();
+}
 
 /// A name the other device can show, such as "the phone" or "the iPad".
 String thisDeviceName() {
@@ -39,6 +69,11 @@ String friendlySyncError(Object error) {
   }
   if (error is TimeoutException) {
     return 'The other device did not answer.';
+  }
+  // Method-channel failures (a Wi-Fi lock, preferences) are not a sentence
+  // the dialog can show. Sharing treats them as non-fatal on their own.
+  if (error is PlatformException) {
+    return 'Could not sync with the other device.';
   }
   final type = error.runtimeType.toString();
   if (type.contains('Sqlite') || type.contains('Drift')) {
