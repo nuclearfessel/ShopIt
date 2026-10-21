@@ -10,14 +10,13 @@ import 'app/form_factor.dart';
 import 'app/theme_mode.dart';
 import 'data/database.dart';
 import 'data/providers.dart';
+import 'features/settings/list_handoff.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // Phones stay portrait, including the barcode camera. Tablets rotate.
   if ((Platform.isAndroid || Platform.isIOS) && hostIsPhone()) {
-    await SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-    ]);
+    await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   }
   if (Platform.isWindows || Platform.isMacOS) {
     await windowManager.ensureInitialized();
@@ -40,11 +39,13 @@ Future<void> main() async {
   }
   final db = await openAppDatabase();
   final themeMode = await loadThemeMode();
+  final listHandoff = await loadListHandoff();
   runApp(
     ProviderScope(
       overrides: [
         databaseProvider.overrideWithValue(db),
         initialThemeModeProvider.overrideWithValue(themeMode),
+        initialListHandoffProvider.overrideWithValue(listHandoff),
       ],
       child: const ShopItApp(),
     ),

@@ -302,21 +302,16 @@ class AppDatabase extends _$AppDatabase {
         await mergeBuiltinCatalog();
       }
       if (from < 13) {
-        final columns = await customSelect(
-          'PRAGMA table_info(catalog_items)',
-        ).get();
-        final names = {
-          for (final row in columns) row.read<String>('name'),
-        };
+        final columns = await customSelect('PRAGMA table_info(catalog_items)')
+            .get();
+        final names = {for (final row in columns) row.read<String>('name')};
         if (!names.contains('barcode')) {
           await m.addColumn(catalogItems, catalogItems.barcode);
         }
         final tables = await customSelect(
           "SELECT name FROM sqlite_master WHERE type = 'table'",
         ).get();
-        final tableNames = {
-          for (final row in tables) row.read<String>('name'),
-        };
+        final tableNames = {for (final row in tables) row.read<String>('name')};
         if (!tableNames.contains('recipes')) {
           await m.createTable(recipes);
         }
@@ -385,9 +380,8 @@ class AppDatabase extends _$AppDatabase {
   }
 
   // ---- Catalog ----
-  Stream<List<Category>> watchCategories() => (select(
-    categories,
-  )..orderBy([(t) => OrderingTerm.asc(t.name)])).watch();
+  Stream<List<Category>> watchCategories() =>
+      (select(categories)..orderBy([(t) => OrderingTerm.asc(t.name)])).watch();
 
   /// How many variants to show when the query matched their parent, not their
   /// own name. A variant whose name matches is always included.
@@ -765,6 +759,117 @@ class AppDatabase extends _$AppDatabase {
     return ids;
   }
 
+  /// Puts checked shopping items into a pantry list.
+  ///
+  /// A name already on that list is filled (Low becomes Full, or the exact
+  /// amount increases). A new name is added in the list's amount style.
+  /// The result is what changed, so the screen can undo it.
+  Future<PantryStockUndo> stockShoppingInPantry(
+    List<ShoppingItem> items,
+    String pantryListId,
+  ) async {
+    final lists =
+        await (select(shoppingLists)
+              ..where((t) => t.deletedAt.isNull() & t.kind.equals('pantry'))
+              ..orderBy([(t) => OrderingTerm.asc(t.sortOrder)]))
+            .get();
+    final list = lists.where((l) => l.id == pantryListId).firstOrNull;
+    final mode = list?.quantityMode ?? 'level';
+    final created = <String>[];
+    final levels = <String, String>{};
+    final quantities = <String, double>{};
+    final now = DateTime.now();
+    await transaction(() async {
+      for (final item in items) {
+        final existing =
+            await (select(pantryItems)
+                  ..where(
+                    (t) =>
+                        t.deletedAt.isNull() &
+                        t.listId.equals(pantryListId) &
+                        t.name.lower().equals(item.name.toLowerCase()),
+                  )
+                  ..limit(1))
+                .getSingleOrNull();
+        if (existing == null) {
+          final row = await into(pantryItems).insertReturning(
+            PantryItemsCompanion.insert(
+              name: item.name,
+              quantity: Value(item.quantity <= 0 ? 1 : item.quantity),
+              unit: Value(item.unit),
+              category: Value(item.category),
+              note: Value(item.note),
+              listId: Value(pantryListId),
+              quantityMode: Value(mode),
+              level: const Value('full'),
+            ),
+          );
+          created.add(row.id);
+          await _rememberItem(item.name, item.category, item.unit);
+          continue;
+        }
+        if (existing.quantityMode == 'level') {
+          if (existing.level == 'full') continue;
+          levels[existing.id] = existing.level;
+          await (update(
+            pantryItems,
+          )..where((t) => t.id.equals(existing.id))).write(
+            PantryItemsCompanion(
+              level: const Value('full'),
+              updatedAt: Value(now),
+            ),
+          );
+        } else {
+          quantities[existing.id] = existing.quantity;
+          final add = item.quantity <= 0 ? 1 : item.quantity;
+          await (update(
+            pantryItems,
+          )..where((t) => t.id.equals(existing.id))).write(
+            PantryItemsCompanion(
+              quantity: Value(existing.quantity + add),
+              updatedAt: Value(now),
+            ),
+          );
+        }
+      }
+    });
+    return PantryStockUndo(
+      createdIds: created,
+      previousLevels: levels,
+      previousQuantities: quantities,
+    );
+  }
+
+  /// Reverses [stockShoppingInPantry].
+  Future<void> undoPantryStock(PantryStockUndo undo) async {
+    final now = DateTime.now();
+    await transaction(() async {
+      if (undo.createdIds.isNotEmpty) {
+        await (update(
+          pantryItems,
+        )..where((t) => t.id.isIn(undo.createdIds))).write(
+          PantryItemsCompanion(deletedAt: Value(now), updatedAt: Value(now)),
+        );
+      }
+      for (final entry in undo.previousLevels.entries) {
+        await (update(pantryItems)..where((t) => t.id.equals(entry.key))).write(
+          PantryItemsCompanion(
+            level: Value(entry.value),
+            updatedAt: Value(now),
+          ),
+        );
+      }
+      for (final entry in undo.previousQuantities.entries) {
+        await (update(pantryItems)..where((t) => t.id.equals(entry.key))).write(
+          PantryItemsCompanion(
+            quantity: Value(entry.value),
+            updatedAt: Value(now),
+          ),
+        );
+      }
+    });
+  }
+
   /// Adds shopping items to a pantry list (the first one if [listId] is not
   /// given). Returns the new pantry items' ids.
   Future<List<String>> copyShoppingToPantry(
@@ -853,9 +958,8 @@ class AppDatabase extends _$AppDatabase {
     if (clean.isEmpty) return;
     final all = await select(categories).get();
     if (all.any((c) => c.name.toLowerCase() == clean.toLowerCase())) return;
-    await into(categories).insert(
-      CategoriesCompanion.insert(name: clean, sortOrder: all.length),
-    );
+    await into(categories)
+        .insert(CategoriesCompanion.insert(name: clean, sortOrder: all.length));
     await _resortCategoriesAlphabetically();
   }
 
@@ -1084,6 +1188,31 @@ class AppDatabase extends _$AppDatabase {
     await _rememberItem(name, category, unit);
     await recordHistory(name, category, unit);
     return row.id;
+  }
+
+  /// Adds [name] to [listId] when that list does not already have it.
+  ///
+  /// Returns the new id, or null when the name is already on the list.
+  Future<String?> addNameToShoppingList(
+    String listId,
+    String name, {
+    String category = '',
+    String unit = '',
+  }) async {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) return null;
+    final existing =
+        await (select(shoppingItems)
+              ..where(
+                (t) =>
+                    t.deletedAt.isNull() &
+                    t.listId.equals(listId) &
+                    t.name.lower().equals(trimmed.toLowerCase()),
+              )
+              ..limit(1))
+            .getSingleOrNull();
+    if (existing != null) return null;
+    return addShoppingItem(listId, trimmed, unit: unit, category: category);
   }
 
   Future<void> setChecked(String id, bool checked) =>
@@ -1424,17 +1553,13 @@ class AppDatabase extends _$AppDatabase {
 
   Stream<List<RecipeIngredient>> watchRecipeIngredients(String recipeId) =>
       (select(recipeIngredients)
-            ..where(
-              (t) => t.recipeId.equals(recipeId) & t.deletedAt.isNull(),
-            )
+            ..where((t) => t.recipeId.equals(recipeId) & t.deletedAt.isNull())
             ..orderBy([(t) => OrderingTerm.asc(t.sortOrder)]))
           .watch();
 
   Future<List<RecipeIngredient>> recipeIngredientsFor(String recipeId) =>
       (select(recipeIngredients)
-            ..where(
-              (t) => t.recipeId.equals(recipeId) & t.deletedAt.isNull(),
-            )
+            ..where((t) => t.recipeId.equals(recipeId) & t.deletedAt.isNull())
             ..orderBy([(t) => OrderingTerm.asc(t.sortOrder)]))
           .get();
 
@@ -1468,7 +1593,10 @@ class AppDatabase extends _$AppDatabase {
       await (update(
         recipeIngredients,
       )..where((t) => t.recipeId.equals(id))).write(
-        RecipeIngredientsCompanion(deletedAt: Value(now), updatedAt: Value(now)),
+        RecipeIngredientsCompanion(
+          deletedAt: Value(now),
+          updatedAt: Value(now),
+        ),
       );
     });
   }
@@ -1594,8 +1722,9 @@ class AppDatabase extends _$AppDatabase {
           }
         }
       } else {
-        await (update(shoppingItems)..where((t) => t.id.equals(existing.id)))
-            .write(
+        await (update(
+          shoppingItems,
+        )..where((t) => t.id.equals(existing.id))).write(
           ShoppingItemsCompanion(
             quantity: Value(existing.quantity + line.quantity),
             updatedAt: Value(DateTime.now()),
@@ -1606,7 +1735,10 @@ class AppDatabase extends _$AppDatabase {
   }
 
   /// Subtracts a cooked recipe from pantry stock.
-  Future<void> cookRecipe(String recipeId, {required double cookServings}) async {
+  Future<void> cookRecipe(
+    String recipeId, {
+    required double cookServings,
+  }) async {
     final recipe = await (select(
       recipes,
     )..where((t) => t.id.equals(recipeId))).getSingle();
@@ -1627,16 +1759,18 @@ class AppDatabase extends _$AppDatabase {
                 .get();
         for (final row in rows) {
           if (row.quantityMode == 'level') {
-            await (update(pantryItems)..where((t) => t.id.equals(row.id)))
-                .write(
+            await (update(
+              pantryItems,
+            )..where((t) => t.id.equals(row.id))).write(
               PantryItemsCompanion(
                 level: const Value('low'),
                 updatedAt: Value(now),
               ),
             );
           } else if (unitsMatch(row.unit, line.unit)) {
-            await (update(pantryItems)..where((t) => t.id.equals(row.id)))
-                .write(
+            await (update(
+              pantryItems,
+            )..where((t) => t.id.equals(row.id))).write(
               PantryItemsCompanion(
                 quantity: Value(
                   row.quantity - used < 0 ? 0 : row.quantity - used,
@@ -1656,9 +1790,7 @@ class AppDatabase extends _$AppDatabase {
     final code = barcode.trim();
     if (code.isEmpty) return null;
     return (select(catalogItems)
-          ..where(
-            (t) => t.deletedAt.isNull() & t.barcode.equals(code),
-          )
+          ..where((t) => t.deletedAt.isNull() & t.barcode.equals(code))
           ..limit(1))
         .getSingleOrNull();
   }
@@ -1718,12 +1850,7 @@ class AppDatabase extends _$AppDatabase {
               ..limit(1))
             .getSingleOrNull();
     if (existing == null) {
-      await addPantryItem(
-        name,
-        category: category,
-        unit: unit,
-        listId: listId,
-      );
+      await addPantryItem(name, category: category, unit: unit, listId: listId);
       return;
     }
     if (existing.quantityMode == 'level') {
@@ -1732,6 +1859,27 @@ class AppDatabase extends _$AppDatabase {
     }
     await updatePantryQuantity(existing.id, existing.quantity + 1);
   }
+}
+
+/// What [AppDatabase.stockShoppingInPantry] changed, so it can be undone.
+class PantryStockUndo {
+  const PantryStockUndo({
+    this.createdIds = const [],
+    this.previousLevels = const {},
+    this.previousQuantities = const {},
+  });
+
+  final List<String> createdIds;
+  final Map<String, String> previousLevels;
+  final Map<String, double> previousQuantities;
+
+  bool get changed =>
+      createdIds.isNotEmpty ||
+      previousLevels.isNotEmpty ||
+      previousQuantities.isNotEmpty;
+
+  int get count =>
+      createdIds.length + previousLevels.length + previousQuantities.length;
 }
 
 Future<AppDatabase> openAppDatabase() async {

@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shop_it/app/app.dart';
 import 'package:shop_it/app/theme_mode.dart';
+import 'package:shop_it/features/settings/list_handoff.dart';
 import 'package:shop_it/data/database.dart';
 import 'package:shop_it/data/providers.dart';
 import 'package:shop_it/services/file_service.dart';
@@ -63,13 +64,14 @@ PantryItem fakePantryItem(
   String listId = 'p1',
   String mode = 'number',
   String level = 'full',
+  double quantity = 2,
   String category = 'Dairy & Eggs',
   DateTime? expiryDate,
 }) => PantryItem(
   id: id,
   updatedAt: _t,
   name: name,
-  quantity: 2,
+  quantity: quantity,
   unit: 'packs',
   expiryDate: expiryDate ?? DateTime(2030, 1, 1),
   location: 'Fridge',
@@ -107,6 +109,7 @@ Future<void> pumpShopIt(
   GlobalKey? boundary,
   FileService? fileService,
   ThemeMode themeMode = ThemeMode.system,
+  bool listHandoff = false,
 }) async {
   tester.view.physicalSize = Size(width, height);
   tester.view.devicePixelRatio = 1;
@@ -128,6 +131,7 @@ Future<void> pumpShopIt(
         fileServiceProvider.overrideWithValue(fileService),
       // Never opened: every query below is replaced.
       initialThemeModeProvider.overrideWithValue(themeMode),
+      initialListHandoffProvider.overrideWithValue(listHandoff),
       databaseProvider.overrideWithValue(AppDatabase.memory()),
       listsProvider.overrideWith((_) => Stream.value(theLists)),
       categoriesProvider.overrideWith(

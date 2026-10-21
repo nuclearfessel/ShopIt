@@ -20,12 +20,14 @@ import '../history/history_dialog.dart';
 import '../lists/list_settings_dialog.dart';
 import '../lists/move_copy_dialog.dart';
 import '../lists/manage_lists_dialog.dart';
+import '../settings/list_handoff.dart';
 import 'tax_rates_dialog.dart';
 import '../../ui/keyline/keyline_icon.dart';
 import '../../ui/category_header.dart';
 import '../../ui/dialogs.dart';
 import '../../ui/choice_field.dart';
 import '../../ui/tip.dart';
+import '../../ui/sync_status_line.dart';
 import '../../ui/undo_snack_bar.dart';
 
 class ShoppingScreen extends ConsumerStatefulWidget {
@@ -97,6 +99,63 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
           'Deleted ${ids.length} ${ids.length == 1 ? 'item' : 'items'} '
           'from your cart',
       onUndo: () => db.restoreItems(ids),
+    );
+  }
+
+  /// Offers the checked items to the pantry. One pantry list is used as-is.
+  /// More than one asks which list. Undo removes what this step added.
+  Future<void> _stockPantry(String listId) async {
+    final db = ref.read(databaseProvider);
+    final checked = (ref.read(shoppingItemsProvider(listId)).value ?? const [])
+        .where((item) => item.checked)
+        .toList();
+    if (checked.isEmpty || !mounted) return;
+    var pantryLists =
+        ref.read(pantryListsProvider).value ?? const <ShoppingList>[];
+    String? pantryId;
+    if (pantryLists.isEmpty) {
+      pantryId = await db.addList('Pantry', kind: 'pantry');
+    } else if (pantryLists.length == 1) {
+      pantryId = pantryLists.first.id;
+    } else {
+      pantryId = await showDialog<String>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Add to which pantry?'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final list in pantryLists)
+                ListTile(
+                  title: Text(list.name),
+                  onTap: () => Navigator.pop(ctx, list.id),
+                ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+          ],
+        ),
+      );
+    }
+    if (pantryId == null || !mounted) return;
+    final undo = await db.stockShoppingInPantry(checked, pantryId);
+    if (!mounted) return;
+    if (!undo.changed) {
+      showInfoSnackBar(context, 'Those items are already in the pantry.');
+      return;
+    }
+    final count = undo.count;
+    final name = checked.length == 1 ? checked.first.name : '';
+    showUndoSnackBar(
+      context,
+      message: count == 1 && name.isNotEmpty
+          ? 'Added $name to the pantry.'
+          : 'Added $count ${count == 1 ? 'item' : 'items'} to the pantry.',
+      onUndo: () => db.undoPantryStock(undo),
     );
   }
 
@@ -272,22 +331,29 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
           _rememberOpenList(null);
           return Scaffold(
             appBar: AppBar(title: const Text('Shopping')),
-            body: Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text('No lists yet'),
-                  const SizedBox(height: 12),
-                  Tip(
-                    'Create your first list',
-                    child: FilledButton.icon(
-                      onPressed: _newList,
-                      icon: const KeylineIcon(KeylineIcons.listPlus),
-                      label: const Text('Create a list'),
+            body: Column(
+              children: [
+                const SyncStatusLine(),
+                Expanded(
+                  child: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text('No lists yet'),
+                        const SizedBox(height: 12),
+                        Tip(
+                          'Create your first list',
+                          child: FilledButton.icon(
+                            onPressed: _newList,
+                            icon: const KeylineIcon(KeylineIcons.listPlus),
+                            label: const Text('Create a list'),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           );
         }
@@ -321,6 +387,7 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
           for (final c in allCategories)
             if (c.color != null) c.name: Color(c.color!),
         };
+        final handoff = ref.watch(listHandoffProvider);
         Future<void> recolor(String name) async {
           final choice = await showCategoryColorDialog(
             context,
@@ -528,6 +595,7 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
           ),
           body: Column(
             children: [
+              const SyncStatusLine(),
               Padding(
                 padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
                 // A pull-down only makes sense with more than one list to pick
@@ -656,6 +724,9 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
                                         db.uncheckAll(current.id),
                                     onDeleteAll: () =>
                                         _deleteChecked(current.id),
+                                    onStockPantry: handoff
+                                        ? () => _stockPantry(current.id)
+                                        : null,
                                     useCategories: current.useCategories,
                                     showEmpty: current.showEmptyCategories,
                                     categoryNames: categoryNames,
@@ -723,6 +794,7 @@ List<Widget> _grouped(
   required Map<String, GlobalKey> itemKeys,
   required VoidCallback onUncheckAll,
   required VoidCallback onDeleteAll,
+  required VoidCallback? onStockPantry,
   bool useCategories = true,
   bool showEmpty = false,
   List<String> categoryNames = const [],
@@ -746,6 +818,7 @@ List<Widget> _grouped(
           count: done.length,
           onUncheckAll: onUncheckAll,
           onDeleteAll: onDeleteAll,
+          onStockPantry: onStockPantry,
           children: [for (final i in done) tile(i)],
         );
 
@@ -783,12 +856,14 @@ class _CartSection extends StatelessWidget {
     required this.count,
     required this.onUncheckAll,
     required this.onDeleteAll,
+    required this.onStockPantry,
     required this.children,
   });
 
   final int count;
   final VoidCallback onUncheckAll;
   final VoidCallback onDeleteAll;
+  final VoidCallback? onStockPantry;
   final List<Widget> children;
 
   @override
@@ -816,6 +891,28 @@ class _CartSection extends StatelessWidget {
               child: LayoutBuilder(
                 builder: (context, box) {
                   final narrow = box.maxWidth < 360;
+                  final stock = onStockPantry == null
+                      ? null
+                      : narrow || box.maxWidth < 560
+                      ? IconButton(
+                          tooltip: 'Add to pantry',
+                          visualDensity: compact,
+                          iconSize: 20,
+                          icon: const KeylineIcon(KeylineIcons.archive),
+                          onPressed: onStockPantry,
+                        )
+                      : Tip(
+                          'Add the items in your cart to the pantry',
+                          child: TextButton.icon(
+                            style: small,
+                            onPressed: onStockPantry,
+                            icon: const KeylineIcon(
+                              KeylineIcons.archive,
+                              size: 16,
+                            ),
+                            label: const Text('Add to pantry'),
+                          ),
+                        );
                   return Row(
                     children: [
                       Expanded(
@@ -828,6 +925,7 @@ class _CartSection extends StatelessWidget {
                           ),
                         ),
                       ),
+                      ?stock,
                       if (narrow) ...[
                         IconButton(
                           tooltip: 'Uncheck all',
@@ -844,6 +942,7 @@ class _CartSection extends StatelessWidget {
                           onPressed: onDeleteAll,
                         ),
                       ] else ...[
+                        const SizedBox(width: 4),
                         Tip(
                           'Put everything in your cart back on the list',
                           child: TextButton.icon(
