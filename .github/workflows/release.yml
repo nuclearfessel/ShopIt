@@ -160,8 +160,16 @@ jobs:
           flutter build macos --release \
             --build-name=${{ needs.version.outputs.name }} \
             --build-number=${{ needs.version.outputs.code }}
-          cd build/macos/Build/Products/Release
-          zip -r "$GITHUB_WORKSPACE/ShopIt-${{ needs.version.outputs.name }}-macos.zip" ShopIt.app
+          STAGE="$GITHUB_WORKSPACE/build/macos-package"
+          mkdir -p "$STAGE"
+          cp -R build/macos/Build/Products/Release/ShopIt.app "$STAGE/"
+          cp installer/Uninstall-ShopIt.command "$STAGE/"
+          chmod +x "$STAGE/Uninstall-ShopIt.command"
+          (
+            cd "$STAGE"
+            zip -r "$GITHUB_WORKSPACE/ShopIt-${{ needs.version.outputs.name }}-macos.zip" \
+              ShopIt.app Uninstall-ShopIt.command
+          )
 
       - name: Upload Mac app
         uses: actions/upload-artifact@v7
@@ -211,7 +219,7 @@ jobs:
           VERSION: ${{ needs.version.outputs.name }}
           TAG: ${{ needs.version.outputs.tag }}
         run: |
-          notes="ShopIt ${VERSION}. Install ShopIt-Setup-${VERSION}.exe on Windows, ShopIt-${VERSION}.apk on Android, or unzip ShopIt-${VERSION}-macos.zip on a Mac."
+          notes="ShopIt ${VERSION}. Install ShopIt-Setup-${VERSION}.exe on Windows, ShopIt-${VERSION}.apk on Android, or unzip ShopIt-${VERSION}-macos.zip on a Mac. Uninstall from Windows Apps and Features (or the Start Menu Uninstall shortcut), from Android/iOS by removing the app, or on a Mac by running Uninstall-ShopIt.command from the zip. Uninstall removes the app and its lists, settings, and data folders."
           if gh release view "$TAG" >/dev/null 2>&1; then
             echo "Release $TAG already exists; replacing its packages."
             gh release upload "$TAG" \

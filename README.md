@@ -12,15 +12,28 @@ ShopIt is an open source shopping, pantry, and recipe app for Windows, Mac, Andr
 
 ## Download
 
-**Current version: 1.0.9**
+**Current version: 1.1.0**
 
 | Platform | Package |
 | --- | --- |
-| Windows | [ShopIt-Setup-1.0.9.exe](https://github.com/nuclearfessel/ShopIt/releases/download/v1.0.9/ShopIt-Setup-1.0.9.exe) |
-| Android | [ShopIt-1.0.9.apk](https://github.com/nuclearfessel/ShopIt/releases/download/v1.0.9/ShopIt-1.0.9.apk) |
-| Mac | [ShopIt-1.0.9-macos.zip](https://github.com/nuclearfessel/ShopIt/releases/download/v1.0.9/ShopIt-1.0.9-macos.zip) |
+| Windows | [ShopIt-Setup-1.1.0.exe](https://github.com/nuclearfessel/ShopIt/releases/download/v1.1.0/ShopIt-Setup-1.1.0.exe) |
+| Android | [ShopIt-1.1.0.apk](https://github.com/nuclearfessel/ShopIt/releases/download/v1.1.0/ShopIt-1.1.0.apk) |
+| Mac | [ShopIt-1.1.0-macos.zip](https://github.com/nuclearfessel/ShopIt/releases/download/v1.1.0/ShopIt-1.1.0-macos.zip) |
 
 On Windows, run the installer. On Android, allow installs from the APK, then open it. On a Mac, unzip the app and open ShopIt. iPhone and iPad installs go through TestFlight once an Apple Developer account is connected, so they are not a file on this page. Older packages stay in [Releases](https://github.com/nuclearfessel/ShopIt/releases) until a newer build replaces them; only the three newest releases are kept.
+
+## Uninstall
+
+Uninstall removes the app and its shopping lists, settings, and data folders on that device.
+
+| Platform | How |
+| --- | --- |
+| Windows | Apps and Features, or **Uninstall ShopIt** in the Start Menu folder the installer created |
+| Mac | Unzip the release zip if needed, then open **Uninstall-ShopIt.command** next to ShopIt.app |
+| Android | Long-press the ShopIt icon and uninstall, or remove it in Settings → Apps |
+| iPhone / iPad | Long-press the ShopIt icon and delete the app |
+
+On Android and iOS, removing the app clears its sandbox. ShopIt does not back lists up to the device cloud, so a fresh install starts empty.
 
 ## Features
 

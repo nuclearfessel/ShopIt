@@ -238,6 +238,15 @@ In **Settings**, choose <img src="icons/monitor.png" width="22" height="22" alig
 
 **About** is the last section in Settings. It shows ShopIt, the version, a link to the source on GitHub, and **Privacy** and **Licenses**. Those open in place. They do not open another app.
 
+## Uninstall
+
+Uninstall removes ShopIt and everything it stored on that device: lists, settings, and data folders.
+
+- **Windows** — use Apps and Features, or open **Uninstall ShopIt** from the Start Menu folder the installer created. The uninstaller asks once, then removes the program and its AppData folders.
+- **Mac** — the release zip includes **Uninstall-ShopIt.command** next to ShopIt.app. Open that script, confirm, and it quits ShopIt if it is running, removes the app from common locations, and deletes Library preferences, support, caches, and related folders.
+- **Android** — uninstall ShopIt from the home screen or from Settings → Apps. The system removes the app and its private data. ShopIt does not write lists into cloud backup, so reinstalling starts empty.
+- **iPhone / iPad** — delete the app from the home screen. iOS removes the app container with it.
+
 ## Releases
 
-Each app update merged to `main` publishes from the version in `pubspec.yaml`: a Windows installer, an Android APK, and a Mac app. The Releases page keeps only the three newest builds. Changes that only touch this guide or the GitHub README do not publish a new build.
+Each app update merged to `main` publishes from the version in `pubspec.yaml`: a Windows installer, an Android APK, and a Mac app. The Mac zip includes the uninstall script. The Releases page keeps only the three newest builds. Changes that only touch this guide or the GitHub README do not publish a new build.
