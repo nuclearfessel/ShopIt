@@ -12,13 +12,13 @@ ShopIt is an open source shopping, pantry, and recipe app for Windows, Mac, Andr
 
 ## Download
 
-**Current version: 1.0.8**
+**Current version: 1.0.9**
 
 | Platform | Package |
 | --- | --- |
-| Windows | [ShopIt-Setup-1.0.8.exe](https://github.com/nuclearfessel/ShopIt/releases/download/v1.0.8/ShopIt-Setup-1.0.8.exe) |
-| Android | [ShopIt-1.0.8.apk](https://github.com/nuclearfessel/ShopIt/releases/download/v1.0.8/ShopIt-1.0.8.apk) |
-| Mac | [ShopIt-1.0.8-macos.zip](https://github.com/nuclearfessel/ShopIt/releases/download/v1.0.8/ShopIt-1.0.8-macos.zip) |
+| Windows | [ShopIt-Setup-1.0.9.exe](https://github.com/nuclearfessel/ShopIt/releases/download/v1.0.9/ShopIt-Setup-1.0.9.exe) |
+| Android | [ShopIt-1.0.9.apk](https://github.com/nuclearfessel/ShopIt/releases/download/v1.0.9/ShopIt-1.0.9.apk) |
+| Mac | [ShopIt-1.0.9-macos.zip](https://github.com/nuclearfessel/ShopIt/releases/download/v1.0.9/ShopIt-1.0.9-macos.zip) |
 
 On Windows, run the installer. On Android, allow installs from the APK, then open it. On a Mac, unzip the app and open ShopIt. iPhone and iPad installs go through TestFlight once an Apple Developer account is connected, so they are not a file on this page. Older packages stay in [Releases](https://github.com/nuclearfessel/ShopIt/releases) until a newer build replaces them; only the three newest releases are kept.
 
@@ -41,7 +41,7 @@ Open **Settings → Share lists** on both devices.
 
 If you paired on an earlier build, leave the household on both devices and create a new code. Older codes are ignored.
 
-If both sides already have a list with the same name, sync keeps one list and replaces its items with the other device's items instead of stacking both sides together.
+If both sides already have a list with the same name, sync keeps one list. When the other device has items on that list, this device matches them and drops names that were only here. An empty list on the other device does not wipe a full list on this one. Deleting items yourself still removes those names on the other device.
 
 While sharing is on, Shopping and Pantry show that same result in one line under the list name: synced just now, waiting to sync, or the short error. Share lists still holds the code, the QR code, and the Wi-Fi switch.
 

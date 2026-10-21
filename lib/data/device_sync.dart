@@ -124,8 +124,9 @@ extension DeviceSync on AppDatabase {
   ///
   /// A remote list with the same name and kind as a local list is folded into
   /// that local list instead of creating a second copy. Items on the remote
-  /// list are remapped onto it. After that, the local list becomes exactly the
-  /// remote list: names that are only here are removed.
+  /// list are remapped onto it. When the remote list still has live items,
+  /// names that are only here are removed so both devices match. An empty
+  /// remote list does not wipe items that were only added on this device.
   Future<void> applySnapshot(SyncSnapshot remote) => transaction(() async {
     await _applyTaxRates(remote.taxRates);
     final lists = await _applyLists(remote.lists);
@@ -393,8 +394,9 @@ extension DeviceSync on AppDatabase {
     return null;
   }
 
-  /// Removes shopping items that are only on this device for lists the other
-  /// device also sent, so that list matches the other device.
+  /// Removes shopping items that are only on this device when the other device
+  /// sent a non-empty list. An empty remote list is left alone so a computer
+  /// with nothing in Groceries cannot wipe a phone that just added items.
   Future<void> _dropLocalOnlyShoppingItems(
     List<Map<String, Object?>> remoteRows,
     Map<String, String> aliases,
@@ -419,6 +421,8 @@ extension DeviceSync on AppDatabase {
     for (final listId in replacedLists) {
       final names = keptNames[listId] ?? const <String>{};
       final ids = keptIds[listId] ?? const <String>{};
+      // Nothing live on the other device for this list: keep what is here.
+      if (names.isEmpty && ids.isEmpty) continue;
       final locals = await (select(
         shoppingItems,
       )..where((t) => t.deletedAt.isNull() & t.listId.equals(listId))).get();
@@ -493,8 +497,9 @@ extension DeviceSync on AppDatabase {
     return null;
   }
 
-  /// Removes pantry items that are only on this device for lists the other
-  /// device also sent, so that list matches the other device.
+  /// Removes pantry items that are only on this device when the other device
+  /// sent a non-empty list. An empty remote pantry list does not wipe stock
+  /// that was only added here.
   Future<void> _dropLocalOnlyPantryItems(
     List<Map<String, Object?>> remoteRows,
     Map<String, String> aliases,
@@ -520,6 +525,7 @@ extension DeviceSync on AppDatabase {
     for (final listId in replacedLists) {
       final names = keptNames[listId] ?? const <String>{};
       final ids = keptIds[listId] ?? const <String>{};
+      if (names.isEmpty && ids.isEmpty) continue;
       final locals = await (select(
         pantryItems,
       )..where((t) => t.deletedAt.isNull() & t.listId.equals(listId))).get();

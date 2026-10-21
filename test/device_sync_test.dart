@@ -135,6 +135,62 @@ void main() {
     expect([for (final item in items) item.name]..sort(), ['Bread', 'Milk']);
   });
 
+  test('an empty remote shopping list does not wipe local items', () async {
+    // Windows creates the household with an empty Groceries list. Android joins,
+    // adds items, then receives the empty Windows snapshot again. Those items
+    // must stay.
+    final phone = await client.watchLists().first;
+    final phoneId = phone.single.id;
+    await client.addShoppingItem(phoneId, 'Milk');
+    await client.addShoppingItem(phoneId, 'Bread');
+    await client.addShoppingItem(phoneId, 'Rice');
+
+    await client.applySnapshot(await host.exportSnapshot());
+
+    final items = await (client.select(
+      client.shoppingItems,
+    )..where((t) => t.deletedAt.isNull())).get();
+    expect([for (final item in items) item.name]..sort(), [
+      'Bread',
+      'Milk',
+      'Rice',
+    ]);
+  });
+
+  test('an empty remote pantry list does not wipe local items', () async {
+    final phonePantry = (await client.watchPantryLists().first).first;
+    await client.addPantryItem('Rice', listId: phonePantry.id);
+    await client.addPantryItem('Beans', listId: phonePantry.id);
+
+    await client.applySnapshot(await host.exportSnapshot());
+
+    final items =
+        await (client.select(client.pantryItems)..where(
+              (t) => t.deletedAt.isNull() & t.listId.equals(phonePantry.id),
+            ))
+            .get();
+    expect([for (final item in items) item.name]..sort(), ['Beans', 'Rice']);
+  });
+
+  test(
+    'deleting items on one device still removes them on the other',
+    () async {
+      final phone = await client.watchLists().first;
+      final phoneId = phone.single.id;
+      final milk = await client.addShoppingItem(phoneId, 'Milk');
+      final bread = await client.addShoppingItem(phoneId, 'Bread');
+      await host.applySnapshot(await client.exportSnapshot());
+
+      await client.deleteShoppingItems([milk, bread]);
+      await host.applySnapshot(await client.exportSnapshot());
+
+      final items = await (host.select(
+        host.shoppingItems,
+      )..where((t) => t.deletedAt.isNull())).get();
+      expect(items, isEmpty);
+    },
+  );
+
   test(
     'two grocery lists with the same category order still share items',
     () async {
