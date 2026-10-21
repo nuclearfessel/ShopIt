@@ -196,7 +196,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.memory() : super(NativeDatabase.memory());
 
   @override
-  int get schemaVersion => 13;
+  int get schemaVersion => 14;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -318,6 +318,11 @@ class AppDatabase extends _$AppDatabase {
         if (!tableNames.contains('recipe_ingredients')) {
           await m.createTable(recipeIngredients);
         }
+      }
+      if (from < 14) {
+        // v14: more regular and non-organic produce, plus East Asian,
+        // Southeast Asian, and South Asian herbs and produce.
+        await mergeBuiltinCatalog();
       }
     },
   );
