@@ -230,7 +230,7 @@ If you paired on an earlier build, leave the household on both devices and creat
 
 ### Lists with the same name
 
-If both devices already have a shopping or pantry list with the same name, sync merges them and appends items. It does not create a second list that repeats what you already have.
+If both devices already have a shopping or pantry list with the same name, sync keeps one list. The items become the other device's items for that list. Names that were only on this device are removed. It does not create a second list, and it does not stack both sides' items on top of each other.
 
 ## Appearance and About
 

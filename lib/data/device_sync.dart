@@ -124,8 +124,8 @@ extension DeviceSync on AppDatabase {
   ///
   /// A remote list with the same name and kind as a local list is folded into
   /// that local list instead of creating a second copy. Items on the remote
-  /// list are remapped onto it, and an item with the same name on that list is
-  /// merged rather than duplicated.
+  /// list are remapped onto it. After that, the local list becomes exactly the
+  /// remote list: names that are only here are removed.
   Future<void> applySnapshot(SyncSnapshot remote) => transaction(() async {
     await _applyTaxRates(remote.taxRates);
     final lists = await _applyLists(remote.lists);
@@ -135,7 +135,17 @@ extension DeviceSync on AppDatabase {
       itemCategories,
       lists.aliases,
     );
+    await _dropLocalOnlyShoppingItems(
+      remote.shoppingItems,
+      lists.aliases,
+      lists.replaced,
+    );
     await _applyPantryItems(remote.pantryItems, itemCategories, lists.aliases);
+    await _dropLocalOnlyPantryItems(
+      remote.pantryItems,
+      lists.aliases,
+      lists.replaced,
+    );
     await _applyCategories(remote.categories, itemCategories);
     await _applyHistory(remote.history);
     await _applyCatalog(remote.catalog);
@@ -174,14 +184,21 @@ extension DeviceSync on AppDatabase {
   }
 
   /// Returns the ids of lists that were inserted or updated, which of those
-  /// are deleted, and remote-to-local id aliases for same-name merges.
+  /// are deleted, remote-to-local id aliases for same-name merges, and the
+  /// live lists whose items should match the remote list exactly.
   Future<
-    ({Set<String> changed, Set<String> deleted, Map<String, String> aliases})
+    ({
+      Set<String> changed,
+      Set<String> deleted,
+      Map<String, String> aliases,
+      Set<String> replaced,
+    })
   >
   _applyLists(List<Map<String, Object?>> rows) async {
     final changed = <String>{};
     final deleted = <String>{};
     final aliases = <String, String>{};
+    final replaced = <String>{};
     for (final row in rows) {
       final id = _id(row);
       final at = _updatedAt(row);
@@ -223,6 +240,7 @@ extension DeviceSync on AppDatabase {
           !_take(at, local.updatedAt, _identical(_listJson(local), row))) {
         // Still remember the alias so items on the remote id land here.
         if (targetId != id) aliases[id] = targetId;
+        if (!remoteDeleted) replaced.add(targetId);
         continue;
       }
       final mode = _string(row, 'quantityMode', 'level');
@@ -247,9 +265,18 @@ extension DeviceSync on AppDatabase {
       }
       changed.add(targetId);
       if (targetId != id) aliases[id] = targetId;
-      if (remoteDeleted) deleted.add(targetId);
+      if (remoteDeleted) {
+        deleted.add(targetId);
+      } else {
+        replaced.add(targetId);
+      }
     }
-    return (changed: changed, deleted: deleted, aliases: aliases);
+    return (
+      changed: changed,
+      deleted: deleted,
+      aliases: aliases,
+      replaced: replaced,
+    );
   }
 
   Future<List<ShoppingList>> _listsByName(String name, String kind) async {
@@ -366,6 +393,45 @@ extension DeviceSync on AppDatabase {
     return null;
   }
 
+  /// Removes shopping items that are only on this device for lists the other
+  /// device also sent, so that list matches the other device.
+  Future<void> _dropLocalOnlyShoppingItems(
+    List<Map<String, Object?>> remoteRows,
+    Map<String, String> aliases,
+    Set<String> replacedLists,
+  ) async {
+    if (replacedLists.isEmpty) return;
+    final keptNames = <String, Set<String>>{};
+    final keptIds = <String, Set<String>>{};
+    for (final row in remoteRows) {
+      if (_date(row, 'deletedAt') != null) continue;
+      final rawListId = _string(row, 'listId');
+      if (rawListId.isEmpty) continue;
+      final listId = aliases[rawListId] ?? rawListId;
+      if (!replacedLists.contains(listId)) continue;
+      final name = _string(row, 'name');
+      if (name.isEmpty) continue;
+      keptNames.putIfAbsent(listId, () => {}).add(name.trim().toLowerCase());
+      final id = _id(row);
+      if (id != null) keptIds.putIfAbsent(listId, () => {}).add(id);
+    }
+    final now = DateTime.now().toUtc();
+    for (final listId in replacedLists) {
+      final names = keptNames[listId] ?? const <String>{};
+      final ids = keptIds[listId] ?? const <String>{};
+      final locals = await (select(
+        shoppingItems,
+      )..where((t) => t.deletedAt.isNull() & t.listId.equals(listId))).get();
+      for (final item in locals) {
+        if (ids.contains(item.id)) continue;
+        if (names.contains(item.name.trim().toLowerCase())) continue;
+        await (update(shoppingItems)..where((t) => t.id.equals(item.id))).write(
+          ShoppingItemsCompanion(deletedAt: Value(now), updatedAt: Value(now)),
+        );
+      }
+    }
+  }
+
   Future<void> _applyPantryItems(
     List<Map<String, Object?>> rows,
     Set<String> categories,
@@ -425,6 +491,46 @@ extension DeviceSync on AppDatabase {
       if (row.name.trim().toLowerCase() == needle) return row;
     }
     return null;
+  }
+
+  /// Removes pantry items that are only on this device for lists the other
+  /// device also sent, so that list matches the other device.
+  Future<void> _dropLocalOnlyPantryItems(
+    List<Map<String, Object?>> remoteRows,
+    Map<String, String> aliases,
+    Set<String> replacedLists,
+  ) async {
+    if (replacedLists.isEmpty) return;
+    final keptNames = <String, Set<String>>{};
+    final keptIds = <String, Set<String>>{};
+    for (final row in remoteRows) {
+      if (_date(row, 'deletedAt') != null) continue;
+      final rawListId = _string(row, 'listId');
+      final listId = rawListId.isEmpty
+          ? null
+          : (aliases[rawListId] ?? rawListId);
+      if (listId == null || !replacedLists.contains(listId)) continue;
+      final name = _string(row, 'name');
+      if (name.isEmpty) continue;
+      keptNames.putIfAbsent(listId, () => {}).add(name.trim().toLowerCase());
+      final id = _id(row);
+      if (id != null) keptIds.putIfAbsent(listId, () => {}).add(id);
+    }
+    final now = DateTime.now().toUtc();
+    for (final listId in replacedLists) {
+      final names = keptNames[listId] ?? const <String>{};
+      final ids = keptIds[listId] ?? const <String>{};
+      final locals = await (select(
+        pantryItems,
+      )..where((t) => t.deletedAt.isNull() & t.listId.equals(listId))).get();
+      for (final item in locals) {
+        if (ids.contains(item.id)) continue;
+        if (names.contains(item.name.trim().toLowerCase())) continue;
+        await (update(pantryItems)..where((t) => t.id.equals(item.id))).write(
+          PantryItemsCompanion(deletedAt: Value(now), updatedAt: Value(now)),
+        );
+      }
+    }
   }
 
   Future<void> _applyCategories(
@@ -620,7 +726,12 @@ extension DeviceSync on AppDatabase {
 
   Future<void> _applyOrders(
     List<Map<String, Object?>> rows,
-    ({Set<String> changed, Set<String> deleted, Map<String, String> aliases})
+    ({
+      Set<String> changed,
+      Set<String> deleted,
+      Map<String, String> aliases,
+      Set<String> replaced,
+    })
     lists,
   ) async {
     for (final id in lists.changed) {

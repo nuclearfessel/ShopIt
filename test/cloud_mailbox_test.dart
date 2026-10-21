@@ -88,7 +88,7 @@ void main() {
     ]);
   });
 
-  test('same-name lists merge across the cloud mailbox too', () async {
+  test('same-name lists replace across the cloud mailbox too', () async {
     final mailbox = MemoryCloudMailbox();
     final phone = AppDatabase.memory();
     final computer = AppDatabase.memory();
@@ -123,10 +123,8 @@ void main() {
               (t) => t.deletedAt.isNull() & t.listId.equals(lists.single.id),
             ))
             .get();
-    expect([for (final item in items) item.name]..sort(), [
-      'Apples',
-      'Bananas',
-    ]);
+    // The phone's list replaces the computer's: Bananas are gone.
+    expect([for (final item in items) item.name], ['Apples']);
   });
 
   test('websocket mailbox clients stay on websocket', () {
