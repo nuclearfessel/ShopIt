@@ -75,37 +75,64 @@ void main() {
     expect(await shoppingNames(host), contains('From the phone'));
   });
 
-  test('same grocery list name merges instead of duplicating', () async {
-    // Each database already has a seeded "Groceries" list. Adding another with
-    // the same name on either side must still collapse to one list on sync.
-    final phoneList = await client.addList('Groceries');
-    await client.addShoppingItem(phoneList, 'Milk');
-    await client.addShoppingItem(phoneList, 'Bread');
+  test(
+    'same grocery list name becomes one list with the other device\'s items',
+    () async {
+      // Each database already has a seeded "Groceries" list. Syncing folds them
+      // into one list and replaces this device's items with the other device's.
+      final phoneList = await client.addList('Groceries');
+      await client.addShoppingItem(phoneList, 'Milk');
+      await client.addShoppingItem(phoneList, 'Bread');
 
-    final computerList = await host.addList('Groceries');
-    await host.addShoppingItem(computerList, 'Eggs');
-    await host.addShoppingItem(computerList, 'Milk');
+      final computerList = await host.addList('Groceries');
+      await host.addShoppingItem(computerList, 'Eggs');
+      await host.addShoppingItem(computerList, 'Milk');
 
-    await exchange(host, client);
+      await exchange(host, client);
 
-    expect(await shoppingNames(host), ['Groceries']);
-    expect(await shoppingNames(client), ['Groceries']);
+      expect(await shoppingNames(host), ['Groceries']);
+      expect(await shoppingNames(client), ['Groceries']);
 
-    Future<List<String>> itemNames(AppDatabase db) async {
-      final lists = await (db.select(
-        db.shoppingLists,
-      )..where((t) => t.deletedAt.isNull() & t.kind.equals('shopping'))).get();
-      expect(lists, hasLength(1));
-      final items =
-          await (db.select(db.shoppingItems)..where(
-                (t) => t.deletedAt.isNull() & t.listId.equals(lists.single.id),
-              ))
-              .get();
-      return [for (final item in items) item.name]..sort();
-    }
+      Future<List<String>> itemNames(AppDatabase db) async {
+        final lists =
+            await (db.select(db.shoppingLists)..where(
+                  (t) => t.deletedAt.isNull() & t.kind.equals('shopping'),
+                ))
+                .get();
+        expect(lists, hasLength(1));
+        final items =
+            await (db.select(db.shoppingItems)..where(
+                  (t) =>
+                      t.deletedAt.isNull() & t.listId.equals(lists.single.id),
+                ))
+                .get();
+        return [for (final item in items) item.name]..sort();
+      }
 
-    expect(await itemNames(host), ['Bread', 'Eggs', 'Milk']);
-    expect(await itemNames(client), ['Bread', 'Eggs', 'Milk']);
+      // The phone's list is applied first, so both devices end with the phone's
+      // two items. The computer's Eggs are gone.
+      expect(await itemNames(host), ['Bread', 'Milk']);
+      expect(await itemNames(client), ['Bread', 'Milk']);
+    },
+  );
+
+  test('applying a shopping list replaces local-only names', () async {
+    final phone = await client.watchLists().first;
+    final phoneId = phone.single.id;
+    await client.addShoppingItem(phoneId, 'Milk');
+    await client.addShoppingItem(phoneId, 'Bread');
+
+    final computer = await host.watchLists().first;
+    final computerId = computer.single.id;
+    await host.addShoppingItem(computerId, 'Eggs');
+    await host.addShoppingItem(computerId, 'Butter');
+
+    await host.applySnapshot(await client.exportSnapshot());
+
+    final items = await (host.select(
+      host.shoppingItems,
+    )..where((t) => t.deletedAt.isNull())).get();
+    expect([for (final item in items) item.name]..sort(), ['Bread', 'Milk']);
   });
 
   test(
@@ -131,35 +158,38 @@ void main() {
     },
   );
 
-  test('same pantry list name merges instead of duplicating', () async {
-    final phone = await client.addList('Garage', kind: 'pantry');
-    await client.addPantryItem('Water', listId: phone);
-    final computer = await host.addList('Garage', kind: 'pantry');
-    await host.addPantryItem('Batteries', listId: computer);
-    await host.addPantryItem('Water', listId: computer);
+  test(
+    'same pantry list name becomes one list with the other device\'s items',
+    () async {
+      final phone = await client.addList('Garage', kind: 'pantry');
+      await client.addPantryItem('Water', listId: phone);
+      final computer = await host.addList('Garage', kind: 'pantry');
+      await host.addPantryItem('Batteries', listId: computer);
+      await host.addPantryItem('Water', listId: computer);
 
-    await exchange(host, client);
+      await exchange(host, client);
 
-    expect(await pantryNames(host), containsAll(['Pantry', 'Garage']));
-    expect(await pantryNames(client), containsAll(['Pantry', 'Garage']));
-    expect((await pantryNames(host)).where((n) => n == 'Garage'), hasLength(1));
-    final garage =
-        (await (host.select(host.shoppingLists)..where(
-                  (t) =>
-                      t.deletedAt.isNull() &
-                      t.kind.equals('pantry') &
-                      t.name.equals('Garage'),
-                ))
-                .get())
-            .single;
-    final items = await (host.select(
-      host.pantryItems,
-    )..where((t) => t.deletedAt.isNull() & t.listId.equals(garage.id))).get();
-    expect([for (final item in items) item.name]..sort(), [
-      'Batteries',
-      'Water',
-    ]);
-  });
+      expect(await pantryNames(host), containsAll(['Pantry', 'Garage']));
+      expect(await pantryNames(client), containsAll(['Pantry', 'Garage']));
+      expect(
+        (await pantryNames(host)).where((n) => n == 'Garage'),
+        hasLength(1),
+      );
+      final garage =
+          (await (host.select(host.shoppingLists)..where(
+                    (t) =>
+                        t.deletedAt.isNull() &
+                        t.kind.equals('pantry') &
+                        t.name.equals('Garage'),
+                  ))
+                  .get())
+              .single;
+      final items = await (host.select(
+        host.pantryItems,
+      )..where((t) => t.deletedAt.isNull() & t.listId.equals(garage.id))).get();
+      expect([for (final item in items) item.name]..sort(), ['Water']);
+    },
+  );
 
   test('items and a pantry list come along with it', () async {
     final listId = await client.addList('Phone groceries');
