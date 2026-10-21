@@ -10,6 +10,7 @@ import '../../ui/tip.dart';
 import 'about_section.dart';
 import 'device_link_controller.dart';
 import 'device_link_dialog.dart';
+import 'list_handoff.dart';
 
 /// On a large window, Settings is a dialog at this width or wider, and a
 /// full-screen page below it. A phone is always the page.
@@ -204,6 +205,7 @@ class SettingsForm extends ConsumerWidget {
     final theme = Theme.of(context);
     final mode = ref.watch(themeModeProvider);
     final link = ref.watch(deviceLinkProvider);
+    final handoff = ref.watch(listHandoffProvider);
 
     Widget heading(String text) => Padding(
       padding: const EdgeInsets.only(top: 4, bottom: 4),
@@ -249,6 +251,21 @@ class SettingsForm extends ConsumerWidget {
         const Divider(height: 24),
         heading(listName == null ? 'Sales tax' : 'Sales tax for "$listName"'),
         TaxRatesSection(listId: listId),
+        const Divider(height: 24),
+        heading('Lists'),
+        Tip(
+          'Turn on offers between the shopping list and the pantry',
+          child: SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Shopping and pantry'),
+            subtitle: const Text(
+              'Offer to add checked items to the pantry, and to add low, '
+              'empty, or use-soon pantry items to the shopping list.',
+            ),
+            value: handoff,
+            onChanged: (v) => ref.read(listHandoffProvider.notifier).set(v),
+          ),
+        ),
         const Divider(height: 24),
         heading('Devices'),
         Text(

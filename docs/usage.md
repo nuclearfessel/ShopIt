@@ -42,7 +42,7 @@ Windows and Mac use the side rail. An Android phone and an iPhone use the bottom
 </tr>
 <tr>
 <td><img src="icons/settings.png" width="60" height="60" alt=""></td>
-<td><strong>Settings</strong> opens appearance, sales tax, sharing, and About. On a phone it is a full page. On a larger window it is a dialog at 700 pixels wide or more, and a full page below that. Changing the size switches it while it is open. The X at the top right and <strong>Done</strong> both leave that page.</td>
+<td><strong>Settings</strong> opens appearance, sales tax, lists, sharing, and About. <strong>Shopping and pantry</strong>, under Lists, is off until you turn it on. On a phone it is a full page. On a larger window it is a dialog at 700 pixels wide or more, and a full page below that. Changing the size switches it while it is open. The X at the top right and <strong>Done</strong> both leave that page.</td>
 </tr>
 <tr>
 <td><img src="icons/more.png" width="60" height="60" alt=""></td>
@@ -71,6 +71,10 @@ Windows and Mac use the side rail. An Android phone and an iPhone use the bottom
 <tr>
 <td><img src="icons/uncheck.png" width="60" height="60" alt=""></td>
 <td><strong>Uncheck all</strong> moves everything out of the cart and back onto the list.</td>
+</tr>
+<tr>
+<td><img src="icons/pantry.png" width="60" height="60" alt=""></td>
+<td><strong>Add to pantry</strong> puts what is in the cart into the pantry. It shows only when <strong>Shopping and pantry</strong> is on in Settings.</td>
 </tr>
 <tr>
 <td><img src="icons/delete.png" width="60" height="60" alt=""></td>
@@ -111,7 +115,7 @@ Windows and Mac use the side rail. An Android phone and an iPhone use the bottom
 4. Type in **Search or add an item**, then press Enter or tap <img src="icons/plus.png" width="22" height="22" align="bottom" style="vertical-align: baseline" alt="Add">. Use <img src="icons/pen.png" width="22" height="22" align="bottom" style="vertical-align: baseline" alt="Edit"> to set quantity, unit, category, price, tax, and a note before you add. On a phone or tablet, tap <img src="icons/scan.png" width="22" height="22" align="bottom" style="vertical-align: baseline" alt="Scan"> to add from a barcode instead of typing.
 5. Tap an item to edit it. Check an item to move it into the cart.
 
-From the cart you can uncheck everything (<img src="icons/uncheck.png" width="22" height="22" align="bottom" style="vertical-align: baseline" alt="Uncheck all">) or delete the checked items (<img src="icons/delete.png" width="22" height="22" align="bottom" style="vertical-align: baseline" alt="Delete all">).
+From the cart you can uncheck everything (<img src="icons/uncheck.png" width="22" height="22" align="bottom" style="vertical-align: baseline" alt="Uncheck all">) or delete the checked items (<img src="icons/delete.png" width="22" height="22" align="bottom" style="vertical-align: baseline" alt="Delete all">). When **Shopping and pantry** is on in Settings, <img src="icons/pantry.png" width="22" height="22" align="bottom" style="vertical-align: baseline" alt="Add to pantry"> **Add to pantry** is there too. One pantry list is used. More than one asks which list. A new name is added. A name already there is marked Full, or its exact amount increases by what you bought. Undo puts that change back.
 
 <p align="center">
 <img src="screenshots/menu.png" alt="List menu open, with Rename this list directly above Delete this list" width="720">
@@ -158,7 +162,9 @@ Open <img src="icons/pantry.png" width="22" height="22" align="bottom" style="ve
 
 **Use soon** appears at the top when something expires within the next seven days, or is already past its date. Each name says **today**, **tomorrow**, **in N days**, or **expired**.
 
-**Move/Copy items** sends items between shopping lists and pantry lists—handy when you restock or finish something.
+**Shopping and pantry** in Settings is off until you turn it on. With it on, a Low item, an exact amount at zero, or a Use soon item offers **Add to list**. **Use soon** also has **Add to shopping list** for every name in that strip. The name goes on the shopping list you have open. If that name is already on the list, it is left as it is. Undo removes only the names that step added.
+
+**Move/Copy items** still sends items between shopping lists and pantry lists when that one-step handoff is not enough.
 
 ## Recipes
 
@@ -191,6 +197,8 @@ The summary at the top tells you which channels are on. Under it, each channel h
 - **Cloud: synced just now**, or **Cloud: not synced yet.**
 
 A failure stays on that channel. A successful Wi-Fi sync does not clear a cloud error, and the other way around. The same errors also show under **Devices** in Settings.
+
+While sharing is on, Shopping and Pantry show one short line under the list name: **Synced just now**, **Waiting to sync**, or that short error. Share lists still holds the code, the QR code, and the Wi-Fi switch.
 
 ### Same Wi-Fi
 

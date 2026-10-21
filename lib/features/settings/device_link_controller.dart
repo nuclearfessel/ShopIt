@@ -48,6 +48,23 @@ class DeviceLinkState {
 
   bool get cloudLinked => cloudCode != null && cloudCode!.isNotEmpty;
 
+  /// One short line for the shopping and pantry screens.
+  ///
+  /// Empty when lists are not being shared. Otherwise the latest success,
+  /// that this device is still waiting, or the short error already stored.
+  String get listLine {
+    if (!sharing && !cloudLinked) return '';
+    if (wifiError != null && wifiError!.isNotEmpty) return wifiError!;
+    if (cloudError != null && cloudError!.isNotEmpty) return cloudError!;
+    final stamps = <DateTime>[
+      if (sharing && lastWifiSync != null) lastWifiSync!,
+      if (cloudLinked && lastCloudSync != null) lastCloudSync!,
+    ];
+    if (stamps.isEmpty) return 'Waiting to sync.';
+    stamps.sort();
+    return _syncedPhrase(stamps.last);
+  }
+
   String get summary {
     if (!sharing && !cloudLinked) return 'Not shared.';
     final parts = <String>[];
@@ -550,6 +567,21 @@ class DeviceLinkController extends Notifier<DeviceLinkState> {
     _turn = next.then((_) {}, onError: (Object _, StackTrace _) {});
     return next;
   }
+}
+
+String _syncedPhrase(DateTime at) {
+  final seconds = DateTime.now().difference(at).inSeconds;
+  if (seconds < 45) return 'Synced just now.';
+  if (seconds < 90) return 'Synced a minute ago.';
+  final minutes = seconds ~/ 60;
+  if (minutes < 60) {
+    return 'Synced $minutes ${minutes == 1 ? 'minute' : 'minutes'} ago.';
+  }
+  final hours = minutes ~/ 60;
+  if (hours < 24) {
+    return 'Synced $hours ${hours == 1 ? 'hour' : 'hours'} ago.';
+  }
+  return 'Synced earlier.';
 }
 
 bool _sameNames(List<String> a, List<String> b) {

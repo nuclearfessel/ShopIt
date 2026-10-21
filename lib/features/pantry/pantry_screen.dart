@@ -12,6 +12,7 @@ import '../../ui/dialogs.dart';
 import '../../ui/keyline/keyline_icon.dart';
 import '../../ui/choice_field.dart';
 import '../../ui/tip.dart';
+import '../../ui/sync_status_line.dart';
 import '../../ui/undo_snack_bar.dart';
 import '../catalog/catalog_suggestions.dart';
 import '../catalog/item_editor.dart';
@@ -20,6 +21,7 @@ import '../categories/category_color_dialog.dart';
 import '../categories/manage_categories_dialog.dart';
 import '../lists/manage_lists_dialog.dart';
 import '../lists/move_copy_dialog.dart';
+import '../settings/list_handoff.dart';
 import 'items_setting_dialog.dart';
 
 class PantryScreen extends ConsumerStatefulWidget {
@@ -49,22 +51,29 @@ class _PantryScreenState extends ConsumerState<PantryScreen> {
         if (all.isEmpty) {
           return Scaffold(
             appBar: AppBar(title: const Text('Pantry')),
-            body: Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text('No pantry lists yet'),
-                  const SizedBox(height: 12),
-                  Tip(
-                    'Create your first pantry list',
-                    child: FilledButton.icon(
-                      onPressed: _newList,
-                      icon: const KeylineIcon(KeylineIcons.listPlus),
-                      label: const Text('Create a pantry list'),
+            body: Column(
+              children: [
+                const SyncStatusLine(),
+                Expanded(
+                  child: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text('No pantry lists yet'),
+                        const SizedBox(height: 12),
+                        Tip(
+                          'Create your first pantry list',
+                          child: FilledButton.icon(
+                            onPressed: _newList,
+                            icon: const KeylineIcon(KeylineIcons.listPlus),
+                            label: const Text('Create a pantry list'),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           );
         }
@@ -114,6 +123,7 @@ class _PantryBody extends ConsumerWidget {
       for (final c in allCategories)
         if (c.color != null) c.name: Color(c.color!),
     };
+    final handoff = ref.watch(listHandoffProvider);
 
     Future<void> recolor(String name) async {
       final choice = await showCategoryColorDialog(
@@ -276,6 +286,7 @@ class _PantryBody extends ConsumerWidget {
       ),
       body: Column(
         children: [
+          const SyncStatusLine(),
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
             // A pull-down only when there is more than one list to pick from.
@@ -365,6 +376,18 @@ class _PantryBody extends ConsumerWidget {
                                       '${item.name} (${_soonWhen(item.expiryDate!, start)})',
                                   ].join(', '),
                                 ),
+                                if (handoff)
+                                  Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: TextButton(
+                                      onPressed: () => _addToShoppingList(
+                                        context,
+                                        ref,
+                                        useSoon,
+                                      ),
+                                      child: const Text('Add to shopping list'),
+                                    ),
+                                  ),
                               ],
                             ),
                           ),
@@ -377,7 +400,14 @@ class _PantryBody extends ConsumerWidget {
                         onTap: () => recolor(n),
                       ),
                       for (final i in byCategory[n]!)
-                        _PantryTile(item: i, db: db, categories: categories),
+                        _PantryTile(
+                          item: i,
+                          db: db,
+                          categories: categories,
+                          onAddToShopping: handoff && _needsRestock(i, start)
+                              ? () => _addToShoppingList(context, ref, [i])
+                              : null,
+                        ),
                     ],
                   ],
                 );
@@ -393,6 +423,62 @@ class _PantryBody extends ConsumerWidget {
       ),
     );
   }
+}
+
+bool _needsRestock(PantryItem item, DateTime startOfToday) {
+  if (item.quantityMode == 'level' && item.level == 'low') return true;
+  if (item.quantityMode == 'number' && item.quantity <= 0) return true;
+  return _dueWithinWeek(item.expiryDate, startOfToday);
+}
+
+/// Adds these names to the open shopping list. One list is used when the
+/// household has not opened another. Undo removes only the names this added.
+Future<void> _addToShoppingList(
+  BuildContext context,
+  WidgetRef ref,
+  List<PantryItem> items,
+) async {
+  final shopping = ref.read(listsProvider).value ?? const <ShoppingList>[];
+  if (shopping.isEmpty) {
+    showInfoSnackBar(context, 'Create a shopping list first.');
+    return;
+  }
+  final open = ref.read(openShoppingListProvider);
+  final target =
+      shopping.where((list) => list.id == open?.id).firstOrNull ??
+      shopping.first;
+  final db = ref.read(databaseProvider);
+  final added = <String>[];
+  final names = <String>[];
+  for (final item in items) {
+    final id = await db.addNameToShoppingList(
+      target.id,
+      item.name,
+      category: item.category,
+      unit: item.unit,
+    );
+    if (id != null) {
+      added.add(id);
+      names.add(item.name);
+    }
+  }
+  if (!context.mounted) return;
+  if (added.isEmpty) {
+    showInfoSnackBar(
+      context,
+      items.length == 1
+          ? '${items.first.name} is already on ${target.name}.'
+          : 'Those items are already on ${target.name}.',
+    );
+    return;
+  }
+  showUndoSnackBar(
+    context,
+    message: names.length == 1
+        ? 'Added ${names.first} to ${target.name}.'
+        : 'Added ${names.length} items to ${target.name}.',
+    onUndo: () => db.deleteShoppingItems(added),
+  );
 }
 
 bool _dueWithinWeek(DateTime? expiry, DateTime startOfToday) {
@@ -420,12 +506,16 @@ class _PantryTile extends StatelessWidget {
     required this.item,
     required this.db,
     required this.categories,
+    this.onAddToShopping,
   });
 
   /// The user's categories to choose from when editing.
   final List<String> categories;
   final PantryItem item;
   final AppDatabase db;
+
+  /// Set when this item is low, empty, or due soon.
+  final VoidCallback? onAddToShopping;
 
   @override
   Widget build(BuildContext context) {
@@ -474,6 +564,23 @@ class _PantryTile extends StatelessWidget {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.bodySmall,
+                  ),
+                if (onAddToShopping != null)
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Tip(
+                      'Add this to the shopping list',
+                      child: TextButton(
+                        style: TextButton.styleFrom(
+                          visualDensity: VisualDensity.compact,
+                          padding: EdgeInsets.zero,
+                          minimumSize: const Size(0, 32),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        onPressed: onAddToShopping,
+                        child: const Text('Add to list'),
+                      ),
+                    ),
                   ),
               ],
             ),
