@@ -230,7 +230,7 @@ If you paired on an earlier build, leave the household on both devices and creat
 
 ### Lists with the same name
 
-If both devices already have a shopping or pantry list with the same name, sync keeps one list. The items become the other device's items for that list. Names that were only on this device are removed. It does not create a second list, and it does not stack both sides' items on top of each other.
+If both devices already have a shopping or pantry list with the same name, sync keeps one list. When the other device has items on that list, this device matches them and drops names that were only here. An empty list on the other device does not wipe items on this one. Deleting items on either device still removes those same names on the other. It does not create a second list, and it does not stack both sides' items on top of each other.
 
 ## Appearance and About
 
