@@ -96,6 +96,19 @@ void main() {
     addTearDown(computer.close);
 
     final code = await mailbox.createHousehold();
+    // Computer publishes first with Bananas, then the phone publishes Apples
+    // with a newer item timestamp so Apples replace Bananas on the next sync.
+    final computerList = await computer.addList('Groceries');
+    await computer.addShoppingItem(computerList, 'Bananas');
+    await mailbox.syncDevice(
+      code: code,
+      deviceId: 'computer',
+      deviceName: 'the computer',
+      db: computer,
+    );
+
+    // Item timestamps are stored to the second; wait so Apples is strictly newer.
+    await Future<void>.delayed(const Duration(seconds: 2));
     final phoneList = await phone.addList('Groceries');
     await phone.addShoppingItem(phoneList, 'Apples');
     await mailbox.syncDevice(
@@ -105,8 +118,6 @@ void main() {
       db: phone,
     );
 
-    final computerList = await computer.addList('Groceries');
-    await computer.addShoppingItem(computerList, 'Bananas');
     await mailbox.syncDevice(
       code: code,
       deviceId: 'computer',
@@ -123,8 +134,56 @@ void main() {
               (t) => t.deletedAt.isNull() & t.listId.equals(lists.single.id),
             ))
             .get();
-    // The phone's list replaces the computer's: Bananas are gone.
     expect([for (final item in items) item.name], ['Apples']);
+  });
+
+  test('cloud sync prefers the newest peer when several devices publish', () async {
+    final mailbox = MemoryCloudMailbox();
+    final tablet = AppDatabase.memory();
+    final phone = AppDatabase.memory();
+    final computer = AppDatabase.memory();
+    addTearDown(tablet.close);
+    addTearDown(phone.close);
+    addTearDown(computer.close);
+
+    final code = await mailbox.createHousehold();
+    final tabletList = (await tablet.watchLists().first).single.id;
+    await tablet.addShoppingItem(tabletList, 'Old');
+    await mailbox.syncDevice(
+      code: code,
+      deviceId: 'tablet',
+      deviceName: 'the tablet',
+      db: tablet,
+    );
+
+    // Fresher local content on the phone must not be wiped by the older tablet
+    // snapshot when the phone syncs, and the computer must end on Fresh.
+    await Future<void>.delayed(const Duration(seconds: 2));
+    final phoneList = (await phone.watchLists().first).single.id;
+    await phone.addShoppingItem(phoneList, 'Fresh');
+    await mailbox.syncDevice(
+      code: code,
+      deviceId: 'phone',
+      deviceName: 'the phone',
+      db: phone,
+    );
+
+    final phoneItems = await (phone.select(
+      phone.shoppingItems,
+    )..where((t) => t.deletedAt.isNull())).get();
+    expect([for (final item in phoneItems) item.name], ['Fresh']);
+
+    await mailbox.syncDevice(
+      code: code,
+      deviceId: 'computer',
+      deviceName: 'the computer',
+      db: computer,
+    );
+
+    final items = await (computer.select(
+      computer.shoppingItems,
+    )..where((t) => t.deletedAt.isNull())).get();
+    expect([for (final item in items) item.name], ['Fresh']);
   });
 
   test('websocket mailbox clients stay on websocket', () {

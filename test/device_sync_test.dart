@@ -173,6 +173,58 @@ void main() {
   });
 
   test(
+    'clearing every item on one device clears local-only names on the other',
+    () async {
+      // After both share Milk and Bread, the computer adds Butter only there.
+      // When the phone clears the list, Butter must go too — not linger under
+      // the empty-list preserve rule meant for a never-used remote list.
+      final phone = await client.watchLists().first;
+      final phoneId = phone.single.id;
+      final milk = await client.addShoppingItem(phoneId, 'Milk');
+      final bread = await client.addShoppingItem(phoneId, 'Bread');
+      await host.applySnapshot(await client.exportSnapshot());
+
+      final computer = await host.watchLists().first;
+      await host.addShoppingItem(computer.single.id, 'Butter');
+
+      await client.deleteShoppingItems([milk, bread]);
+      await host.applySnapshot(await client.exportSnapshot());
+
+      final items = await (host.select(
+        host.shoppingItems,
+      )..where((t) => t.deletedAt.isNull())).get();
+      expect(items, isEmpty);
+    },
+  );
+
+  test(
+    'clearing every pantry item on one device clears local-only stock',
+    () async {
+      final phonePantry = (await client.watchPantryLists().first).first;
+      await client.addPantryItem('Rice', listId: phonePantry.id);
+      await client.addPantryItem('Beans', listId: phonePantry.id);
+      await host.applySnapshot(await client.exportSnapshot());
+
+      final computerPantry = (await host.watchPantryLists().first).first;
+      await host.addPantryItem('Flour', listId: computerPantry.id);
+
+      final phoneItems = await (client.select(
+        client.pantryItems,
+      )..where((t) => t.deletedAt.isNull())).get();
+      await client.deletePantryItems([for (final item in phoneItems) item.id]);
+      await host.applySnapshot(await client.exportSnapshot());
+
+      final items =
+          await (host.select(host.pantryItems)..where(
+                (t) =>
+                    t.deletedAt.isNull() & t.listId.equals(computerPantry.id),
+              ))
+              .get();
+      expect(items, isEmpty);
+    },
+  );
+
+  test(
     'deleting items on one device still removes them on the other',
     () async {
       final phone = await client.watchLists().first;

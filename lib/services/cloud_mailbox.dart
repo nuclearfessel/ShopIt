@@ -187,9 +187,7 @@ class CloudMailbox {
     required AppDatabase db,
   }) async {
     final others = await _collect(code, ignoreDeviceId: deviceId);
-    for (final entry in others.values) {
-      await db.applySnapshot(entry.snapshot);
-    }
+    await _mergePeerSnapshots(db, others.values);
     final mine = CloudDeviceEntry(
       deviceId: deviceId,
       name: deviceName,
@@ -198,6 +196,61 @@ class CloudMailbox {
     );
     await _publish(code, mine);
   }
+
+  /// Applies peer snapshots oldest-first. Membership follows the newest
+  /// *content* (list/item timestamps). A peer whose lists are older cannot
+  /// stack onto or wipe fresher local names; a peer with newer content
+  /// replaces local-only names so devices converge.
+  Future<void> _mergePeerSnapshots(
+    AppDatabase db,
+    Iterable<CloudDeviceEntry> peers,
+  ) async {
+    final ordered = peers.toList()
+      ..sort((a, b) {
+        final byContent = _entryContentStamp(a).compareTo(_entryContentStamp(b));
+        if (byContent != 0) return byContent;
+        return a.updatedAt.compareTo(b.updatedAt);
+      });
+    if (ordered.isEmpty) return;
+
+    final localStamp = snapshotContentStamp(await db.exportSnapshot());
+    final newestPeer = ordered.last;
+    final peerStamp = snapshotContentStamp(newestPeer.snapshot);
+    // Local membership wins only when local content is strictly newer. A tie
+    // lets the newer peer publish replace, so an empty computer still picks up
+    // the phone. Same-second edits are rare; Wi-Fi sync still replaces always.
+    final localIsNewest =
+        localStamp != null &&
+        peerStamp != null &&
+        localStamp.isAfter(peerStamp);
+
+    if (localIsNewest) {
+      for (final entry in ordered) {
+        await db.applySnapshot(
+          entry.snapshot,
+          replaceLocalOnlyItems: false,
+          acceptRemoteOnlyLiveItems: false,
+        );
+      }
+      return;
+    }
+
+    for (final entry in ordered.take(ordered.length - 1)) {
+      await db.applySnapshot(
+        entry.snapshot,
+        replaceLocalOnlyItems: false,
+        acceptRemoteOnlyLiveItems: true,
+      );
+    }
+    await db.applySnapshot(
+      newestPeer.snapshot,
+      replaceLocalOnlyItems: true,
+      acceptRemoteOnlyLiveItems: true,
+    );
+  }
+
+  DateTime _entryContentStamp(CloudDeviceEntry entry) =>
+      snapshotContentStamp(entry.snapshot) ?? entry.updatedAt;
 
   /// Removes this device's retained snapshot. An empty retained publish is
   /// how the broker deletes the stored copy.
@@ -625,10 +678,11 @@ class MemoryCloudMailbox extends CloudMailbox {
     required AppDatabase db,
   }) async {
     final doc = await read(code);
-    for (final entry in doc.devices.values) {
-      if (entry.deviceId == deviceId) continue;
-      await db.applySnapshot(entry.snapshot);
-    }
+    final others = [
+      for (final entry in doc.devices.values)
+        if (entry.deviceId != deviceId) entry,
+    ];
+    await _mergePeerSnapshots(db, others);
     final mine = CloudDeviceEntry(
       deviceId: deviceId,
       name: deviceName,

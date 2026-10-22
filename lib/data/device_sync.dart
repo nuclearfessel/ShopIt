@@ -124,10 +124,19 @@ extension DeviceSync on AppDatabase {
   ///
   /// A remote list with the same name and kind as a local list is folded into
   /// that local list instead of creating a second copy. Items on the remote
-  /// list are remapped onto it. When the remote list still has live items,
-  /// names that are only here are removed so both devices match. An empty
-  /// remote list does not wipe items that were only added on this device.
-  Future<void> applySnapshot(SyncSnapshot remote) => transaction(() async {
+  /// list are remapped onto it. When [replaceLocalOnlyItems] is true and the
+  /// remote list still has live items (or tombstones from a clear), names that
+  /// are only here are removed so both devices match. A remote list that has
+  /// never had item rows does not wipe items that were only added here.
+  ///
+  /// Cloud sync sets [acceptRemoteOnlyLiveItems] to false when this device's
+  /// own snapshot is newer than every peer, so an older phone cannot stack or
+  /// replace fresher local names.
+  Future<void> applySnapshot(
+    SyncSnapshot remote, {
+    bool replaceLocalOnlyItems = true,
+    bool acceptRemoteOnlyLiveItems = true,
+  }) => transaction(() async {
     await _applyTaxRates(remote.taxRates);
     final lists = await _applyLists(remote.lists);
     final itemCategories = <String>{};
@@ -135,18 +144,28 @@ extension DeviceSync on AppDatabase {
       remote.shoppingItems,
       itemCategories,
       lists.aliases,
+      acceptRemoteOnlyLiveItems: acceptRemoteOnlyLiveItems,
     );
-    await _dropLocalOnlyShoppingItems(
-      remote.shoppingItems,
-      lists.aliases,
-      lists.replaced,
-    );
-    await _applyPantryItems(remote.pantryItems, itemCategories, lists.aliases);
-    await _dropLocalOnlyPantryItems(
+    if (replaceLocalOnlyItems) {
+      await _dropLocalOnlyShoppingItems(
+        remote.shoppingItems,
+        lists.aliases,
+        lists.replaced,
+      );
+    }
+    await _applyPantryItems(
       remote.pantryItems,
+      itemCategories,
       lists.aliases,
-      lists.replaced,
+      acceptRemoteOnlyLiveItems: acceptRemoteOnlyLiveItems,
     );
+    if (replaceLocalOnlyItems) {
+      await _dropLocalOnlyPantryItems(
+        remote.pantryItems,
+        lists.aliases,
+        lists.replaced,
+      );
+    }
     await _applyCategories(remote.categories, itemCategories);
     await _applyHistory(remote.history);
     await _applyCatalog(remote.catalog);
@@ -337,8 +356,9 @@ extension DeviceSync on AppDatabase {
   Future<void> _applyShoppingItems(
     List<Map<String, Object?>> rows,
     Set<String> categories,
-    Map<String, String> listAliases,
-  ) async {
+    Map<String, String> listAliases, {
+    bool acceptRemoteOnlyLiveItems = true,
+  }) async {
     for (final row in rows) {
       final id = _id(row);
       final at = _updatedAt(row);
@@ -348,10 +368,16 @@ extension DeviceSync on AppDatabase {
         continue;
       }
       final listId = listAliases[rawListId] ?? rawListId;
+      final remoteDeleted = _date(row, 'deletedAt') != null;
       var local = await (select(
         shoppingItems,
       )..where((t) => t.id.equals(id))).getSingleOrNull();
       local ??= await _shoppingItemByName(listId, name);
+      if (local == null &&
+          !remoteDeleted &&
+          !acceptRemoteOnlyLiveItems) {
+        continue;
+      }
       if (local != null &&
           !_take(at, local.updatedAt, _identical(_shoppingJson(local), row))) {
         continue;
@@ -395,8 +421,9 @@ extension DeviceSync on AppDatabase {
   }
 
   /// Removes shopping items that are only on this device when the other device
-  /// sent a non-empty list. An empty remote list is left alone so a computer
-  /// with nothing in Groceries cannot wipe a phone that just added items.
+  /// sent a non-empty list, or cleared the list (tombstones only). A remote
+  /// list that has never had any rows is left alone so a computer with a fresh
+  /// empty Groceries cannot wipe a phone that just added items.
   Future<void> _dropLocalOnlyShoppingItems(
     List<Map<String, Object?>> remoteRows,
     Map<String, String> aliases,
@@ -405,12 +432,14 @@ extension DeviceSync on AppDatabase {
     if (replacedLists.isEmpty) return;
     final keptNames = <String, Set<String>>{};
     final keptIds = <String, Set<String>>{};
+    final touchedLists = <String>{};
     for (final row in remoteRows) {
-      if (_date(row, 'deletedAt') != null) continue;
       final rawListId = _string(row, 'listId');
       if (rawListId.isEmpty) continue;
       final listId = aliases[rawListId] ?? rawListId;
       if (!replacedLists.contains(listId)) continue;
+      touchedLists.add(listId);
+      if (_date(row, 'deletedAt') != null) continue;
       final name = _string(row, 'name');
       if (name.isEmpty) continue;
       keptNames.putIfAbsent(listId, () => {}).add(name.trim().toLowerCase());
@@ -421,8 +450,11 @@ extension DeviceSync on AppDatabase {
     for (final listId in replacedLists) {
       final names = keptNames[listId] ?? const <String>{};
       final ids = keptIds[listId] ?? const <String>{};
-      // Nothing live on the other device for this list: keep what is here.
-      if (names.isEmpty && ids.isEmpty) continue;
+      // No live names and no item rows at all from the other device: keep ours.
+      // Tombstones with no live rows mean they cleared the list — drop ours.
+      if (names.isEmpty && ids.isEmpty && !touchedLists.contains(listId)) {
+        continue;
+      }
       final locals = await (select(
         shoppingItems,
       )..where((t) => t.deletedAt.isNull() & t.listId.equals(listId))).get();
@@ -439,8 +471,9 @@ extension DeviceSync on AppDatabase {
   Future<void> _applyPantryItems(
     List<Map<String, Object?>> rows,
     Set<String> categories,
-    Map<String, String> listAliases,
-  ) async {
+    Map<String, String> listAliases, {
+    bool acceptRemoteOnlyLiveItems = true,
+  }) async {
     for (final row in rows) {
       final id = _id(row);
       final at = _updatedAt(row);
@@ -448,11 +481,17 @@ extension DeviceSync on AppDatabase {
       if (id == null || at == null || name.isEmpty) continue;
       final rawListId = _string(row, 'listId');
       final listId = listAliases[rawListId] ?? rawListId;
+      final remoteDeleted = _date(row, 'deletedAt') != null;
       var local = await (select(
         pantryItems,
       )..where((t) => t.id.equals(id))).getSingleOrNull();
       if (local == null && listId.isNotEmpty) {
         local = await _pantryItemByName(listId, name);
+      }
+      if (local == null &&
+          !remoteDeleted &&
+          !acceptRemoteOnlyLiveItems) {
+        continue;
       }
       if (local != null &&
           !_take(at, local.updatedAt, _identical(_pantryJson(local), row))) {
@@ -498,8 +537,8 @@ extension DeviceSync on AppDatabase {
   }
 
   /// Removes pantry items that are only on this device when the other device
-  /// sent a non-empty list. An empty remote pantry list does not wipe stock
-  /// that was only added here.
+  /// sent a non-empty list, or cleared the list (tombstones only). A remote
+  /// pantry list with no item rows at all does not wipe stock only added here.
   Future<void> _dropLocalOnlyPantryItems(
     List<Map<String, Object?>> remoteRows,
     Map<String, String> aliases,
@@ -508,13 +547,15 @@ extension DeviceSync on AppDatabase {
     if (replacedLists.isEmpty) return;
     final keptNames = <String, Set<String>>{};
     final keptIds = <String, Set<String>>{};
+    final touchedLists = <String>{};
     for (final row in remoteRows) {
-      if (_date(row, 'deletedAt') != null) continue;
       final rawListId = _string(row, 'listId');
       final listId = rawListId.isEmpty
           ? null
           : (aliases[rawListId] ?? rawListId);
       if (listId == null || !replacedLists.contains(listId)) continue;
+      touchedLists.add(listId);
+      if (_date(row, 'deletedAt') != null) continue;
       final name = _string(row, 'name');
       if (name.isEmpty) continue;
       keptNames.putIfAbsent(listId, () => {}).add(name.trim().toLowerCase());
@@ -525,7 +566,9 @@ extension DeviceSync on AppDatabase {
     for (final listId in replacedLists) {
       final names = keptNames[listId] ?? const <String>{};
       final ids = keptIds[listId] ?? const <String>{};
-      if (names.isEmpty && ids.isEmpty) continue;
+      if (names.isEmpty && ids.isEmpty && !touchedLists.contains(listId)) {
+        continue;
+      }
       final locals = await (select(
         pantryItems,
       )..where((t) => t.deletedAt.isNull() & t.listId.equals(listId))).get();
@@ -773,6 +816,26 @@ extension DeviceSync on AppDatabase {
   }
 }
 
+/// Latest [updatedAt] across lists and items in [snapshot]. Used by cloud sync
+/// to decide whether this device or a peer is the membership authority.
+DateTime? snapshotContentStamp(SyncSnapshot snapshot) {
+  DateTime? newest;
+  void consider(List<Map<String, Object?>> rows) {
+    for (final row in rows) {
+      final at = _updatedAt(row);
+      if (at == null) continue;
+      if (newest == null || at.isAfter(newest!)) newest = at;
+    }
+  }
+
+  consider(snapshot.lists);
+  consider(snapshot.shoppingItems);
+  consider(snapshot.pantryItems);
+  consider(snapshot.recipes);
+  consider(snapshot.recipeIngredients);
+  return newest;
+}
+
 String _iso(DateTime value) => value.toUtc().toIso8601String();
 
 /// Timestamps are stored to the second, so two edits in that second compare
@@ -917,6 +980,7 @@ DateTime? _updatedAt(Map<String, Object?> row) => _date(row, 'updatedAt');
 
 DateTime? _date(Map<String, Object?> row, String key) {
   final value = row[key];
+  if (value is DateTime) return value.toUtc();
   if (value is! String) return null;
   return DateTime.tryParse(value)?.toUtc();
 }

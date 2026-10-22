@@ -18,6 +18,7 @@ SolidCompression=yes
 ArchitecturesAllowed=x64
 ArchitecturesInstallIn64BitMode=x64
 WizardStyle=modern
+CloseApplications=force
 UninstallDisplayIcon={app}\shop_it.exe
 UninstallDisplayName=ShopIt
 
@@ -34,7 +35,9 @@ Filename: "{app}\shop_it.exe"; Description: "Launch ShopIt"; Flags: nowait posti
 
 ; Flutter stores the database and SharedPreferences under AppData.
 ; CompanyName and ProductName come from windows/runner/Runner.rc.
+; {app} is C:\Program Files\Shop-it — remove leftovers so the folder goes away.
 [UninstallDelete]
+Type: filesandordirs; Name: "{app}"
 Type: filesandordirs; Name: "{userappdata}\com.nuclearfessel\ShopIt"
 Type: filesandordirs; Name: "{userappdata}\com.nuclearfessel\shop_it"
 Type: dirifempty; Name: "{userappdata}\com.nuclearfessel"

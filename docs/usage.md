@@ -230,7 +230,7 @@ If you paired on an earlier build, leave the household on both devices and creat
 
 ### Lists with the same name
 
-If both devices already have a shopping or pantry list with the same name, sync keeps one list. When the other device has items on that list, this device matches them and drops names that were only here. An empty list on the other device does not wipe items on this one. Deleting items on either device still removes those same names on the other. It does not create a second list, and it does not stack both sides' items on top of each other.
+If both devices already have a shopping or pantry list with the same name, sync keeps one list. When the other device has items on that list, this device matches them and drops names that were only here. A list the other device has never used does not wipe items on this one. Clearing every item on the other device does clear this one too, including names that were only here. It does not create a second list, and it does not stack both sides' items on top of each other. Over the internet, the device with the newer list content wins when several devices publish.
 
 ## Appearance and About
 
@@ -242,7 +242,7 @@ In **Settings**, choose <img src="icons/monitor.png" width="22" height="22" alig
 
 Uninstall removes ShopIt and everything it stored on that device: lists, settings, and data folders.
 
-- **Windows** — use Apps and Features, or open **Uninstall ShopIt** from the Start Menu folder the installer created. The uninstaller asks once, then removes the program and its AppData folders.
+- **Windows** — use Apps and Features, or open **Uninstall ShopIt** from the Start Menu folder the installer created. The uninstaller asks once, then removes the program folder under Program Files and its AppData folders.
 - **Mac** — the release zip includes **Uninstall-ShopIt.command** next to ShopIt.app. Open that script, confirm, and it quits ShopIt if it is running, removes the app from common locations, and deletes Library preferences, support, caches, and related folders.
 - **Android** — uninstall ShopIt from the home screen or from Settings → Apps. The system removes the app and its private data. ShopIt does not write lists into cloud backup, so reinstalling starts empty.
 - **iPhone / iPad** — delete the app from the home screen. iOS removes the app container with it.
