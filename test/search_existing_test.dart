@@ -1,7 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shop_it/app/app.dart';
+import 'package:shop_it/data/providers.dart';
 
 import 'support/harness.dart';
 
@@ -77,7 +80,38 @@ void main() {
     await tester.tap(find.text('Chips'));
     await tester.pump();
     expect(find.text('Recent'), findsNothing);
+    final db = ProviderScope.containerOf(
+      tester.element(find.byType(ShopItApp)),
+    ).read(databaseProvider);
+    final added = await tester.runAsync(() => db.watchShoppingItems('l1').first);
+    expect(added?.map((item) => item.name), ['Chips']);
   });
+
+  testWidgets(
+    'choosing a recent name adds another copy when it is already on the list',
+    (tester) async {
+      await pumpShopIt(
+        tester,
+        items: [fakeItem('a', 'Milk')],
+        history: [fakeHistory('h1', 'Milk')],
+      );
+      await tester.enterText(find.byType(TextField).first, 'mil');
+      await tester.pump();
+      expect(find.text('On this list'), findsOneWidget);
+      expect(find.text('Recent'), findsOneWidget);
+
+      final db = ProviderScope.containerOf(
+        tester.element(find.byType(ShopItApp)),
+      ).read(databaseProvider);
+      await tester.runAsync(() => db.addShoppingItem('l1', 'Milk'));
+      await tester.tap(find.text('Recent'));
+      await tester.pump();
+      final rows = await tester.runAsync(
+        () => db.watchShoppingItems('l1').first,
+      );
+      expect(rows?.where((item) => item.name == 'Milk'), hasLength(2));
+    },
+  );
 
   testWidgets('arrow keys cycle search results on desktop', (tester) async {
     debugDefaultTargetPlatformOverride = TargetPlatform.windows;
@@ -175,12 +209,12 @@ void main() {
         fakeItem('b', 'Bread', category: 'Bakery'),
       ],
     );
-    expect(find.byTooltip('Drag into a category'), findsOneWidget);
+    expect(find.byTooltip('Drag into a category'), findsNothing);
     expect(find.text('OTHER'), findsOneWidget);
     expect(find.text('BAKERY'), findsOneWidget);
 
     final gesture = await tester.startGesture(
-      tester.getCenter(find.byTooltip('Drag into a category')),
+      tester.getCenter(find.widgetWithText(ListTile, 'Crackers')),
     );
     await gesture.moveTo(tester.getCenter(find.text('BAKERY')));
     await tester.pump();

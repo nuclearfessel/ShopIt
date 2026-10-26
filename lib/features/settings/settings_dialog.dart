@@ -23,13 +23,25 @@ const settingsDialogBreakpoint = 700.0;
 bool settingsUsesDialog({required bool phone, required double width}) =>
     !phone && width >= settingsDialogBreakpoint;
 
+/// Route name for the open Settings page, so the keyboard shortcut does not
+/// stack a second copy.
+const settingsRouteName = 'settings';
+
 /// Opens Settings and switches between the dialog and the page if the window
 /// later crosses [settingsDialogBreakpoint] or the phone-size line.
 void showAppSettings(BuildContext context, {String? listId, String? listName}) {
-  Navigator.of(context).push<void>(
+  final navigator = Navigator.of(context);
+  var alreadyOpen = false;
+  navigator.popUntil((route) {
+    alreadyOpen = route.settings.name == settingsRouteName;
+    return true;
+  });
+  if (alreadyOpen) return;
+  navigator.push<void>(
     PageRouteBuilder<void>(
       opaque: false,
       barrierDismissible: false,
+      settings: const RouteSettings(name: settingsRouteName),
       pageBuilder: (_, _, _) =>
           _AdaptiveSettings(listId: listId, listName: listName),
     ),

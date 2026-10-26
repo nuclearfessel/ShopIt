@@ -201,7 +201,7 @@ class CatalogSuggestionsState extends ConsumerState<CatalogSuggestions> {
     final seenHistory = <String>{};
     for (final entry in widget.history) {
       final name = entry.name.toLowerCase();
-      if (taken.contains(name) || !seenHistory.add(name)) continue;
+      if (!seenHistory.add(name)) continue;
       if (q.isEmpty || name.contains(q)) historyHits.add(entry);
       if (historyHits.length == 6) break;
     }

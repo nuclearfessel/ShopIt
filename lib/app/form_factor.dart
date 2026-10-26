@@ -2,6 +2,7 @@ import 'dart:io' show Platform;
 import 'dart:math' show min;
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
 /// A phone is a window whose shortest side is under this. Tablets and desktop
@@ -35,6 +36,19 @@ bool get platformScansBarcodes =>
 bool get desktopSearchKeys =>
     defaultTargetPlatform == TargetPlatform.windows ||
     defaultTargetPlatform == TargetPlatform.macOS;
+
+/// Opens Settings. Ctrl+, on Windows, Command+, on Mac.
+SingleActivator? get settingsShortcut => switch (defaultTargetPlatform) {
+  TargetPlatform.windows => const SingleActivator(
+    LogicalKeyboardKey.comma,
+    control: true,
+  ),
+  TargetPlatform.macOS => const SingleActivator(
+    LogicalKeyboardKey.comma,
+    meta: true,
+  ),
+  _ => null,
+};
 
 /// A household code starts Share on this Wi-Fi on every platform, including
 /// Windows. Cloud sync still runs when the devices are not on the same network.

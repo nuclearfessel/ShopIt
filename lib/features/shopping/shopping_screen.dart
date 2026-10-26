@@ -42,6 +42,7 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
   String? _listId;
   final _controller = TextEditingController();
   final _searchFocus = FocusNode();
+  var _suggestionsOpen = false;
   final _suggestions = GlobalKey<CatalogSuggestionsState>();
   final _itemKeys = <String, GlobalKey>{};
 
@@ -53,6 +54,7 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
       _suggestions.currentState,
     );
     _searchFocus.addListener(() {
+      if (_searchFocus.hasFocus) _suggestionsOpen = true;
       if (mounted) setState(() {});
     });
   }
@@ -257,6 +259,7 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
   /// Clears the query and closes the suggestion menu.
   void _dismissSearch() {
     _controller.clear();
+    _suggestionsOpen = false;
     _searchFocus.unfocus();
     setState(() {});
   }
@@ -651,6 +654,23 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
                     child: TextField(
                       controller: _controller,
                       focusNode: _searchFocus,
+                      onTapOutside: (event) {
+                        final box =
+                            _suggestions.currentContext?.findRenderObject()
+                                as RenderBox?;
+                        if (box != null && box.attached && box.hasSize) {
+                          final local = box.globalToLocal(event.position);
+                          if (local.dx >= 0 &&
+                              local.dy >= 0 &&
+                              local.dx <= box.size.width &&
+                              local.dy <= box.size.height) {
+                            return;
+                          }
+                        }
+                        _suggestionsOpen = false;
+                        _searchFocus.unfocus();
+                        setState(() {});
+                      },
                       onChanged: (_) => setState(() {}),
                       decoration: InputDecoration(
                         hintText: 'Search or add an item',
@@ -751,7 +771,7 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
                         key: _suggestions,
                         query: _controller.text,
                         keyboardCycling: desktopSearchKeys,
-                        showRecent: _searchFocus.hasFocus,
+                        showRecent: _suggestionsOpen,
                         onList: items.value ?? const [],
                         inPantry: pantryItems,
                         history: history,
@@ -819,6 +839,7 @@ List<Widget> _grouped(
     tax: tax,
     categories: categoryNames.isEmpty ? null : categoryNames,
     onReveal: onReveal,
+    dragEnabled: useCategories && !i.checked,
   );
   final cart = done.isEmpty
       ? null
@@ -857,10 +878,21 @@ List<Widget> _grouped(
       ],
     );
     final occupied = (byCategory[name] ?? const <ShoppingItem>[]).isNotEmpty;
-    // Only a category that already has items can receive an Other item.
+    // A category that already has items can receive an item from another one.
     if (name.toLowerCase() == 'other' || !occupied) return body;
     return DragTarget<String>(
-      onWillAcceptWithDetails: (details) => details.data.isNotEmpty,
+      onWillAcceptWithDetails: (details) {
+        ShoppingItem? dragged;
+        for (final row in rows) {
+          if (row.id == details.data) {
+            dragged = row;
+            break;
+          }
+        }
+        if (dragged == null || dragged.checked) return false;
+        final current = dragged.category.isEmpty ? 'Other' : dragged.category;
+        return current.toLowerCase() != name.toLowerCase();
+      },
       onAcceptWithDetails: (details) {
         db.fileShoppingItemInCategory(details.data, name);
       },
@@ -1022,6 +1054,7 @@ class _ItemTile extends StatelessWidget {
     required this.tax,
     this.categories,
     this.onReveal,
+    this.dragEnabled = false,
   });
 
   /// The categories to offer when editing (null = the built-in ones).
@@ -1036,6 +1069,9 @@ class _ItemTile extends StatelessWidget {
 
   /// Scrolls the item into view after its category changes.
   final void Function(String itemId)? onReveal;
+
+  /// The whole row can be dragged onto another category that already has items.
+  final bool dragEnabled;
 
   /// The checkbox only becomes a manual override when it differs from what the
   /// tax rules would say, so items keep following the rules otherwise.
@@ -1135,83 +1171,70 @@ class _ItemTile extends StatelessWidget {
       if (item.hasCoupon) 'coupon',
       if (tax?.isTaxed(item) ?? false) 'tax',
     ].join(' · ');
-    final canDrag =
-        !item.checked &&
-        (item.category.isEmpty || item.category.toLowerCase() == 'other');
-    final priceLabel = item.price == null
-        ? null
-        : Text(
-            formatMoney(item.price! * item.quantity),
-            style: Theme.of(context).textTheme.titleSmall,
-          );
+    Widget line() => ListTile(
+      onTap: () => _edit(context),
+      leading: Tip(
+        item.checked ? 'Move back to the list' : 'Put in your cart',
+        child: Checkbox(
+          value: item.checked,
+          onChanged: (v) => db.setChecked(item.id, v ?? false),
+        ),
+      ),
+      title: Tip(
+        'Edit item',
+        child: Text(
+          item.name,
+          style: item.checked
+              ? const TextStyle(decoration: TextDecoration.lineThrough)
+              : null,
+        ),
+      ),
+      subtitle: (details.isEmpty && item.note.isEmpty)
+          ? null
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (details.isNotEmpty) Text(details),
+                if (item.note.isNotEmpty)
+                  Text(
+                    item.note,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+              ],
+            ),
+      trailing: item.price == null
+          ? null
+          : Text(
+              formatMoney(item.price! * item.quantity),
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
+    );
+    final row = line();
     return ItemSwipe(
       swipeKey: ValueKey(item.id),
       onCheck: () => db.setChecked(item.id, !item.checked),
       onDelete: () => db.deleteShoppingItem(item.id),
-      child: ListTile(
-        onTap: () => _edit(context),
-        leading: Tip(
-          item.checked ? 'Move back to the list' : 'Put in your cart',
-          child: Checkbox(
-            value: item.checked,
-            onChanged: (v) => db.setChecked(item.id, v ?? false),
-          ),
-        ),
-        title: Tip(
-          'Edit item',
-          child: Text(
-            item.name,
-            style: item.checked
-                ? const TextStyle(decoration: TextDecoration.lineThrough)
-                : null,
-          ),
-        ),
-        subtitle: (details.isEmpty && item.note.isEmpty)
-            ? null
-            : Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (details.isNotEmpty) Text(details),
-                  if (item.note.isNotEmpty)
-                    Text(
-                      item.note,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                ],
+      child: dragEnabled
+          ? Draggable<String>(
+              data: item.id,
+              axis: Axis.vertical,
+              dragAnchorStrategy: pointerDragAnchorStrategy,
+              feedback: Material(
+                elevation: 4,
+                borderRadius: BorderRadius.circular(8),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  child: Text(item.name),
+                ),
               ),
-        trailing: !canDrag && priceLabel == null
-            ? null
-            : Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (canDrag)
-                    Tip(
-                      'Drag into a category',
-                      child: Draggable<String>(
-                        data: item.id,
-                        dragAnchorStrategy: pointerDragAnchorStrategy,
-                        feedback: Material(
-                          elevation: 4,
-                          borderRadius: BorderRadius.circular(8),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
-                            ),
-                            child: Text(item.name),
-                          ),
-                        ),
-                        child: const Padding(
-                          padding: EdgeInsets.all(8),
-                          child: KeylineIcon(KeylineIcons.gripVertical),
-                        ),
-                      ),
-                    ),
-                  ?priceLabel,
-                ],
-              ),
-      ),
+              childWhenDragging: Opacity(opacity: 0.4, child: line()),
+              child: row,
+            )
+          : row,
     );
   }
 }

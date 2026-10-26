@@ -216,8 +216,9 @@ class AppShell extends ConsumerWidget {
         ? keyLimeOnDark
         : keyLimeOnLight;
     final wide = !isPhoneSize(MediaQuery.sizeOf(context));
+    final Widget page;
     if (wide) {
-      return Scaffold(
+      page = Scaffold(
         body: Row(
           children: [
             NavigationRail(
@@ -246,28 +247,35 @@ class AppShell extends ConsumerWidget {
           ],
         ),
       );
-    }
-    return Scaffold(
-      body: shell,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: shell.currentIndex,
-        onDestinationSelected: (i) => _select(context, ref, i),
-        destinations: [
-          for (final d in _sections)
+    } else {
+      page = Scaffold(
+        body: shell,
+        bottomNavigationBar: NavigationBar(
+          selectedIndex: shell.currentIndex,
+          onDestinationSelected: (i) => _select(context, ref, i),
+          destinations: [
+            for (final d in _sections)
+              NavigationDestination(
+                icon: KeylineIcon(d.$1),
+                selectedIcon: KeylineIcon(d.$1),
+                label: d.$2,
+                tooltip: 'Go to ${d.$2}',
+              ),
             NavigationDestination(
-              icon: KeylineIcon(d.$1),
-              selectedIcon: KeylineIcon(d.$1),
-              label: d.$2,
-              tooltip: 'Go to ${d.$2}',
+              icon: KeylineIcon(KeylineIcons.settings, color: lime),
+              selectedIcon: KeylineIcon(KeylineIcons.settings, color: lime),
+              label: 'Settings',
+              tooltip: 'Settings',
             ),
-          NavigationDestination(
-            icon: KeylineIcon(KeylineIcons.settings, color: lime),
-            selectedIcon: KeylineIcon(KeylineIcons.settings, color: lime),
-            label: 'Settings',
-            tooltip: 'Settings',
-          ),
-        ],
-      ),
+          ],
+        ),
+      );
+    }
+    final shortcut = settingsShortcut;
+    if (shortcut == null) return page;
+    return CallbackShortcuts(
+      bindings: {shortcut: () => _openSettings(context, ref)},
+      child: Focus(autofocus: true, child: page),
     );
   }
 }
