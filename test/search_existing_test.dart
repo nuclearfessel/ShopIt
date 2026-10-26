@@ -271,4 +271,25 @@ void main() {
     await gesture.up();
     await tester.pump();
   });
+
+  testWidgets('a sideways swipe still checks an item that can be dragged', (
+    tester,
+  ) async {
+    await pumpShopIt(
+      tester,
+      items: [
+        fakeItem('a', 'Crackers', category: 'Other'),
+        fakeItem('b', 'Bread', category: 'Bakery'),
+      ],
+    );
+
+    await tester.drag(
+      find.widgetWithText(ListTile, 'Crackers'),
+      const Offset(400, 0),
+    );
+    await tester.pump();
+
+    expect(find.text('Check'), findsOneWidget);
+    expect(find.text('Crackers'), findsOneWidget);
+  });
 }

@@ -12,13 +12,13 @@ ShopIt is an open source shopping, pantry, and recipe app for Windows, Mac, Andr
 
 ## Download
 
-**Current version: 1.1.4**
+**Current version: 1.1.5**
 
 | Platform | Package |
 | --- | --- |
-| Windows | [ShopIt-Setup-1.1.4.exe](https://github.com/nuclearfessel/ShopIt/releases/download/v1.1.4/ShopIt-Setup-1.1.4.exe) |
-| Android | [ShopIt-1.1.4.apk](https://github.com/nuclearfessel/ShopIt/releases/download/v1.1.4/ShopIt-1.1.4.apk) |
-| Mac | [ShopIt-1.1.4-macos.zip](https://github.com/nuclearfessel/ShopIt/releases/download/v1.1.4/ShopIt-1.1.4-macos.zip) |
+| Windows | [ShopIt-Setup-1.1.5.exe](https://github.com/nuclearfessel/ShopIt/releases/download/v1.1.5/ShopIt-Setup-1.1.5.exe) |
+| Android | [ShopIt-1.1.5.apk](https://github.com/nuclearfessel/ShopIt/releases/download/v1.1.5/ShopIt-1.1.5.apk) |
+| Mac | [ShopIt-1.1.5-macos.zip](https://github.com/nuclearfessel/ShopIt/releases/download/v1.1.5/ShopIt-1.1.5-macos.zip) |
 
 On Windows, run the installer. On Android, allow installs from the APK, then open it. On a Mac, unzip the app and open ShopIt. iPhone and iPad installs go through TestFlight once an Apple Developer account is connected, so they are not a file on this page. Older packages stay in [Releases](https://github.com/nuclearfessel/ShopIt/releases) until a newer build replaces them; only the three newest releases are kept.
 

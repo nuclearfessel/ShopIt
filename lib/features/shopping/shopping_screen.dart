@@ -1216,9 +1216,13 @@ class _ItemTile extends StatelessWidget {
       onCheck: () => db.setChecked(item.id, !item.checked),
       onDelete: () => db.deleteShoppingItem(item.id),
       child: dragEnabled
-          ? Draggable<String>(
+            ? Draggable<String>(
               data: item.id,
+              // Move between categories up and down. A sideways move is a
+              // swipe, so the drag must not claim the pointer until it is
+              // clearly vertical.
               axis: Axis.vertical,
+              affinity: Axis.vertical,
               dragAnchorStrategy: pointerDragAnchorStrategy,
               feedback: Material(
                 elevation: 4,
