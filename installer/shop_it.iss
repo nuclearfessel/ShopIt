@@ -46,6 +46,39 @@ Type: filesandordirs; Name: "{localappdata}\com.nuclearfessel\shop_it"
 Type: dirifempty; Name: "{localappdata}\com.nuclearfessel"
 
 [Code]
+procedure AllowShopItOnPrivateNetworks();
+var
+  ResultCode: Integer;
+  App: String;
+begin
+  App := ExpandConstant('{app}\shop_it.exe');
+  Exec(
+    ExpandConstant('{sys}\netsh.exe'),
+    'advfirewall firewall delete rule name="ShopIt"',
+    '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  Exec(
+    ExpandConstant('{sys}\netsh.exe'),
+    'advfirewall firewall add rule name="ShopIt" dir=in action=allow program="' + App + '" enable=yes profile=private',
+    '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+end;
+
+procedure CurStepChanged(CurStep: TSetupStep);
+begin
+  if CurStep = ssPostInstall then
+    AllowShopItOnPrivateNetworks();
+end;
+
+procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
+var
+  ResultCode: Integer;
+begin
+  if CurUninstallStep = usUninstall then
+    Exec(
+      ExpandConstant('{sys}\netsh.exe'),
+      'advfirewall firewall delete rule name="ShopIt"',
+      '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+end;
+
 function InitializeUninstall(): Boolean;
 begin
   Result := True;

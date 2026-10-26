@@ -197,10 +197,9 @@ class CloudMailbox {
     await _publish(code, mine);
   }
 
-  /// Applies peer snapshots oldest-first. Membership follows the newest
-  /// *content* (list/item timestamps). A peer whose lists are older cannot
-  /// stack onto or wipe fresher local names; a peer with newer content
-  /// replaces local-only names so devices converge.
+  /// Applies peer snapshots oldest-first. Live items from every device stay.
+  /// A deleted row still removes that item. A newer edit, including a check,
+  /// wins by its timestamp. Oldest-first lets a same-second incoming row win.
   Future<void> _mergePeerSnapshots(
     AppDatabase db,
     Iterable<CloudDeviceEntry> peers,
@@ -211,42 +210,13 @@ class CloudMailbox {
         if (byContent != 0) return byContent;
         return a.updatedAt.compareTo(b.updatedAt);
       });
-    if (ordered.isEmpty) return;
-
-    final localStamp = snapshotContentStamp(await db.exportSnapshot());
-    final newestPeer = ordered.last;
-    final peerStamp = snapshotContentStamp(newestPeer.snapshot);
-    // Local membership wins only when local content is strictly newer. A tie
-    // lets the newer peer publish replace, so an empty computer still picks up
-    // the phone. Same-second edits are rare; Wi-Fi sync still replaces always.
-    final localIsNewest =
-        localStamp != null &&
-        peerStamp != null &&
-        localStamp.isAfter(peerStamp);
-
-    if (localIsNewest) {
-      for (final entry in ordered) {
-        await db.applySnapshot(
-          entry.snapshot,
-          replaceLocalOnlyItems: false,
-          acceptRemoteOnlyLiveItems: false,
-        );
-      }
-      return;
-    }
-
-    for (final entry in ordered.take(ordered.length - 1)) {
+    for (final entry in ordered) {
       await db.applySnapshot(
         entry.snapshot,
         replaceLocalOnlyItems: false,
         acceptRemoteOnlyLiveItems: true,
       );
     }
-    await db.applySnapshot(
-      newestPeer.snapshot,
-      replaceLocalOnlyItems: true,
-      acceptRemoteOnlyLiveItems: true,
-    );
   }
 
   DateTime _entryContentStamp(CloudDeviceEntry entry) =>

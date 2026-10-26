@@ -6,7 +6,7 @@ ShopIt stores your lists on the device. There is no ShopIt account.
 
 Sharing is off until you turn it on. Create a code on one device and type that same code on the other. The code has two parts. The part after the dot is the key. ShopIt encrypts list contents with that key before they leave the device. The key is not sent over Wi-Fi and is not written into the cloud topic.
 
-On Windows, that code syncs over the internet on the Wi-Fi the computer is already using. Share on this Wi-Fi stays off until you turn it on. A phone or Mac turns Share on this Wi-Fi on when the code is created, joined, or scanned.
+Creating, joining, or scanning that code turns Share on this Wi-Fi on, including on Windows. Lists also sync over the internet while the apps are open. Turn Share on this Wi-Fi off when this device should not be found on the local network. That choice stays off the next time the app opens.
 
 On the same Wi-Fi, the other ShopIt receives only that encrypted copy, and only if it presents the same key. That local exchange happens when Share on this Wi-Fi is on.
 

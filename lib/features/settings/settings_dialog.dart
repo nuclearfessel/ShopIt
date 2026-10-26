@@ -8,9 +8,11 @@ import '../shopping/tax_rates_dialog.dart';
 import '../../ui/keyline/keyline_icon.dart';
 import '../../ui/tip.dart';
 import 'about_section.dart';
+import '../../ui/choice_field.dart';
 import 'device_link_controller.dart';
 import 'device_link_dialog.dart';
 import 'list_handoff.dart';
+import 'swipe_actions.dart';
 
 /// On a large window, Settings is a dialog at this width or wider, and a
 /// full-screen page below it. A phone is always the page.
@@ -206,6 +208,8 @@ class SettingsForm extends ConsumerWidget {
     final mode = ref.watch(themeModeProvider);
     final link = ref.watch(deviceLinkProvider);
     final handoff = ref.watch(listHandoffProvider);
+    final swipes = ref.watch(swipeActionsProvider);
+    final swipeNotifier = ref.read(swipeActionsProvider.notifier);
 
     Widget heading(String text) => Padding(
       padding: const EdgeInsets.only(top: 4, bottom: 4),
@@ -267,14 +271,39 @@ class SettingsForm extends ConsumerWidget {
           ),
         ),
         const Divider(height: 24),
+        heading('Swipe'),
+        Text(
+          'Swipe right and swipe left can check an item or delete it. '
+          'A phone and a desktop are set separately. On a pantry list, '
+          'Check or uncheck switches Low and Full.',
+          style: theme.textTheme.bodyMedium,
+        ),
+        const SizedBox(height: 8),
+        _swipeRow(
+          'Phone, swipe right',
+          swipes.phoneRight,
+          swipeNotifier.setPhoneRight,
+        ),
+        _swipeRow(
+          'Phone, swipe left',
+          swipes.phoneLeft,
+          swipeNotifier.setPhoneLeft,
+        ),
+        _swipeRow(
+          'Desktop, swipe right',
+          swipes.desktopRight,
+          swipeNotifier.setDesktopRight,
+        ),
+        _swipeRow(
+          'Desktop, swipe left',
+          swipes.desktopLeft,
+          swipeNotifier.setDesktopLeft,
+        ),
+        const Divider(height: 24),
         heading('Devices'),
         Text(
-          householdCodeStartsWifiSharing
-              ? 'Share lists on this Wi-Fi, and over the internet when '
-                    'Wi-Fi is off. Both apps need to be open.'
-              : 'Share lists over the internet with a household code. This '
-                    'computer is already on Wi-Fi, so Share on this Wi-Fi '
-                    'can stay off. Both apps need to be open.',
+          'Share lists on this Wi-Fi, and over the internet when '
+          'Wi-Fi is off. Both apps need to be open.',
           style: theme.textTheme.bodyMedium,
         ),
         const SizedBox(height: 8),
@@ -321,4 +350,32 @@ class SettingsForm extends ConsumerWidget {
       ],
     );
   }
+}
+
+Widget _swipeRow(
+  String label,
+  ItemSwipeAction value,
+  ValueChanged<ItemSwipeAction> onChanged,
+) {
+  return Padding(
+    padding: const EdgeInsets.only(top: 8),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(label),
+        const SizedBox(height: 4),
+        Tip(
+          'Choose what this swipe does',
+          child: ChoiceField<ItemSwipeAction>(
+            value: value,
+            choices: const [
+              Choice(ItemSwipeAction.check, 'Check or uncheck'),
+              Choice(ItemSwipeAction.delete, 'Delete'),
+            ],
+            onChanged: onChanged,
+          ),
+        ),
+      ],
+    ),
+  );
 }

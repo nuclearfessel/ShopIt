@@ -79,7 +79,7 @@ void main() {
     'same grocery list name becomes one list with the other device\'s items',
     () async {
       // Each database already has a seeded "Groceries" list. Syncing folds them
-      // into one list and replaces this device's items with the other device's.
+      // into one list and keeps items added on either device.
       final phoneList = await client.addList('Groceries');
       await client.addShoppingItem(phoneList, 'Milk');
       await client.addShoppingItem(phoneList, 'Bread');
@@ -109,14 +109,13 @@ void main() {
         return [for (final item in items) item.name]..sort();
       }
 
-      // The phone's list is applied first, so both devices end with the phone's
-      // two items. The computer's Eggs are gone.
-      expect(await itemNames(host), ['Bread', 'Milk']);
-      expect(await itemNames(client), ['Bread', 'Milk']);
+      // Each device's items are added onto the shared Groceries list.
+      expect(await itemNames(host), ['Bread', 'Eggs', 'Milk']);
+      expect(await itemNames(client), ['Bread', 'Eggs', 'Milk']);
     },
   );
 
-  test('applying a shopping list replaces local-only names', () async {
+  test('applying a shopping list keeps items from both devices', () async {
     final phone = await client.watchLists().first;
     final phoneId = phone.single.id;
     await client.addShoppingItem(phoneId, 'Milk');
@@ -132,7 +131,12 @@ void main() {
     final items = await (host.select(
       host.shoppingItems,
     )..where((t) => t.deletedAt.isNull())).get();
-    expect([for (final item in items) item.name]..sort(), ['Bread', 'Milk']);
+    expect([for (final item in items) item.name]..sort(), [
+      'Bread',
+      'Butter',
+      'Eggs',
+      'Milk',
+    ]);
   });
 
   test('an empty remote shopping list does not wipe local items', () async {
@@ -173,11 +177,11 @@ void main() {
   });
 
   test(
-    'clearing every item on one device clears local-only names on the other',
+    'deleting synced items leaves an item that exists only on the other device',
     () async {
       // After both share Milk and Bread, the computer adds Butter only there.
-      // When the phone clears the list, Butter must go too — not linger under
-      // the empty-list preserve rule meant for a never-used remote list.
+      // Deleting Milk and Bread on the phone removes those everywhere. Butter
+      // was never deleted, so it stays.
       final phone = await client.watchLists().first;
       final phoneId = phone.single.id;
       final milk = await client.addShoppingItem(phoneId, 'Milk');
@@ -193,12 +197,12 @@ void main() {
       final items = await (host.select(
         host.shoppingItems,
       )..where((t) => t.deletedAt.isNull())).get();
-      expect(items, isEmpty);
+      expect([for (final item in items) item.name], ['Butter']);
     },
   );
 
   test(
-    'clearing every pantry item on one device clears local-only stock',
+    'deleting synced pantry items leaves stock that exists only on the other device',
     () async {
       final phonePantry = (await client.watchPantryLists().first).first;
       await client.addPantryItem('Rice', listId: phonePantry.id);
@@ -220,7 +224,7 @@ void main() {
                     t.deletedAt.isNull() & t.listId.equals(computerPantry.id),
               ))
               .get();
-      expect(items, isEmpty);
+      expect([for (final item in items) item.name], ['Flour']);
     },
   );
 
@@ -240,6 +244,36 @@ void main() {
         host.shoppingItems,
       )..where((t) => t.deletedAt.isNull())).get();
       expect(items, isEmpty);
+    },
+  );
+
+  test(
+    'checking an item puts it in the cart on the other device, and deleting it removes it',
+    () async {
+      final phoneList = (await client.watchLists().first).single.id;
+      final milk = await client.addShoppingItem(phoneList, 'Milk');
+      await exchange(host, client);
+
+      await client.setChecked(milk, true);
+      await exchange(host, client);
+
+      Future<ShoppingItem?> liveMilk(AppDatabase db) async {
+        final rows = await (db.select(
+          db.shoppingItems,
+        )..where((t) => t.deletedAt.isNull())).get();
+        for (final row in rows) {
+          if (row.name == 'Milk') return row;
+        }
+        return null;
+      }
+
+      expect((await liveMilk(host))?.checked, isTrue);
+      expect((await liveMilk(client))?.checked, isTrue);
+
+      await client.deleteShoppingItem(milk);
+      await exchange(host, client);
+      expect(await liveMilk(host), isNot(isA<ShoppingItem>()));
+      expect(await liveMilk(client), isNot(isA<ShoppingItem>()));
     },
   );
 
@@ -295,7 +329,10 @@ void main() {
       final items = await (host.select(
         host.pantryItems,
       )..where((t) => t.deletedAt.isNull() & t.listId.equals(garage.id))).get();
-      expect([for (final item in items) item.name]..sort(), ['Water']);
+      expect([for (final item in items) item.name]..sort(), [
+        'Batteries',
+        'Water',
+      ]);
     },
   );
 
@@ -386,7 +423,7 @@ void main() {
     expect(announcesOnInterface('en0'), isTrue);
     try {
       debugDefaultTargetPlatformOverride = TargetPlatform.windows;
-      expect(householdCodeStartsWifiSharing, isFalse);
+      expect(householdCodeStartsWifiSharing, isTrue);
       debugDefaultTargetPlatformOverride = TargetPlatform.android;
       expect(householdCodeStartsWifiSharing, isTrue);
       debugDefaultTargetPlatformOverride = TargetPlatform.macOS;

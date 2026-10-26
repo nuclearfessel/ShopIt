@@ -51,17 +51,10 @@ class _DeviceLinkDialogState extends ConsumerState<DeviceLinkDialog> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                householdCodeStartsWifiSharing
-                    ? 'Create a code on one device and enter it on the other. '
-                          'The code is the key, so it is not sent over Wi-Fi. '
-                          'After both devices have it, lists sync on the same '
-                          'Wi-Fi and, while the apps are open, over the '
-                          'internet.'
-                    : 'Create a code on one device and enter it on the other. '
-                          'This computer is already on Wi-Fi, so the code '
-                          'syncs over the internet without turning on Share '
-                          'on this Wi-Fi. The code is the key and is not sent '
-                          'over the network.',
+                'Create a code on one device and enter it on the other. '
+                'The code is the key, so it is not sent over Wi-Fi. '
+                'After both devices have it, lists sync on the same '
+                'Wi-Fi and, while the apps are open, over the internet.',
                 style: muted,
               ),
               const SizedBox(height: 12),
@@ -182,12 +175,8 @@ class _DeviceLinkDialogState extends ConsumerState<DeviceLinkDialog> {
                 ],
               ] else ...[
                 Text(
-                  householdCodeStartsWifiSharing
-                      ? 'Create a code on one device, then enter it on the '
-                            'other. Works on mobile data, not only Wi-Fi.'
-                      : 'Create a code on one device, then enter it on the '
-                            'other. Windows is already on Wi-Fi, so Share on '
-                            'this Wi-Fi can stay off.',
+                  'Create a code on one device, then enter it on the '
+                  'other. Works on mobile data, not only Wi-Fi.',
                   style: muted,
                 ),
                 const SizedBox(height: 8),
@@ -296,13 +285,8 @@ class _DeviceLinkDialogState extends ConsumerState<DeviceLinkDialog> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                householdCodeStartsWifiSharing
-                    ? 'On an iPhone or Android phone, open Share lists and '
-                          'tap Scan QR code. This works from a Windows PC or '
-                          'a Mac.'
-                    : 'On an iPhone or Android phone, open Share lists and '
-                          'tap Scan QR code. This computer is already on '
-                          'Wi-Fi, so Share on this Wi-Fi can stay off.',
+                'On an iPhone or Android phone, open Share lists and '
+                'tap Scan QR code. This works from a Windows PC or a Mac.',
               ),
               const SizedBox(height: 12),
               SizedBox(

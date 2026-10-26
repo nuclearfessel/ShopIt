@@ -18,6 +18,7 @@ const _deviceIdKey = 'device_id';
 const _cloudCodeKey = 'cloud_household';
 const _lastWifiSyncKey = 'last_wifi_sync';
 const _lastCloudSyncKey = 'last_cloud_sync';
+const _wifiShareOffKey = 'wifi_share_explicit_off';
 const _network = MethodChannel('shop.it/network');
 
 /// Whether this device is sharing lists on Wi-Fi and/or over the internet.
@@ -215,6 +216,7 @@ class DeviceLinkController extends Notifier<DeviceLinkState> {
           busy: false,
           clearWifiError: true,
         );
+        await _setWifiShareOff(false);
         await _save();
         _startTimer(token);
         if (state.cloudLinked) unawaited(_syncCloud(token));
@@ -242,6 +244,7 @@ class DeviceLinkController extends Notifier<DeviceLinkState> {
       busy: false,
       clearWifiError: true,
     );
+    await _setWifiShareOff(true);
     await _save();
     _startTimer(token);
   }
@@ -262,7 +265,7 @@ class DeviceLinkController extends Notifier<DeviceLinkState> {
       await _save();
       _startTimer(token);
       // The code is local. A broker that does not answer must not erase it.
-      // Windows is already on Wi-Fi, so the code does not turn sharing on.
+      // The code also starts Share on this Wi-Fi.
       await _syncCloud(token);
       if (token != _token) return;
       if (householdCodeStartsWifiSharing && !state.sharing) {
@@ -281,8 +284,8 @@ class DeviceLinkController extends Notifier<DeviceLinkState> {
 
   /// Joins the household in a scanned QR code.
   ///
-  /// Windows keeps Share on this Wi-Fi off. A phone or Mac starts it so the
-  /// other device can be found on the same network.
+  /// Joining from a QR code starts Share on this Wi-Fi so the other device
+  /// can be found on the same network.
   Future<void> joinFromQr(String raw) async {
     final code = householdFromQr(raw);
     if (code == null) {
@@ -324,8 +327,8 @@ class DeviceLinkController extends Notifier<DeviceLinkState> {
       );
       await _save();
       _startTimer(token);
-      // Windows is already on Wi-Fi, so this code does not require that
-      // switch. A phone or Mac still listens on the local network.
+      // The code starts Share on this Wi-Fi so this device can be found
+      // on the local network.
       await _syncCloud(token);
       if (token != _token) return;
       if (householdCodeStartsWifiSharing && !state.sharing) {
@@ -345,7 +348,7 @@ class DeviceLinkController extends Notifier<DeviceLinkState> {
   /// Leaves the household and stops Wi-Fi sharing when it is on.
   ///
   /// The code is forgotten on this device even when the broker cannot be
-  /// reached. On Windows, creating the code does not turn Wi-Fi sharing on.
+  /// reached. Leaving also stops Share on this Wi-Fi.
   Future<void> stopAllSharing() async {
     final token = _token;
     final code = state.cloudCode;
@@ -409,6 +412,8 @@ class DeviceLinkController extends Notifier<DeviceLinkState> {
       raw = null;
     }
     if (token != _token) return;
+    final explicitOff = prefs.getBool(_wifiShareOffKey) ?? false;
+    var savedSharing = false;
     if (raw != null && raw.isNotEmpty) {
       Object? decoded;
       try {
@@ -416,9 +421,14 @@ class DeviceLinkController extends Notifier<DeviceLinkState> {
       } on FormatException {
         decoded = null;
       }
-      if (decoded is Map && decoded['sharing'] == true) {
-        await startSharing();
-      }
+      savedSharing = decoded is Map && decoded['sharing'] == true;
+    }
+    final code = state.cloudCode;
+    // A saved household code starts Wi-Fi sharing. An explicit off choice,
+    // from Stop Wi-Fi sharing, stays off on the next launch.
+    if (savedSharing ||
+        (code != null && isHouseholdCode(code) && !explicitOff)) {
+      await startSharing();
     }
     if (token != _token) return;
     if (!state.sharing) {
@@ -529,6 +539,19 @@ class DeviceLinkController extends Notifier<DeviceLinkState> {
     );
     _rememberedDeviceId = id;
     return id;
+  }
+
+  Future<void> _setWifiShareOff(bool off) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (off) {
+        await prefs.setBool(_wifiShareOffKey, true);
+      } else {
+        await prefs.remove(_wifiShareOffKey);
+      }
+    } on Object {
+      // The switch still applies this session if the choice cannot be saved.
+    }
   }
 
   Future<void> _save() async {

@@ -1,6 +1,8 @@
 # Cloud mailbox
 
-Internet sync is optional. Both devices must have the same household code, which you type in. The code is `mailboxId.secret`.
+Internet sync is optional. Both devices must have the same household code, which you type in or pass with the QR code. The code is `mailboxId.secret`.
+
+Creating, joining, or showing that code turns Share on this Wi-Fi on, including on Windows, so the devices can also meet on the local network. The mailbox still syncs over the internet when they are not on that network.
 
 The snapshot is sealed with the secret (AES-GCM) before it leaves the device. The MQTT topic is `shopit/p/{mailboxId}/{deviceId}`. The secret is not part of the topic, so seeing the topic does not reveal the key.
 

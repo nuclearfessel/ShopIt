@@ -202,25 +202,25 @@ While sharing is on, Shopping and Pantry show one short line under the list name
 
 ### Same Wi-Fi
 
-Create a code on one device and type it on the other. The code is the key, so ShopIt does not send it over the network. Then turn on **Share on this Wi-Fi** on both devices and keep both apps open on the same network. Lists appear on the other device only after both have that code.
+Create a code on one device and type it on the other. The code is the key, so ShopIt does not send it over the network. Creating, joining, or scanning the code turns **Share on this Wi-Fi** on, including on Windows. Keep both apps open on the same network. Lists appear on the other device only after both have that code.
 
-On a phone or a Mac, creating, joining, or scanning the code also turns **Share on this Wi-Fi** on. On Windows the computer is already on Wi-Fi, so the household code syncs over the internet and **Share on this Wi-Fi** stays off until you turn it on. Turn it on when the phone and the computer should also meet on the local network.
+Turn **Share on this Wi-Fi** off when this device should not be found on the local network. That choice stays off the next time the app opens.
 
-If Windows asks whether to allow ShopIt on private networks, choose allow. The phone cannot reach the computer on Wi-Fi until you do. That prompt is for **Share on this Wi-Fi**. The household code on Windows uses the connection the computer already has.
+The Windows installer allows ShopIt on private networks, so the phone can reach the computer on Wi-Fi.
 
 ### Over the internet
 
-Lists keep syncing when the phone is on mobile data, and when the Windows computer leaves **Share on this Wi-Fi** off. Both apps need an internet connection while they are open. They do not need to be nearby, and they do not need to be online at the exact same moment.
+Lists keep syncing when the phone is on mobile data. Both apps need an internet connection while they are open. They do not need to be nearby, and they do not need to be online at the exact same moment.
 
 Pair them by hand:
 
-1. On one device, tap **Create cloud code**. On Windows this leaves **Share on this Wi-Fi** off. On a phone or a Mac it turns that switch on.
-2. On the other, enter that full code and tap **Join with code**. The same Windows rule applies.
+1. On one device, tap **Create cloud code**. That turns **Share on this Wi-Fi** on.
+2. On the other, enter that full code and tap **Join with code**. That turns **Share on this Wi-Fi** on there too.
 
 Or use the QR code:
 
-1. On Windows or Mac, tap **Show QR code**. On Windows, showing it leaves **Share on this Wi-Fi** off. On a Mac it turns that switch on.
-2. On an iPhone or Android phone, tap **Scan QR code**. The scan joins the internet household from either computer and turns **Share on this Wi-Fi** on for the phone.
+1. On Windows or Mac, tap **Show QR code**. Showing it turns **Share on this Wi-Fi** on.
+2. On an iPhone or Android phone, tap **Scan QR code**. The scan joins the internet household and turns **Share on this Wi-Fi** on for the phone.
 
 Both apps need an internet connection while they are open. They do not need to be nearby, and they do not need to be online at the exact same moment. Closing the app, or sending it to the background, publishes one last cloud snapshot.
 
@@ -230,7 +230,7 @@ If you paired on an earlier build, leave the household on both devices and creat
 
 ### Lists with the same name
 
-If both devices already have a shopping or pantry list with the same name, sync keeps one list. When the other device has items on that list, this device matches them and drops names that were only here. A list the other device has never used does not wipe items on this one. Clearing every item on the other device does clear this one too, including names that were only here. It does not create a second list, and it does not stack both sides' items on top of each other. Over the internet, the device with the newer list content wins when several devices publish.
+If both devices already have a shopping or pantry list with the same name, sync keeps one list and adds every device's items onto it. A list the other device has never used does not wipe items on this one. Deleting an item, including clearing the cart, removes that item on the other devices. Checking an item moves it to the cart on the other devices. An item that exists only on one device stays until that item itself is deleted. It does not create a second list.
 
 ## Appearance and About
 

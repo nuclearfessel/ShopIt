@@ -451,7 +451,11 @@ class DeviceHost {
       if (decoded is! Map) {
         throw const SyncException('Could not read that sync.');
       }
-      await db.applySnapshot(SyncSnapshot.fromJson(decoded));
+      await db.applySnapshot(
+        SyncSnapshot.fromJson(decoded),
+        replaceLocalOnlyItems: false,
+        acceptRemoteOnlyLiveItems: true,
+      );
       final reply = await db.exportSnapshot();
       final sealed = await sealMailboxPayload(code, jsonEncode(reply.toJson()));
       response.headers.contentType = ContentType.text;
@@ -562,7 +566,11 @@ Future<String?> syncWithDevice({
         'The other device sent a reply this app cannot read.',
       );
     }
-    await db.applySnapshot(SyncSnapshot.fromJson(decoded));
+    await db.applySnapshot(
+      SyncSnapshot.fromJson(decoded),
+      replaceLocalOnlyItems: false,
+      acceptRemoteOnlyLiveItems: true,
+    );
     return null;
   } on SyncException {
     rethrow;

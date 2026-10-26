@@ -11,6 +11,7 @@ import '../../ui/category_header.dart';
 import '../../ui/dialogs.dart';
 import '../../ui/keyline/keyline_icon.dart';
 import '../../ui/choice_field.dart';
+import '../../ui/item_swipe.dart';
 import '../../ui/tip.dart';
 import '../../ui/sync_status_line.dart';
 import '../../ui/undo_snack_bar.dart';
@@ -532,10 +533,16 @@ class _PantryTile extends StatelessWidget {
         : soon
         ? Colors.orange
         : null;
-    return Dismissible(
-      key: ValueKey(item.id),
-      background: Container(color: Colors.red.shade300),
-      onDismissed: (_) => db.deletePantryItem(item.id),
+    return ItemSwipe(
+      swipeKey: ValueKey(item.id),
+      onCheck: () {
+        if (item.quantityMode == 'number') {
+          db.updatePantryQuantity(item.id, item.quantity <= 0 ? 1 : 0);
+        } else {
+          db.setPantryLevel(item.id, item.level == 'low' ? 'full' : 'low');
+        }
+      },
+      onDelete: () => db.deletePantryItem(item.id),
       child: LayoutBuilder(
         builder: (context, box) {
           final theme = Theme.of(context);
@@ -685,20 +692,21 @@ class _PantryTile extends StatelessWidget {
     );
     switch (result) {
       case ItemSaved(:final edit):
+        final category = await db.matchCategoryName(edit.category);
         await db.updatePantryItem(
           item.id,
           name: edit.name,
           quantity: edit.quantity,
           unit: edit.unit,
-          category: edit.category,
+          category: category,
           location: edit.location,
           expiryDate: edit.expiry,
           note: edit.note,
           quantityMode: edit.quantityMode,
           level: edit.level,
         );
-        if (edit.category != item.category) {
-          await db.assignCategory(edit.name, edit.category);
+        if (category.isNotEmpty && category != item.category) {
+          await db.assignCategory(edit.name, category);
         }
       case ItemDeleted():
         await db.deletePantryItem(item.id);

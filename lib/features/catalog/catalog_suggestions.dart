@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../app/form_factor.dart';
 import '../../data/database.dart';
 import '../../data/providers.dart';
 import '../../ui/tip.dart';
@@ -28,6 +30,32 @@ class CycleSuggestionsAction extends Action<CycleSuggestionsIntent> {
 
   @override
   void invoke(CycleSuggestionsIntent intent) => _state?.cycle(intent.delta);
+}
+
+/// Arrow keys move through search results instead of the text cursor.
+///
+/// The text field otherwise consumes Up and Down, so a recent-history row
+/// cannot be highlighted.
+KeyEventResult cycleSearchOnArrows(
+  KeyEvent event,
+  CatalogSuggestionsState? suggestions,
+) {
+  if (!desktopSearchKeys) return KeyEventResult.ignored;
+  if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
+    return KeyEventResult.ignored;
+  }
+  if (suggestions == null || !suggestions.canCycle) {
+    return KeyEventResult.ignored;
+  }
+  if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+    suggestions.cycle(1);
+    return KeyEventResult.handled;
+  }
+  if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+    suggestions.cycle(-1);
+    return KeyEventResult.handled;
+  }
+  return KeyEventResult.ignored;
 }
 
 /// Matches for [query]: items already on this list, pantry hits, recent

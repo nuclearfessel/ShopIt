@@ -88,7 +88,7 @@ void main() {
     ]);
   });
 
-  test('same-name lists replace across the cloud mailbox too', () async {
+  test('same-name lists keep items from every device across the cloud mailbox', () async {
     final mailbox = MemoryCloudMailbox();
     final phone = AppDatabase.memory();
     final computer = AppDatabase.memory();
@@ -96,8 +96,8 @@ void main() {
     addTearDown(computer.close);
 
     final code = await mailbox.createHousehold();
-    // Computer publishes first with Bananas, then the phone publishes Apples
-    // with a newer item timestamp so Apples replace Bananas on the next sync.
+    // Computer publishes Bananas, then the phone publishes Apples. Both names
+    // stay on the shared list.
     final computerList = await computer.addList('Groceries');
     await computer.addShoppingItem(computerList, 'Bananas');
     await mailbox.syncDevice(
@@ -134,10 +134,10 @@ void main() {
               (t) => t.deletedAt.isNull() & t.listId.equals(lists.single.id),
             ))
             .get();
-    expect([for (final item in items) item.name], ['Apples']);
+    expect([for (final item in items) item.name]..sort(), ['Apples', 'Bananas']);
   });
 
-  test('cloud sync prefers the newest peer when several devices publish', () async {
+  test('cloud sync keeps items published by every device', () async {
     final mailbox = MemoryCloudMailbox();
     final tablet = AppDatabase.memory();
     final phone = AppDatabase.memory();
@@ -156,8 +156,8 @@ void main() {
       db: tablet,
     );
 
-    // Fresher local content on the phone must not be wiped by the older tablet
-    // snapshot when the phone syncs, and the computer must end on Fresh.
+    // The phone's Fresh item stays, and the tablet's older Old item is added
+    // too. The computer picks up both.
     await Future<void>.delayed(const Duration(seconds: 2));
     final phoneList = (await phone.watchLists().first).single.id;
     await phone.addShoppingItem(phoneList, 'Fresh');
@@ -171,7 +171,10 @@ void main() {
     final phoneItems = await (phone.select(
       phone.shoppingItems,
     )..where((t) => t.deletedAt.isNull())).get();
-    expect([for (final item in phoneItems) item.name], ['Fresh']);
+    expect([for (final item in phoneItems) item.name]..sort(), [
+      'Fresh',
+      'Old',
+    ]);
 
     await mailbox.syncDevice(
       code: code,
@@ -183,7 +186,7 @@ void main() {
     final items = await (computer.select(
       computer.shoppingItems,
     )..where((t) => t.deletedAt.isNull())).get();
-    expect([for (final item in items) item.name], ['Fresh']);
+    expect([for (final item in items) item.name]..sort(), ['Fresh', 'Old']);
   });
 
   test('websocket mailbox clients stay on websocket', () {

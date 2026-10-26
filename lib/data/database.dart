@@ -968,6 +968,41 @@ class AppDatabase extends _$AppDatabase {
     await _resortCategoriesAlphabetically();
   }
 
+  /// The stored spelling of [name], creating the category when it is new.
+  ///
+  /// "produce" and "Produce" are the same header, so an edited item lands in
+  /// the category the list already shows.
+  Future<String> matchCategoryName(String name) async {
+    final clean = name.trim();
+    if (clean.isEmpty) return '';
+    final all = await select(categories).get();
+    for (final category in all) {
+      if (category.name.toLowerCase() == clean.toLowerCase()) {
+        return category.name;
+      }
+    }
+    await addCategory(clean);
+    return clean;
+  }
+
+  /// Moves one shopping item under [category] and remembers that name there.
+  Future<void> fileShoppingItemInCategory(String id, String category) async {
+    final filed = await matchCategoryName(category);
+    if (filed.isEmpty || filed.toLowerCase() == 'other') return;
+    final item = await (select(
+      shoppingItems,
+    )..where((t) => t.id.equals(id))).getSingleOrNull();
+    if (item == null || item.deletedAt != null) return;
+    if (item.category.toLowerCase() == filed.toLowerCase()) return;
+    await (update(shoppingItems)..where((t) => t.id.equals(id))).write(
+      ShoppingItemsCompanion(
+        category: Value(filed),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
+    await assignCategory(item.name, filed);
+  }
+
   /// Deletes a category everywhere. Items in it become uncategorised and the
   /// remembered category of catalog items falls back to "Other".
   Future<void> deleteCategory(String name) async {

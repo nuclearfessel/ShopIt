@@ -36,7 +36,6 @@ bool get desktopSearchKeys =>
     defaultTargetPlatform == TargetPlatform.windows ||
     defaultTargetPlatform == TargetPlatform.macOS;
 
-/// Windows is already on Wi-Fi, so a household code syncs over the internet
-/// without turning Share on this Wi-Fi on. Phones and Mac still start it.
-bool get householdCodeStartsWifiSharing =>
-    defaultTargetPlatform != TargetPlatform.windows;
+/// A household code starts Share on this Wi-Fi on every platform, including
+/// Windows. Cloud sync still runs when the devices are not on the same network.
+bool get householdCodeStartsWifiSharing => true;

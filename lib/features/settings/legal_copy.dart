@@ -4,7 +4,9 @@ ShopIt stores your lists on this device. There is no ShopIt account.
 
 Sharing is off until you turn it on. Create a code on one device and type that same code on the other. The code has two parts. The part after the dot is the key. ShopIt encrypts list contents with that key before they leave the device. The key is not sent over Wi-Fi and is not written into the cloud topic.
 
-On the same Wi-Fi, the other ShopIt receives only that encrypted copy, and only if it presents the same key. Over the internet, ShopIt publishes the encrypted copy to HiveMQ's public broker at broker.hivemq.com, using an encrypted connection. The topic contains a random mailbox id, which is the part of the code before the dot. HiveMQ and anyone who learns that id can download the encrypted copy. They cannot read the lists without the key. HiveMQ offers that broker for testing, not as private storage.
+Creating, joining, or scanning that code turns Share on this Wi-Fi on, including on Windows. Lists also sync over the internet while the apps are open. Turn Share on this Wi-Fi off when this device should not be found on the local network. That choice stays off the next time the app opens.
+
+On the same Wi-Fi, the other ShopIt receives only that encrypted copy, and only if it presents the same key. That local exchange happens when Share on this Wi-Fi is on. Over the internet, ShopIt publishes the encrypted copy to HiveMQ's public broker at broker.hivemq.com, using an encrypted connection. The topic contains a random mailbox id, which is the part of the code before the dot. HiveMQ and anyone who learns that id can download the encrypted copy. They cannot read the lists without the key. HiveMQ offers that broker for testing, not as private storage.
 
 Leave cloud sync while online to delete this device's stored copy. If the device is offline, the copy can remain until you leave again while online. Deleting the app does not by itself delete a copy already stored at the broker.
 

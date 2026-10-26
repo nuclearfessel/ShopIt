@@ -124,17 +124,20 @@ extension DeviceSync on AppDatabase {
   ///
   /// A remote list with the same name and kind as a local list is folded into
   /// that local list instead of creating a second copy. Items on the remote
-  /// list are remapped onto it. When [replaceLocalOnlyItems] is true and the
-  /// remote list still has live items (or tombstones from a clear), names that
-  /// are only here are removed so both devices match. A remote list that has
-  /// never had item rows does not wipe items that were only added here.
+  /// list are remapped onto it. Live names that exist only here stay, so
+  /// every device's items are added. A deleted remote row still removes that
+  /// item here. A newer row, including a check, wins by [updatedAt].
   ///
-  /// Cloud sync sets [acceptRemoteOnlyLiveItems] to false when this device's
-  /// own snapshot is newer than every peer, so an older phone cannot stack or
-  /// replace fresher local names.
+  /// [replaceLocalOnlyItems] also drops names the other device does not have
+  /// when that remote list has live items or tombstones from a clear. A remote
+  /// list that has never had item rows does not wipe items that were only
+  /// added here. Sync leaves this off.
+  ///
+  /// [acceptRemoteOnlyLiveItems] false skips live names that are not already
+  /// here. Sync leaves this on so another device's new items are kept.
   Future<void> applySnapshot(
     SyncSnapshot remote, {
-    bool replaceLocalOnlyItems = true,
+    bool replaceLocalOnlyItems = false,
     bool acceptRemoteOnlyLiveItems = true,
   }) => transaction(() async {
     await _applyTaxRates(remote.taxRates);

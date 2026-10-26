@@ -26,6 +26,7 @@ import '../../ui/keyline/keyline_icon.dart';
 import '../../ui/category_header.dart';
 import '../../ui/dialogs.dart';
 import '../../ui/choice_field.dart';
+import '../../ui/item_swipe.dart';
 import '../../ui/tip.dart';
 import '../../ui/sync_status_line.dart';
 import '../../ui/undo_snack_bar.dart';
@@ -47,6 +48,10 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
   @override
   void initState() {
     super.initState();
+    _searchFocus.onKeyEvent = (node, event) => cycleSearchOnArrows(
+      event,
+      _suggestions.currentState,
+    );
     _searchFocus.addListener(() {
       if (mounted) setState(() {});
     });
@@ -732,6 +737,7 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
                                     categoryNames: categoryNames,
                                     colors: categoryColors,
                                     onHeaderTap: recolor,
+                                    onReveal: _revealItem,
                                   ),
                                 ],
                               ),
@@ -800,6 +806,7 @@ List<Widget> _grouped(
   List<String> categoryNames = const [],
   Map<String, Color> colors = const {},
   void Function(String category)? onHeaderTap,
+  void Function(String itemId)? onReveal,
 }) {
   final open = rows.where((i) => !i.checked).toList();
   final done = rows.where((i) => i.checked).toList();
@@ -811,6 +818,7 @@ List<Widget> _grouped(
     listId: listId,
     tax: tax,
     categories: categoryNames.isEmpty ? null : categoryNames,
+    onReveal: onReveal,
   );
   final cart = done.isEmpty
       ? null
@@ -835,17 +843,38 @@ List<Widget> _grouped(
   }
   final names = {...byCategory.keys, if (showEmpty) ...categoryNames}.toList()
     ..sort((a, b) => (order[a] ?? 1 << 20).compareTo(order[b] ?? 1 << 20));
-  return [
-    for (final n in names) ...[
-      CategoryHeader(
-        n,
-        color: colors[n],
-        onTap: onHeaderTap == null ? null : () => onHeaderTap(n),
-      ),
-      for (final i in byCategory[n] ?? const <ShoppingItem>[]) tile(i),
-    ],
-    ?cart,
-  ];
+
+  Widget section(String name) {
+    final body = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        CategoryHeader(
+          name,
+          color: colors[name],
+          onTap: onHeaderTap == null ? null : () => onHeaderTap(name),
+        ),
+        for (final i in byCategory[name] ?? const <ShoppingItem>[]) tile(i),
+      ],
+    );
+    final occupied = (byCategory[name] ?? const <ShoppingItem>[]).isNotEmpty;
+    // Only a category that already has items can receive an Other item.
+    if (name.toLowerCase() == 'other' || !occupied) return body;
+    return DragTarget<String>(
+      onWillAcceptWithDetails: (details) => details.data.isNotEmpty,
+      onAcceptWithDetails: (details) {
+        db.fileShoppingItemInCategory(details.data, name);
+      },
+      builder: (context, candidate, _) {
+        if (candidate.isEmpty) return body;
+        return Material(
+          color: Theme.of(context).colorScheme.secondaryContainer,
+          child: body,
+        );
+      },
+    );
+  }
+
+  return [for (final n in names) section(n), ?cart];
 }
 
 /// Checked items in their own, slightly tinted panel. The "Uncheck all" and
@@ -992,6 +1021,7 @@ class _ItemTile extends StatelessWidget {
     required this.listId,
     required this.tax,
     this.categories,
+    this.onReveal,
   });
 
   /// The categories to offer when editing (null = the built-in ones).
@@ -1003,6 +1033,9 @@ class _ItemTile extends StatelessWidget {
 
   /// The list's tax rate and rules, or null when the list has no tax rate.
   final TaxContext? tax;
+
+  /// Scrolls the item into view after its category changes.
+  final void Function(String itemId)? onReveal;
 
   /// The checkbox only becomes a manual override when it differs from what the
   /// tax rules would say, so items keep following the rules otherwise.
@@ -1036,12 +1069,13 @@ class _ItemTile extends StatelessWidget {
       categories: categories,
     );
     Future<void> save(ItemEdit edit) async {
+      final category = await db.matchCategoryName(edit.category);
       await db.updateShoppingItem(
         item.id,
         name: edit.name,
         quantity: edit.quantity,
         unit: edit.unit,
-        category: edit.category,
+        category: category,
         price: edit.price,
         note: edit.note,
         taxable: edit.taxable,
@@ -1049,9 +1083,13 @@ class _ItemTile extends StatelessWidget {
         taxManual: _manual(edit),
       );
       // Changing the category is permanent: adding the item again (typing it or
-      // from history) files it there.
-      if (edit.category != item.category) {
-        await db.assignCategory(edit.name, edit.category);
+      // from history) files it there, and this row moves under that header.
+      if (category != item.category) {
+        if (category.isNotEmpty) await db.assignCategory(edit.name, category);
+        final reveal = onReveal;
+        if (reveal != null) {
+          WidgetsBinding.instance.addPostFrameCallback((_) => reveal(item.id));
+        }
       }
     }
 
@@ -1097,10 +1135,19 @@ class _ItemTile extends StatelessWidget {
       if (item.hasCoupon) 'coupon',
       if (tax?.isTaxed(item) ?? false) 'tax',
     ].join(' · ');
-    return Dismissible(
-      key: ValueKey(item.id),
-      background: Container(color: Colors.red.shade300),
-      onDismissed: (_) => db.deleteShoppingItem(item.id),
+    final canDrag =
+        !item.checked &&
+        (item.category.isEmpty || item.category.toLowerCase() == 'other');
+    final priceLabel = item.price == null
+        ? null
+        : Text(
+            formatMoney(item.price! * item.quantity),
+            style: Theme.of(context).textTheme.titleSmall,
+          );
+    return ItemSwipe(
+      swipeKey: ValueKey(item.id),
+      onCheck: () => db.setChecked(item.id, !item.checked),
+      onDelete: () => db.deleteShoppingItem(item.id),
       child: ListTile(
         onTap: () => _edit(context),
         leading: Tip(
@@ -1133,11 +1180,36 @@ class _ItemTile extends StatelessWidget {
                     ),
                 ],
               ),
-        trailing: item.price == null
+        trailing: !canDrag && priceLabel == null
             ? null
-            : Text(
-                formatMoney(item.price! * item.quantity),
-                style: Theme.of(context).textTheme.titleSmall,
+            : Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (canDrag)
+                    Tip(
+                      'Drag into a category',
+                      child: Draggable<String>(
+                        data: item.id,
+                        dragAnchorStrategy: pointerDragAnchorStrategy,
+                        feedback: Material(
+                          elevation: 4,
+                          borderRadius: BorderRadius.circular(8),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                            child: Text(item.name),
+                          ),
+                        ),
+                        child: const Padding(
+                          padding: EdgeInsets.all(8),
+                          child: KeylineIcon(KeylineIcons.gripVertical),
+                        ),
+                      ),
+                    ),
+                  ?priceLabel,
+                ],
               ),
       ),
     );

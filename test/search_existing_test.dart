@@ -127,6 +127,32 @@ void main() {
     }
   });
 
+  testWidgets('arrow down reaches a name already in recent history', (
+    tester,
+  ) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+    try {
+      await pumpShopIt(
+        tester,
+        items: [fakeItem('a', 'Milk')],
+        history: [fakeHistory('h1', 'Chips', category: 'Snacks')],
+      );
+      await tester.enterText(find.byType(TextField).first, 'chi');
+      await tester.pump();
+      expect(find.text('Recent'), findsOneWidget);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      await tester.pump();
+
+      final tile = tester.widget<ListTile>(
+        find.ancestor(of: find.text('Chips'), matching: find.byType(ListTile)),
+      );
+      expect(tile.selected, isTrue);
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
+  });
+
   testWidgets('choosing a catalog match closes the menu', (tester) async {
     await pumpShopIt(tester, items: [fakeItem('a', 'Milk')]);
     await tester.enterText(find.byType(TextField).first, 'oni');
@@ -137,5 +163,29 @@ void main() {
     await tester.pump();
     expect(find.text('Red onions'), findsNothing);
     expect(find.text('Onions'), findsNothing);
+  });
+
+  testWidgets('an Other item can be dragged into a category that has items', (
+    tester,
+  ) async {
+    await pumpShopIt(
+      tester,
+      items: [
+        fakeItem('a', 'Crackers', category: 'Other'),
+        fakeItem('b', 'Bread', category: 'Bakery'),
+      ],
+    );
+    expect(find.byTooltip('Drag into a category'), findsOneWidget);
+    expect(find.text('OTHER'), findsOneWidget);
+    expect(find.text('BAKERY'), findsOneWidget);
+
+    final gesture = await tester.startGesture(
+      tester.getCenter(find.byTooltip('Drag into a category')),
+    );
+    await gesture.moveTo(tester.getCenter(find.text('BAKERY')));
+    await tester.pump();
+    expect(find.text('Crackers'), findsNWidgets(2));
+    await gesture.up();
+    await tester.pump();
   });
 }
