@@ -438,14 +438,21 @@ class AppDatabase extends _$AppDatabase {
     final variants = rows.where((i) => i.parentName.isNotEmpty).toList();
     for (final parent in parents) {
       add(parent);
+      final children = variants
+          .where((v) => v.parentName == parent.name)
+          .toList();
+      // Types that do not repeat the search word, such as Sourdough under
+      // Bread, are shown before the many names that contain it. Otherwise
+      // those names fill the result list and the types never appear.
       var unmatched = 0;
-      for (final v in variants.where((v) => v.parentName == parent.name)) {
-        final ownName = v.name.toLowerCase().contains(q);
-        if (!ownName) {
-          // A query that only hit the parent should not list every brand.
-          if (unmatched >= _unmatchedVariantCap) continue;
-          unmatched++;
-        }
+      for (final v in children) {
+        if (v.name.toLowerCase().contains(q)) continue;
+        if (unmatched >= _unmatchedVariantCap) continue;
+        unmatched++;
+        add(v);
+      }
+      for (final v in children) {
+        if (!v.name.toLowerCase().contains(q)) continue;
         add(v);
       }
     }
