@@ -196,7 +196,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.memory() : super(NativeDatabase.memory());
 
   @override
-  int get schemaVersion => 14;
+  int get schemaVersion => 16;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -322,6 +322,14 @@ class AppDatabase extends _$AppDatabase {
       if (from < 14) {
         // v14: more regular and non-organic produce, plus East Asian,
         // Southeast Asian, and South Asian herbs and produce.
+        await mergeBuiltinCatalog();
+      }
+      if (from < 15) {
+        // v15: generic grocery names, and Darigold dairy.
+        await mergeBuiltinCatalog();
+      }
+      if (from < 16) {
+        // v16: a much larger set of generic grocery names.
         await mergeBuiltinCatalog();
       }
     },

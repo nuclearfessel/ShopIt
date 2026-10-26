@@ -151,6 +151,118 @@ void main() {
     );
   });
 
+  test('generic grocery names are searchable without a brand', () async {
+    final db = AppDatabase.memory();
+    addTearDown(db.close);
+
+    final chocolateMilk = await db.searchCatalog('chocolate milk');
+    expect(chocolateMilk.map((item) => item.name), contains('Chocolate milk'));
+    expect(
+      chocolateMilk
+          .firstWhere((item) => item.name == 'Chocolate milk')
+          .parentName,
+      'Milk',
+    );
+
+    final iceCream = await db.searchCatalog('rocky road ice cream');
+    expect(iceCream.map((item) => item.name), contains('Rocky road ice cream'));
+    expect(
+      iceCream
+          .firstWhere((item) => item.name == 'Rocky road ice cream')
+          .parentName,
+      'Ice cream',
+    );
+
+    final bagels = await db.searchCatalog('everything bagels');
+    expect(bagels.map((item) => item.name), contains('Everything bagels'));
+
+    final applesauce = await db.searchCatalog('applesauce');
+    expect(applesauce.map((item) => item.name), contains('Applesauce'));
+  });
+
+  test('everyday generic groceries cover the departments', () async {
+    final db = AppDatabase.memory();
+    addTearDown(db.close);
+
+    final rows = await db.select(db.catalogItems).get();
+    expect(rows.length, greaterThan(6500));
+
+    const names = [
+      'Gruyere',
+      'Queso fresco',
+      'Gochujang',
+      'Panko breadcrumbs',
+      'Mahi mahi',
+      'Andouille sausage',
+      'Fresh rhubarb',
+      'Phyllo dough',
+      'Chili crisp',
+      'Dry black beans',
+      'Canned chicken',
+      'Turkey drumsticks',
+    ];
+    for (final name in names) {
+      final hits = await db.searchCatalog(name);
+      expect(hits.map((item) => item.name), contains(name), reason: name);
+    }
+  });
+
+  test('Darigold dairy products are searchable', () async {
+    final db = AppDatabase.memory();
+    addTearDown(db.close);
+
+    final darigold = await db.searchCatalog('darigold');
+    expect(
+      darigold.map((item) => item.name),
+      containsAll([
+        'Darigold whole milk',
+        'Darigold 2% milk',
+        'Darigold 1% milk',
+        'Darigold fat-free milk',
+        'Darigold lactose-free whole milk',
+        'Darigold organic whole milk',
+        'Darigold ultra-filtered chocolate milk',
+        'Darigold Nutrition+ milk',
+        'Darigold chocolate milk',
+        'Darigold old fashioned chocolate milk',
+        'Darigold strawberry milk',
+        'Darigold FIT chocolate milk',
+        'Darigold chocolate protein shake',
+        'Darigold vanilla protein shake',
+        'Darigold classic eggnog',
+        'Darigold old fashioned eggnog',
+        'Darigold salted butter',
+        'Darigold unsalted butter',
+        'Darigold half and half',
+        'Darigold fat-free half and half',
+        'Darigold heavy whipping cream',
+        'Darigold whipping cream',
+        'Darigold Dari Whip',
+        'Darigold sour cream',
+        'Darigold Mexican style sour cream',
+        'Darigold cottage cheese',
+        'Darigold large curd cottage cheese',
+        'Darigold low fat cottage cheese',
+        'Darigold French vanilla creamer',
+        'Darigold sweet cream creamer',
+        'Darigold caramel creamer',
+        'Darigold hazelnut creamer',
+      ]),
+    );
+    expect(
+      darigold
+          .firstWhere((item) => item.name == 'Darigold whole milk')
+          .parentName,
+      'Milk',
+    );
+    expect(
+      darigold
+          .firstWhere((item) => item.name == 'Darigold French vanilla creamer')
+          .parentName,
+      'Creamer',
+    );
+  });
+
   test('a parent query does not list every brand', () async {
     final db = AppDatabase.memory();
     addTearDown(db.close);

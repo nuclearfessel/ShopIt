@@ -80,10 +80,11 @@ void main() {
     await tester.tap(find.text('Chips'));
     await tester.pump();
     expect(find.text('Recent'), findsNothing);
-    final db = ProviderScope.containerOf(
-      tester.element(find.byType(ShopItApp)),
-    ).read(databaseProvider);
-    final added = await tester.runAsync(() => db.watchShoppingItems('l1').first);
+    final db = ProviderScope.containerOf(tester.element(find.byType(ShopItApp)))
+        .read(databaseProvider);
+    final added = await tester.runAsync(
+      () => db.watchShoppingItems('l1').first,
+    );
     expect(added?.map((item) => item.name), ['Chips']);
   });
 
@@ -160,6 +161,54 @@ void main() {
       debugDefaultTargetPlatformOverride = null;
     }
   });
+
+  testWidgets(
+    'arrow keys cycle recent history when the search field is empty',
+    (tester) async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+      try {
+        await pumpShopIt(
+          tester,
+          items: [fakeItem('a', 'Milk')],
+          history: [
+            fakeHistory('h1', 'Chips', category: 'Snacks'),
+            fakeHistory('h2', 'Bread', category: 'Bakery', daysAgo: 1),
+          ],
+        );
+        await tester.tap(find.byType(TextField).first);
+        await tester.pump();
+        expect(find.text('Recent'), findsNWidgets(2));
+
+        ListTile tileFor(String name) => tester.widget<ListTile>(
+          find.ancestor(of: find.text(name), matching: find.byType(ListTile)),
+        );
+
+        expect(tileFor('Chips').selected, isFalse);
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+        await tester.pump();
+        expect(tileFor('Chips').selected, isTrue);
+
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+        await tester.pump();
+        expect(tileFor('Bread').selected, isTrue);
+        expect(tileFor('Chips').selected, isFalse);
+
+        await tester.testTextInput.receiveAction(TextInputAction.done);
+        await tester.pump();
+        expect(find.text('Recent'), findsNothing);
+
+        final db = ProviderScope.containerOf(
+          tester.element(find.byType(ShopItApp)),
+        ).read(databaseProvider);
+        final rows = await tester.runAsync(
+          () => db.watchShoppingItems('l1').first,
+        );
+        expect(rows?.map((item) => item.name), contains('Bread'));
+      } finally {
+        debugDefaultTargetPlatformOverride = null;
+      }
+    },
+  );
 
   testWidgets('arrow down reaches a name already in recent history', (
     tester,

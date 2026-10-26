@@ -35,7 +35,8 @@ class CycleSuggestionsAction extends Action<CycleSuggestionsIntent> {
 /// Arrow keys move through search results instead of the text cursor.
 ///
 /// The text field otherwise consumes Up and Down, so a recent-history row
-/// cannot be highlighted.
+/// cannot be highlighted. This includes the recent list shown before any
+/// text is typed.
 KeyEventResult cycleSearchOnArrows(
   KeyEvent event,
   CatalogSuggestionsState? suggestions,
@@ -96,10 +97,10 @@ class CatalogSuggestionsState extends ConsumerState<CatalogSuggestions> {
   List<_SuggestionRow> _rows = const [];
 
   /// True when arrow keys should move through the rows on screen.
-  bool get canCycle =>
-      widget.keyboardCycling &&
-      widget.query.trim().isNotEmpty &&
-      _rows.isNotEmpty;
+  ///
+  /// Recent history is shown as soon as the search field is focused, so an
+  /// empty query still cycles when those rows are on screen.
+  bool get canCycle => widget.keyboardCycling && _rows.isNotEmpty;
 
   /// Moves the highlight by [delta], wrapping from the last row to the first.
   void cycle(int delta) {
