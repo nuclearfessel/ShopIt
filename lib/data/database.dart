@@ -1154,6 +1154,14 @@ class AppDatabase extends _$AppDatabase {
         ),
       );
 
+  /// Soft-deletes every history entry (Clear all history). Lists are untouched.
+  Future<void> clearAllHistory() {
+    final now = DateTime.now();
+    return (update(itemHistory)..where((t) => t.deletedAt.isNull())).write(
+      ItemHistoryCompanion(deletedAt: Value(now), updatedAt: Value(now)),
+    );
+  }
+
   /// On upgrade, seeds the history from items already on the user's lists.
   Future<void> _backfillHistory() async {
     final items = await (select(

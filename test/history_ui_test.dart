@@ -195,4 +195,21 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   });
+
+  group('Clear all history', () {
+    testWidgets('asks before clearing from the list menu', (tester) async {
+      await pumpShopIt(tester, history: [fakeHistory('h1', 'Milk')]);
+      await tester.tap(find.byTooltip('List options'));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.widgetWithText(PopupMenuItem<String>, 'Clear all history'),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Clear all history?'), findsOneWidget);
+      expect(find.text('Clear'), findsOneWidget);
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+      expect(find.text('Clear all history?'), findsNothing);
+    });
+  });
 }

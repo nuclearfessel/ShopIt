@@ -97,6 +97,7 @@ void main() {
         'Uncheck all',
         'List settings',
         'Manage lists',
+        'Clear all history',
         'Rename this list',
         'Delete this list',
       ]) {

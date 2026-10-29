@@ -191,6 +191,17 @@ void main() {
       expect((await db.watchHistory().first).single.name, 'Milk');
     });
 
+    test('clear all history empties every entry and leaves lists alone', () async {
+      final l = await firstList();
+      await db.addShoppingItem(l.id, 'Milk', category: 'Dairy & Eggs');
+      await db.addShoppingItem(l.id, 'Bread', category: 'Bakery');
+      expect(await db.watchHistory().first, hasLength(2));
+
+      await db.clearAllHistory();
+      expect(await db.watchHistory().first, isEmpty);
+      expect(await db.watchShoppingItems(l.id).first, hasLength(2));
+    });
+
     test('pantry items are not part of the shopping history', () async {
       await db.addPantryItem('Rice');
       expect(await db.watchHistory().first, isEmpty);

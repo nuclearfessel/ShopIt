@@ -21,7 +21,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # followed by 1.2.0. The number after + is the Android version code and goes
 # up by one on every release. The release workflow publishes this version and
 # keeps only the three newest releases.
-version: 1.1.5+31
+version: 1.1.6+32
 
 environment:
   sdk: ^3.13.3

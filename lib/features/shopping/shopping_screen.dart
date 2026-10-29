@@ -523,6 +523,18 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
                       context: context,
                       builder: (_) => const ManageListsDialog(),
                     );
+                  } else if (v == 'clearHistory') {
+                    if (await confirmDialog(
+                      context,
+                      title: 'Clear all history?',
+                      message:
+                          'Recent items and History will be emptied. '
+                          'Your lists are not affected.',
+                      confirmLabel: 'Clear',
+                      confirmTip: 'Remove every history entry',
+                    )) {
+                      await db.clearAllHistory();
+                    }
                   } else if (v == 'deleteAll') {
                     if (await _confirm(
                       context,
@@ -571,6 +583,11 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
                     value: 'manageLists',
                     tip: 'Rename, reorder or delete your lists',
                     label: 'Manage lists',
+                  ),
+                  tipMenuItem(
+                    value: 'clearHistory',
+                    tip: 'Remove every recent and history entry',
+                    label: 'Clear all history',
                   ),
                   tipMenuItem(
                     value: 'export',
