@@ -8,6 +8,8 @@ Sharing is off until you turn it on. Create a code on one device and type that s
 
 Creating, joining, or scanning that code turns Share on this Wi-Fi on, including on Windows. Lists also sync over the internet while the apps are open. Turn Share on this Wi-Fi off when this device should not be found on the local network. That choice stays off the next time the app opens.
 
+The encrypted copy includes shopping and pantry lists and their items, tax rates, history, category colors and order, recipes and recipe ingredients, and names you have saved in the catalog (including barcode links). Built-in catalog names that ship with the app are not sent that way.
+
 On the same Wi-Fi, the other ShopIt receives only that encrypted copy, and only if it presents the same key. That local exchange happens when Share on this Wi-Fi is on.
 
 Over the internet, ShopIt publishes the encrypted copy to HiveMQ's public broker at `broker.hivemq.com`, using an encrypted connection. The topic contains a random mailbox id, which is the part of the code before the dot. HiveMQ and anyone who learns that id can download the encrypted copy. They cannot read the lists without the key. HiveMQ offers that broker for testing, not as private storage.
