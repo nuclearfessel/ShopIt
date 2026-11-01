@@ -57,6 +57,17 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Set up Python for source icon gate
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+
+      - name: Verify source icon contract
+        run: |
+          python -m pip install -r tool/icon-requirements.txt
+          python tool/validate_app_icons.py
+          python tool/check_icon_artwork.py
+
       - name: Analyze and test
         run: |
           flutter analyze
@@ -92,6 +103,22 @@ jobs:
             --build-number=${{ needs.version.outputs.code }}
           cp build/app/outputs/flutter-apk/app-release.apk "ShopIt-${{ needs.version.outputs.name }}.apk"
 
+      - name: Set up Python for APK icon gate
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+
+      - name: Verify packaged Android launcher icons
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install -r tool/icon-requirements.txt
+          SDK="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
+          test -n "$SDK"
+          AAPT="$(find "$SDK/build-tools" -type f -name aapt | sort -V | tail -n 1)"
+          test -n "$AAPT"
+          python tool/check_android_apk_icons.py --android-apk "ShopIt-${{ needs.version.outputs.name }}.apk" --aapt "$AAPT"
+
       - name: Upload APK
         uses: actions/upload-artifact@v7
         with:
@@ -125,11 +152,42 @@ jobs:
             --build-name=${{ needs.version.outputs.name }} `
             --build-number=${{ needs.version.outputs.code }}
 
+      - name: Set up Python for Windows icon gate
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+
+      - name: Verify compiled Windows icon
+        shell: pwsh
+        run: |
+          python -m pip install -r tool/native-requirements.txt
+          if ($LASTEXITCODE -ne 0) { throw "Icon checker dependencies failed" }
+          $exe = "build/windows/x64/runner/Release/shop_it.exe"
+          python tool/check_built_icons.py --windows-exe "$exe"
+          if ($LASTEXITCODE -ne 0) { throw "Compiled Windows icon failed" }
+          python tool/check_built_version.py --windows-exe "$exe" --expected-version "${{ needs.version.outputs.name }}" --expected-build "${{ needs.version.outputs.code }}"
+          if ($LASTEXITCODE -ne 0) { throw "Compiled Windows version failed" }
+
       - name: Build installer
         run: |
           $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
           & $iscc "/DAppVersion=${{ needs.version.outputs.name }}" "installer/shop_it.iss"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Verify Windows installer payload
+        shell: pwsh
+        run: |
+          # This is a disposable hosted runner, never a user's installed app.
+          $installer = (Resolve-Path "build/installer/ShopIt-Setup-${{ needs.version.outputs.name }}.exe").Path
+          $target = Join-Path $env:RUNNER_TEMP "ShopIt-icon-verification"
+          $arguments = "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /DIR=`"$target`""
+          $result = Start-Process -FilePath $installer -ArgumentList $arguments -Wait -PassThru
+          if ($result.ExitCode -ne 0) { throw "Verification install failed" }
+          $exe = Join-Path $target "shop_it.exe"
+          python tool/check_built_icons.py --windows-exe "$exe"
+          if ($LASTEXITCODE -ne 0) { throw "Installer-payload icon failed" }
+          python tool/check_built_version.py --windows-exe "$exe" --expected-version "${{ needs.version.outputs.name }}" --expected-build "${{ needs.version.outputs.code }}"
+          if ($LASTEXITCODE -ne 0) { throw "Installer-payload version failed" }
 
       - name: Upload installer
         uses: actions/upload-artifact@v7
@@ -170,6 +228,24 @@ jobs:
             zip -r "$GITHUB_WORKSPACE/ShopIt-${{ needs.version.outputs.name }}-macos.zip" \
               ShopIt.app Uninstall-ShopIt.command
           )
+
+      - name: Set up Python for macOS icon gate
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+
+      - name: Verify compiled and packaged macOS icons
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install -r tool/native-requirements.txt
+          PAYLOAD="$RUNNER_TEMP/ShopIt-icon-verification"
+          mkdir -p "$PAYLOAD"
+          ditto -x -k "ShopIt-${{ needs.version.outputs.name }}-macos.zip" "$PAYLOAD"
+          for APP in "build/macos/Build/Products/Release/ShopIt.app" "$PAYLOAD/ShopIt.app"; do
+            python tool/check_built_icons.py --macos-app "$APP"
+            python tool/check_built_version.py --macos-app "$APP" --expected-version "${{ needs.version.outputs.name }}" --expected-build "${{ needs.version.outputs.code }}"
+          done
 
       - name: Upload Mac app
         uses: actions/upload-artifact@v7

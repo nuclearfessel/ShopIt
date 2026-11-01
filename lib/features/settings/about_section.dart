@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -32,6 +33,22 @@ class _AboutSectionState extends State<AboutSection> {
     } on Object {
       if (mounted) setState(() => _version = null);
     }
+  }
+
+  Future<void> _openSource() async {
+    var opened = false;
+    try {
+      opened = await launchUrl(Uri.parse(shopItSourceUrl));
+    } on PlatformException {
+      // A missing browser or a platform launch failure needs visible feedback.
+    }
+    if (!mounted || opened) return;
+    _showNotice(
+      context,
+      "Couldn't open GitHub",
+      "ShopIt couldn't open the source link. "
+          'Open this address in your browser instead:\n\n$shopItSourceUrl',
+    );
   }
 
   @override
@@ -69,9 +86,7 @@ class _AboutSectionState extends State<AboutSection> {
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               alignment: Alignment.centerLeft,
             ),
-            onPressed: () {
-              launchUrl(Uri.parse(shopItSourceUrl));
-            },
+            onPressed: _openSource,
             child: const Text(shopItSourceUrl),
           ),
         ),
@@ -116,11 +131,9 @@ void _showNotice(BuildContext context, String title, String body) {
   showDialog<void>(
     context: context,
     builder: (context) => AlertDialog(
+      scrollable: true,
       title: Text(title),
-      content: SizedBox(
-        width: 420,
-        child: SingleChildScrollView(child: Text(body)),
-      ),
+      content: SizedBox(width: 420, child: Text(body)),
       actions: [
         Tooltip(
           message: 'Close',

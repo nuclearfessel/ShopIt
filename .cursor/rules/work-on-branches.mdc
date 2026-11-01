@@ -10,7 +10,7 @@ Every change starts on a branch. This includes plan implementation, bug fixes, d
 Before the first edit in a task:
 
 1. Check the current branch with `git branch --show-current`.
-2. If it is `main` or `master`, create a branch and switch to it before editing. Use a short name for the change, such as `list-handoff`.
+2. If it is `main` or `master`, create a branch and switch to it before editing. Use a short name for the change, such as `list-handoff`. When the user says **New!**, use `updates-fixes` instead, as described in the New! and Go! rule.
 3. Leave `main` for merging a finished branch. Do not commit the work directly on `main`.
 
 If the working tree already has unrelated uncommitted files, leave those files unstaged. Do not move or rewrite existing commits on `main` unless the user asks.

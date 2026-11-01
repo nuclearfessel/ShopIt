@@ -326,24 +326,16 @@ void main() {
     testWidgets('use soon lists items expiring within a week', (tester) async {
       final today = DateTime.now();
       final start = DateTime(today.year, today.month, today.day);
+      // Calendar days, not 24-hour spans, so a daylight-saving change
+      // does not move an expiry onto the wrong date.
+      DateTime onDay(int delta) =>
+          DateTime(start.year, start.month, start.day + delta);
       await pumpShopIt(
         tester,
         pantry: [
-          fakePantryItem(
-            'a',
-            'Yogurt',
-            expiryDate: start.add(const Duration(days: 2)),
-          ),
-          fakePantryItem(
-            'b',
-            'Rice',
-            expiryDate: start.add(const Duration(days: 40)),
-          ),
-          fakePantryItem(
-            'c',
-            'Milk',
-            expiryDate: start.subtract(const Duration(days: 1)),
-          ),
+          fakePantryItem('a', 'Yogurt', expiryDate: onDay(2)),
+          fakePantryItem('b', 'Rice', expiryDate: onDay(40)),
+          fakePantryItem('c', 'Milk', expiryDate: onDay(-1)),
         ],
       );
       await _gotoPantry(tester);

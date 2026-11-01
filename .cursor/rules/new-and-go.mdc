@@ -1,0 +1,28 @@
+---
+description: New! starts updates-fixes; Go! commits, merges, pushes, releases, and deletes other branches
+alwaysApply: true
+---
+
+# New! and Go!
+
+These words are commands. Quoting them while defining or explaining the rule is not a command.
+
+## New!
+
+When the user says **New!**:
+
+1. Check out the latest `main`.
+2. Create a branch named `updates-fixes` from that `main` and switch to it.
+3. If `updates-fixes` already exists, delete that local branch and create it again from the latest `main`. If deleting it would discard uncommitted work, stop and say so.
+
+This name overrides the descriptive branch name in the work-on-branches rule. Leave unrelated uncommitted files unstaged.
+
+## Go!
+
+When the user says **Go!**, that is an explicit request to finish the current work:
+
+1. On `updates-fixes`, commit the work for this session. Do not commit secrets or unrelated dirty files. Do not create an empty commit.
+2. Merge `updates-fixes` into `main`. Do not force-push `main`.
+3. Push `main`.
+4. Start the release. A push to `main` runs `.github/workflows/release.yml` (Android, Windows, macOS, iOS, then a GitHub release) unless the push only changes `README.md` or `docs/**`. Confirm a Release run with `gh run list --workflow=release.yml`. If the workflow did not start, say why.
+5. After `main` is pushed, delete every local and remote branch except `main`. Do not delete `main` or any tags.

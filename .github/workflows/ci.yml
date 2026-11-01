@@ -4,6 +4,55 @@ on:
     branches: [main]
   pull_request:
 jobs:
+  documentation-images:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -r tool/docs-requirements.txt
+      - run: python -m unittest discover -s tool -p 'test_*doc*.py' -v
+      - run: python -m unittest discover -s tool -p 'test_animation_limits.py' -v
+      - run: python tool/check_doc_images.py
+      - run: python tool/check_doc_links.py
+  icon-packaging:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - name: Install icon tools
+        run: python -m pip install -r tool/native-requirements.txt
+      - name: Test icon validation
+        run: |
+          python -m unittest discover -s tool -p 'test_validate_app_icons.py' -v
+          python -m unittest discover -s tool -p 'test_check_icon_artwork.py' -v
+          python -m unittest discover -s tool -p 'test_built_artifacts.py' -v
+          python -m unittest discover -s tool -p 'test_compare_icon_artwork.py' -v
+          python -m unittest discover -s tool -p 'test_android_apk_icons.py' -v
+          python -m unittest discover -s tool -p 'test_release_gate_steps.py' -v
+      - name: Render icon changes against the PR base
+        if: github.event_name == 'pull_request'
+        env:
+          BEFORE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: python tool/compare_icon_artwork.py --before-ref "$BEFORE_SHA" --output-dir "$RUNNER_TEMP/shopit-icon-comparison"
+      - name: Retain icon comparison for review
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v7
+        with:
+          name: shopit-icon-comparison
+          path: ${{ runner.temp }}/shopit-icon-comparison/
+          if-no-files-found: warn
+      - name: Validate checked-in app icons
+        run: python tool/validate_app_icons.py
+      - name: Check approved icon artwork
+        run: python tool/check_icon_artwork.py
   test:
     runs-on: ubuntu-latest
     steps:

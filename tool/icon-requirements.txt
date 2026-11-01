@@ -1,0 +1,2 @@
+# Shared by the packaging validator, its tests, and tool/make_icon.py.
+Pillow==13.0.0
