@@ -1,6 +1,6 @@
 """Builds all platform app icons from the approved ShopIt brand artwork.
 
-Run from the repo root: python tool/make_icon.py (requires Pillow).
+Run from the repo root: python tool/make_icon.py (requires Pillow and resvg-py).
 The supplied transparent icon master is preserved for Windows, macOS, and
 Android. iOS requires an opaque, square icon, so transparent pixels are
 composited onto the approved evergreen tile color before export.
@@ -10,6 +10,7 @@ import re
 from pathlib import Path
 
 from PIL import Image
+from make_adaptive_icon import make_adaptive_icons
 
 SOURCE = Path("assets/brand/shopit-app-icon-original-tangerine.png")
 IOS_BACKGROUND = (38, 55, 47)  # #26372F, the app-icon tile background
@@ -50,6 +51,8 @@ def main():
             format="PNG",
             optimize=True,
         )
+
+    make_adaptive_icons()
 
     # macOS AppIcon catalog uses physical-pixel sizes in its filenames.
     macos_catalog = json.loads(

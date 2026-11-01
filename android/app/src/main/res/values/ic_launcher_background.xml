@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Approved Daily Circle cream; full bleed, with no baked-in corner mask. -->
+    <color name="ic_launcher_background">#FFF8EA</color>
+</resources>
