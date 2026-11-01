@@ -1,66 +1,96 @@
-"""Renders the Shop-it app icon (Windows .ico + Android launcher PNGs).
+"""Builds all platform app icons from the approved ShopIt brand artwork.
 
-Run from the repo root: python tool/make_icon.py   (needs Pillow)
+Run from the repo root: python tool/make_icon.py (requires Pillow).
+The supplied transparent icon master is preserved for Windows, macOS, and
+Android. iOS requires an opaque, square icon, so transparent pixels are
+composited onto the approved evergreen tile color before export.
 """
-from PIL import Image, ImageDraw
+import json
+import re
+from pathlib import Path
 
-S = 2048  # master size; everything is drawn here and downsampled
-LIME = (191, 224, 79)
-LIME_DEEP = (134, 170, 18)
-BG_TOP = (44, 52, 36)
-BG_BOT = (22, 25, 18)
+from PIL import Image
+
+SOURCE = Path("assets/brand/shopit-app-icon-original-tangerine.png")
+IOS_BACKGROUND = (38, 55, 47)  # #26372F, the app-icon tile background
+RESAMPLE = Image.Resampling.LANCZOS
 
 
-def master():
-    img = Image.new("RGBA", (S, S), (0, 0, 0, 0))
-    # background: rounded square with vertical gradient
-    grad = Image.new("RGBA", (S, S))
-    gd = ImageDraw.Draw(grad)
-    for y in range(S):
-        t = y / (S - 1)
-        gd.line([(0, y), (S, y)], fill=tuple(
-            int(BG_TOP[i] + (BG_BOT[i] - BG_TOP[i]) * t) for i in range(3)) + (255,))
-    mask = Image.new("L", (S, S), 0)
-    ImageDraw.Draw(mask).rounded_rectangle([0, 0, S - 1, S - 1], radius=int(S * 0.225), fill=255)
-    img.paste(grad, (0, 0), mask)
+def resized(source, size):
+    return source.resize((size, size), RESAMPLE)
 
-    d = ImageDraw.Draw(img)
-    w = int(S * 0.062)  # stroke width
 
-    def line(pts, color=LIME):
-        d.line(pts, fill=color, width=w, joint="curve")
-        for x, y in (pts[0], pts[-1]):
-            d.ellipse([x - w / 2, y - w / 2, x + w / 2, y + w / 2], fill=color)
-
-    # bag body: tapered tote, rounded joins
-    d = ImageDraw.Draw(img)
-    top, bot = S * 0.40, S * 0.80
-    pts = [(S * 0.22, top), (S * 0.78, top), (S * 0.70, bot), (S * 0.30, bot)]
-    line(pts + [pts[0]])
-    # round the outer corners of the polyline
-    for x, y in pts:
-        d.ellipse([x - w / 2, y - w / 2, x + w / 2, y + w / 2], fill=LIME)
-    # handle: wide arc whose ends sit inside the bag
-    d.arc([S * 0.34, S * 0.17, S * 0.66, S * 0.63], 180, 360, fill=LIME, width=w)
-    for x in (S * 0.34 + w / 2 - 1, S * 0.66 - w / 2 + 1):
-        d.ellipse([x - w / 2, S * 0.40 - w / 2, x + w / 2, S * 0.40 + w / 2], fill=LIME)
-
-    # check mark inside the bag
-    line([(S * 0.40, S * 0.615), (S * 0.475, S * 0.69), (S * 0.60, S * 0.545)], LIME)
-    return img
+def save_ios_icon(source, size, destination):
+    icon = resized(source, size)
+    background = Image.new("RGBA", icon.size, IOS_BACKGROUND + (255,))
+    background.alpha_composite(icon)
+    background.convert("RGB").save(destination, format="PNG", optimize=True)
 
 
 def main():
-    m = master()
-    # Windows: multi-size ico
-    sizes = [16, 24, 32, 48, 64, 128, 256]
-    m.save("windows/runner/resources/app_icon.ico", sizes=[(s, s) for s in sizes])
-    # Android launcher icons
-    for d, px in {"mdpi": 48, "hdpi": 72, "xhdpi": 96, "xxhdpi": 144, "xxxhdpi": 192}.items():
-        m.resize((px, px), Image.LANCZOS).save(
-            f"android/app/src/main/res/mipmap-{d}/ic_launcher.png")
-    m.resize((96, 96), Image.LANCZOS).save("assets/app_icon.png")
-    m.resize((512, 512), Image.LANCZOS).save("tool/icon_preview.png")
+    source = Image.open(SOURCE).convert("RGBA")
+
+    # Windows multi-resolution ICO; transparent pixels remain transparent.
+    source.save(
+        "windows/runner/resources/app_icon.ico",
+        format="ICO",
+        sizes=[(size, size) for size in (16, 24, 32, 48, 64, 128, 256)],
+    )
+
+    # Android legacy launcher assets at their native density sizes.
+    for density, pixels in {
+        "mdpi": 48,
+        "hdpi": 72,
+        "xhdpi": 96,
+        "xxhdpi": 144,
+        "xxxhdpi": 192,
+    }.items():
+        resized(source, pixels).save(
+            f"android/app/src/main/res/mipmap-{density}/ic_launcher.png",
+            format="PNG",
+            optimize=True,
+        )
+
+    # macOS AppIcon catalog uses physical-pixel sizes in its filenames.
+    macos_catalog = json.loads(
+        Path("macos/Runner/Assets.xcassets/AppIcon.appiconset/Contents.json")
+        .read_text()
+    )
+    for entry in macos_catalog["images"]:
+        filename = entry.get("filename")
+        if not filename:
+            continue
+        match = re.search(r"_(\d+)\.png$", filename)
+        if not match:
+            raise ValueError(f"Cannot determine physical icon size: {filename}")
+        resized(source, int(match.group(1))).save(
+            Path("macos/Runner/Assets.xcassets/AppIcon.appiconset") / filename,
+            format="PNG",
+            optimize=True,
+        )
+
+    # iOS app icons must be square and opaque; iOS applies its own corner mask.
+    ios_catalog = json.loads(
+        Path("ios/Runner/Assets.xcassets/AppIcon.appiconset/Contents.json")
+        .read_text()
+    )
+    for entry in ios_catalog["images"]:
+        filename = entry.get("filename")
+        if not filename:
+            continue
+        logical_size = float(entry["size"].split("x")[0])
+        scale = float(entry["scale"].removesuffix("x"))
+        pixels = round(logical_size * scale)
+        save_ios_icon(
+            source,
+            pixels,
+            Path("ios/Runner/Assets.xcassets/AppIcon.appiconset") / filename,
+        )
+
+    # In-app preview and Windows taskbar/tray image.
+    resized(source, 96).save("assets/app_icon.png", format="PNG", optimize=True)
+    resized(source, 512).save("tool/icon_preview.png", format="PNG", optimize=True)
 
 
-main()
+if __name__ == "__main__":
+    main()
