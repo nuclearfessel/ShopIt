@@ -39,6 +39,13 @@
         box-sizing: border-box;
       }
 
+      img {
+        display: block;
+        max-width: 100%;
+        height: auto;
+        object-fit: contain;
+      }
+
       html {
         scroll-behavior: smooth;
       }
@@ -107,6 +114,8 @@
 
       .hero-banner {
         width: 100%;
+        height: auto;
+        aspect-ratio: 1024 / 332;
         border-radius: 28px;
         box-shadow: var(--shadow);
         border: 1px solid var(--line);
@@ -206,14 +215,22 @@
 
       .shot {
         width: 100%;
+        height: auto;
         border-radius: 22px;
         border: 1px solid var(--line);
         background: var(--raised);
         box-shadow: var(--shadow);
       }
 
+      .shot-desktop {
+        aspect-ratio: 2400 / 1520;
+      }
+
       .shot-phone {
         max-width: 280px;
+        width: 100%;
+        height: auto;
+        aspect-ratio: 824 / 1830;
         justify-self: center;
       }
 
@@ -295,8 +312,8 @@
           <img
             src="brand/shopit-horizontal-light.png"
             alt="ShopIt"
-            width="220"
-            height="64"
+            width="1100"
+            height="300"
           />
         </a>
         <nav class="nav" aria-label="Primary">
@@ -311,8 +328,8 @@
           <img
             class="hero-banner"
             src="assets/readme-banner-light.png"
-            width="1600"
-            height="520"
+            width="1024"
+            height="332"
             alt="ShopIt — Make room for the everyday. Lists, pantry, and recipes together on Windows, macOS, Android, and iOS."
           />
           <div class="hero-copy">
@@ -341,17 +358,17 @@
           </p>
           <div class="shots">
             <img
-              class="shot"
+              class="shot shot-desktop"
               src="screenshots/windows.png"
-              width="1200"
-              height="760"
+              width="2400"
+              height="1520"
               alt="ShopIt shopping list on Windows in the light theme"
             />
             <img
               class="shot shot-phone"
               src="screenshots/android.png"
-              width="412"
-              height="915"
+              width="824"
+              height="1830"
               alt="ShopIt shopping list on Android in the light theme"
             />
           </div>
