@@ -65,9 +65,28 @@ class PackagedAndroidIconsTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "missing or duplicate"):
             self.check()
 
-    def test_adaptive_xml_is_explicitly_unsupported(self):
-        self.badging = self.badging.replace("ic_launcher.png", "ic_launcher.xml")
-        with self.assertRaisesRegex(ValueError, "adaptive/vector"):
+    def test_adaptive_xml_requires_reviewed_png_fallbacks(self):
+        self.badging = "\n".join(
+            f"application-icon-{dpi}:'res/mipmap-anydpi-v26/ic_launcher.xml'"
+            for dpi in DENSITIES
+        )
+        with ZipFile(self.apk, "a") as archive:
+            archive.writestr(
+                "res/mipmap-anydpi-v26/ic_launcher.xml",
+                b"<adaptive-icon/>",
+            )
+        self.check()
+
+    def test_adaptive_xml_without_png_fallback_fails(self):
+        self.badging = "\n".join(
+            f"application-icon-{dpi}:'res/mipmap-anydpi-v26/ic_launcher.xml'"
+            for dpi in DENSITIES
+        )
+        self.payloads = {
+            "res/mipmap-anydpi-v26/ic_launcher.xml": b"<adaptive-icon/>",
+        }
+        self.write_apk()
+        with self.assertRaisesRegex(ValueError, "exactly one ic_launcher.png"):
             self.check()
 
     def test_corrupt_payload_fails(self):
