@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ShopIt — Make room for the everyday</title>
+    <meta
+      name="description"
+      content="ShopIt is an open source shopping, pantry, and recipe app for Windows, macOS, Android, and iOS."
+    />
+    <meta property="og:title" content="ShopIt" />
+    <meta
+      property="og:description"
+      content="Make room for the everyday. Lists, pantry, and recipes—together."
+    />
+    <meta property="og:image" content="assets/readme-banner-light.png" />
+    <link rel="icon" href="brand/shopit-horizontal-light.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,560;9..144,700&family=Nunito+Sans:opsz,wght@6..12,500;6..12,700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #f8f1e7;
+        --cards: #f1e7d8;
+        --raised: #fff8ea;
+        --totals: #e8d8c1;
+        --text: #24342d;
+        --icon: #a8430a;
+        --seed: #ef7008;
+        --muted: color-mix(in srgb, var(--text) 72%, transparent);
+        --line: color-mix(in srgb, var(--icon) 22%, var(--cards));
+        --shadow: 0 24px 60px color-mix(in srgb, var(--text) 12%, transparent);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        color: var(--text);
+        font-family: "Nunito Sans", system-ui, sans-serif;
+        background:
+          radial-gradient(circle at 88% 8%, color-mix(in srgb, var(--seed) 18%, transparent), transparent 34%),
+          radial-gradient(circle at 12% 92%, color-mix(in srgb, var(--icon) 12%, transparent), transparent 28%),
+          linear-gradient(165deg, var(--bg) 0%, var(--cards) 52%, var(--totals) 100%);
+      }
+
+      a {
+        color: var(--icon);
+      }
+
+      .wrap {
+        width: min(1120px, calc(100% - 2.5rem));
+        margin: 0 auto;
+      }
+
+      .site-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 1.25rem 0 0.5rem;
+      }
+
+      .mark {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.75rem;
+        text-decoration: none;
+        color: inherit;
+      }
+
+      .mark img {
+        width: min(220px, 52vw);
+        height: auto;
+      }
+
+      .nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.85rem 1.25rem;
+        font-size: 0.92rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      .nav a {
+        text-decoration: none;
+        color: var(--icon);
+      }
+
+      .hero {
+        display: grid;
+        gap: 1.75rem;
+        padding: 1.5rem 0 3.5rem;
+      }
+
+      .hero-banner {
+        width: 100%;
+        border-radius: 28px;
+        box-shadow: var(--shadow);
+        border: 1px solid var(--line);
+        background: var(--raised);
+      }
+
+      .hero-copy {
+        display: grid;
+        gap: 1rem;
+        max-width: 38rem;
+      }
+
+      .eyebrow {
+        margin: 0;
+        color: var(--icon);
+        font-size: 0.85rem;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        margin: 0;
+        font-family: Fraunces, Georgia, serif;
+        font-size: clamp(2.6rem, 7vw, 4.4rem);
+        font-weight: 700;
+        line-height: 0.98;
+        letter-spacing: -0.03em;
+      }
+
+      .lede {
+        margin: 0;
+        color: var(--muted);
+        font-size: 1.15rem;
+        line-height: 1.55;
+      }
+
+      .cta-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-top: 0.35rem;
+      }
+
+      .button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 2.9rem;
+        padding: 0.7rem 1.15rem;
+        border-radius: 999px;
+        border: 1.5px solid transparent;
+        text-decoration: none;
+        font-weight: 700;
+        transition: transform 180ms ease, background-color 180ms ease, border-color 180ms ease;
+      }
+
+      .button:hover {
+        transform: translateY(-1px);
+      }
+
+      .button-primary {
+        color: #fff8ea;
+        background: linear-gradient(135deg, var(--seed), var(--icon));
+      }
+
+      .button-secondary {
+        color: var(--text);
+        background: var(--raised);
+        border-color: var(--line);
+      }
+
+      .section {
+        padding: 1rem 0 3.5rem;
+      }
+
+      .section h2 {
+        margin: 0 0 0.65rem;
+        font-family: Fraunces, Georgia, serif;
+        font-size: clamp(1.7rem, 4vw, 2.4rem);
+        letter-spacing: -0.02em;
+      }
+
+      .section p {
+        margin: 0 0 1.5rem;
+        max-width: 40rem;
+        color: var(--muted);
+        line-height: 1.55;
+      }
+
+      .shots {
+        display: grid;
+        grid-template-columns: 1.7fr 0.8fr;
+        gap: 1rem;
+        align-items: start;
+      }
+
+      .shot {
+        width: 100%;
+        border-radius: 22px;
+        border: 1px solid var(--line);
+        background: var(--raised);
+        box-shadow: var(--shadow);
+      }
+
+      .shot-phone {
+        max-width: 280px;
+        justify-self: center;
+      }
+
+      .downloads {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.85rem;
+      }
+
+      .download-card {
+        display: grid;
+        gap: 0.35rem;
+        padding: 1.1rem 1.15rem;
+        border-radius: 18px;
+        background: color-mix(in srgb, var(--raised) 88%, white);
+        border: 1px solid var(--line);
+        text-decoration: none;
+        color: inherit;
+        transition: transform 180ms ease, border-color 180ms ease;
+      }
+
+      .download-card:hover {
+        transform: translateY(-2px);
+        border-color: color-mix(in srgb, var(--seed) 45%, var(--line));
+      }
+
+      .download-card strong {
+        font-family: Fraunces, Georgia, serif;
+        font-size: 1.2rem;
+      }
+
+      .download-card span {
+        color: var(--muted);
+        font-size: 0.95rem;
+      }
+
+      .site-footer {
+        padding: 1.5rem 0 2.5rem;
+        color: var(--muted);
+        font-size: 0.95rem;
+      }
+
+      .site-footer a {
+        font-weight: 700;
+        text-decoration: none;
+      }
+
+      @media (max-width: 820px) {
+        .shots,
+        .downloads {
+          grid-template-columns: 1fr;
+        }
+
+        .shot-phone {
+          max-width: 240px;
+        }
+
+        .nav {
+          display: none;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        html {
+          scroll-behavior: auto;
+        }
+
+        .button,
+        .download-card {
+          transition: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header class="site-header">
+        <a class="mark" href="./">
+          <img
+            src="brand/shopit-horizontal-light.png"
+            alt="ShopIt"
+            width="220"
+            height="64"
+          />
+        </a>
+        <nav class="nav" aria-label="Primary">
+          <a href="#download">Download</a>
+          <a href="usage.md">Guide</a>
+          <a href="https://github.com/nuclearfessel/ShopIt">Source</a>
+        </nav>
+      </header>
+
+      <main>
+        <section class="hero" aria-label="ShopIt">
+          <img
+            class="hero-banner"
+            src="assets/readme-banner-light.png"
+            width="1600"
+            height="520"
+            alt="ShopIt — Make room for the everyday. Lists, pantry, and recipes together on Windows, macOS, Android, and iOS."
+          />
+          <div class="hero-copy">
+            <p class="eyebrow">Household shopping · Pantry · Recipes</p>
+            <h1>Make room for the everyday.</h1>
+            <p class="lede">
+              Open source lists, pantry, and recipes for one household — on
+              Windows, macOS, Android, and iOS.
+            </p>
+            <div class="cta-row">
+              <a class="button button-primary" href="#download">Get ShopIt 1.0.0</a>
+              <a
+                class="button button-secondary"
+                href="https://github.com/nuclearfessel/ShopIt"
+                >View on GitHub</a
+              >
+            </div>
+          </div>
+        </section>
+
+        <section class="section" aria-labelledby="look-heading">
+          <h2 id="look-heading">The light look</h2>
+          <p>
+            Cream surfaces, warm text, and tangerine accents — the same ShopIt
+            Light palette the app uses every day.
+          </p>
+          <div class="shots">
+            <img
+              class="shot"
+              src="screenshots/windows.png"
+              width="1200"
+              height="760"
+              alt="ShopIt shopping list on Windows in the light theme"
+            />
+            <img
+              class="shot shot-phone"
+              src="screenshots/android.png"
+              width="412"
+              height="915"
+              alt="ShopIt shopping list on Android in the light theme"
+            />
+          </div>
+        </section>
+
+        <section class="section" id="download" aria-labelledby="download-heading">
+          <h2 id="download-heading">Download</h2>
+          <p>Current version 1.0.0. Older packages stay in Releases.</p>
+          <div class="downloads">
+            <a
+              class="download-card"
+              href="https://github.com/nuclearfessel/ShopIt/releases/download/v1.0.0/ShopIt-Setup-1.0.0.exe"
+            >
+              <strong>Windows</strong>
+              <span>ShopIt-Setup-1.0.0.exe</span>
+            </a>
+            <a
+              class="download-card"
+              href="https://github.com/nuclearfessel/ShopIt/releases/download/v1.0.0/ShopIt-1.0.0.apk"
+            >
+              <strong>Android</strong>
+              <span>ShopIt-1.0.0.apk</span>
+            </a>
+            <a
+              class="download-card"
+              href="https://github.com/nuclearfessel/ShopIt/releases/download/v1.0.0/ShopIt-1.0.0-macos.zip"
+            >
+              <strong>Mac</strong>
+              <span>ShopIt-1.0.0-macos.zip</span>
+            </a>
+          </div>
+        </section>
+      </main>
+
+      <footer class="site-footer">
+        <p>
+          ShopIt is open source under the
+          <a href="https://github.com/nuclearfessel/ShopIt/blob/main/LICENSE"
+            >MIT License</a
+          >.
+          Full walkthrough:
+          <a href="usage.md">Using ShopIt</a>.
+        </p>
+      </footer>
+    </div>
+  </body>
+</html>

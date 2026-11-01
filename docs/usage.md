@@ -4,7 +4,7 @@
   <img src="brand/shopit-horizontal-light.png" alt="ShopIt primary logo" width="280">
 </p>
 
-<img src="assets/readme-banner-light.svg" alt="ShopIt — make room for the everyday. Household shopping lists, pantry, and recipes for Windows, macOS, Android, and iOS." width="100%">
+<img src="assets/readme-banner-light.png" alt="ShopIt — make room for the everyday. Household shopping lists, pantry, and recipes for Windows, macOS, Android, and iOS." width="100%">
 
 The app is named **ShopIt** on the window title, under the icon, in the Mac menu bar, in Windows Installed apps, and on the download files.
 

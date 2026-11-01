@@ -3,7 +3,7 @@
 </h1>
 
 <p align="center">
-  <img src="docs/assets/readme-banner-light.svg" alt="ShopIt — make room for the everyday. Household shopping lists, pantry, and recipes for Windows, macOS, Android, and iOS." width="100%">
+  <img src="docs/assets/readme-banner-light.png" alt="ShopIt — make room for the everyday. Household shopping lists, pantry, and recipes for Windows, macOS, Android, and iOS." width="100%">
 </p>
 
 ShopIt is an open source shopping, pantry, and recipe app for Windows, Mac, Android, and iOS. The source is in this repository. The window title, the icon, and Windows Installed apps all say ShopIt. The same lists, categories, prices, recipes, and tax settings work on each of them.
