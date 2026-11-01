@@ -77,15 +77,25 @@ def bundle_info(bundle):
 
 def check_macos(bundle, manifest):
     contents, info = bundle_info(bundle)
+    resources = (contents / "Resources").resolve()
+    # Prefer the reviewed release ICNS when present so an Xcode asset-catalog
+    # AppIcon.icns cannot silently become the checked file.
+    reviewed = (resources / "ShopItAppIcon.icns").resolve()
     name = info.get("CFBundleIconFile")
-    if not isinstance(name, str) or not name or Path(name).name != name:
+    if reviewed.is_file():
+        if not isinstance(name, str) or Path(name).stem != "ShopItAppIcon":
+            raise ValueError(
+                "CFBundleIconFile must be ShopItAppIcon when "
+                f"ShopItAppIcon.icns is packaged; found {name!r}"
+            )
+        name = "ShopItAppIcon.icns"
+    elif not isinstance(name, str) or not name or Path(name).name != name:
         raise ValueError(
             "built Info.plist must name its compiled CFBundleIconFile; "
             "catalog-only Assets.car inspection is unsupported, not a pass"
         )
-    if not name.lower().endswith(".icns"):
+    elif not name.lower().endswith(".icns"):
         name += ".icns"
-    resources = (contents / "Resources").resolve()
     icon = (resources / name).resolve()
     if not icon.is_relative_to(resources):
         raise ValueError("compiled icon escapes Resources")
