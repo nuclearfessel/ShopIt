@@ -29,7 +29,13 @@ void main() {
       fakeItem('a', 'Bananas', category: 'Produce', price: 1.29),
       fakeItem('b', 'Bread', category: 'Bakery', price: 3.49),
       fakeItem('c', 'Milk', category: 'Dairy & Eggs', price: 4.19),
-      fakeItem('d', 'Eggs', category: 'Dairy & Eggs', price: 3.99, checked: true),
+      fakeItem(
+        'd',
+        'Eggs',
+        category: 'Dairy & Eggs',
+        price: 3.99,
+        checked: true,
+      ),
       fakeItem('e', 'Butter', category: 'Dairy & Eggs', price: 5.49),
     ];
     final categories = [
@@ -54,7 +60,7 @@ void main() {
         lists: lists,
         items: items,
         categories: categories,
-        themeMode: ThemeMode.dark,
+        themeMode: ThemeMode.light,
         boundary: key,
       );
       await tester.pump(const Duration(milliseconds: 500));
@@ -86,12 +92,6 @@ void main() {
 
     await shot(name: 'windows.png', width: 1200, height: 760, scan: false);
     await shot(name: 'android.png', width: 412, height: 915, scan: true);
-    await shot(
-      name: 'android-tablet.png',
-      width: 1280,
-      height: 800,
-      scan: true,
-    );
     debugPlatformScansBarcodes = null;
   });
 }

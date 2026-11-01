@@ -88,6 +88,18 @@ void main() {
     Brightness shown(WidgetTester tester) =>
         Theme.of(tester.element(find.byType(Scaffold).first)).brightness;
 
+    ColorScheme palette(WidgetTester tester) =>
+        Theme.of(tester.element(find.byType(Scaffold).first)).colorScheme;
+
+    Color? icons(WidgetTester tester) =>
+        Theme.of(tester.element(find.byType(Scaffold).first)).iconTheme.color;
+
+    Color? hint(WidgetTester tester) =>
+        Theme.of(tester.element(find.byType(Scaffold).first))
+            .inputDecorationTheme
+            .hintStyle
+            ?.color;
+
     Future<void> choose(WidgetTester tester, String label) async {
       await tester.tap(find.byTooltip('Settings'));
       await tester.pumpAndSettle();
@@ -109,9 +121,19 @@ void main() {
       expect(container.read(themeModeProvider), ThemeMode.dark);
       expect(shown(tester), Brightness.dark);
       expect(await loadThemeMode(), ThemeMode.dark); // remembered
+      expect(palette(tester).surface, const Color(0xFF171E1A));
+      expect(palette(tester).onSurface, const Color(0xFFFFF8EA));
+      expect(palette(tester).surfaceContainerHighest, const Color(0xFF304238));
+      expect(icons(tester), iconOnDark);
+      expect(hint(tester), const Color(0xFFFFF8EA).withValues(alpha: 0.75));
 
       await choose(tester, 'Light');
       expect(shown(tester), Brightness.light);
+      expect(palette(tester).surface, const Color(0xFFF8F1E7));
+      expect(palette(tester).onSurface, const Color(0xFF24342D));
+      expect(palette(tester).surfaceContainerHighest, const Color(0xFFE8D8C1));
+      expect(icons(tester), iconOnLight);
+      expect(hint(tester), const Color(0xFF24342D).withValues(alpha: 0.75));
 
       // "Match system" follows the platform in both directions.
       await choose(tester, 'Match system');
@@ -125,13 +147,13 @@ void main() {
       expect(shown(tester), Brightness.light);
     });
 
-    testWidgets('icons in the app bar are key lime in both themes', (
+    testWidgets('icons in the app bar follow the theme accent in both themes', (
       tester,
     ) async {
       await pumpApp(tester, platform: Brightness.dark);
 
-      // The pixel in the gear closest to the expected lime.
-      Future<int> distanceFrom(Color lime) async {
+      // The pixel in the gear closest to the expected accent.
+      Future<int> distanceFrom(Color accent) async {
         final shot = await capture(tester, boundary);
         final rect = tester.getRect(
           find.descendant(
@@ -144,9 +166,9 @@ void main() {
           for (var x = rect.left.floor(); x < rect.right.ceil(); x++) {
             final p = shot.at(x, y);
             final d =
-                (p.r - (lime.r * 255).round()).abs() +
-                (p.g - (lime.g * 255).round()).abs() +
-                (p.b - (lime.b * 255).round()).abs();
+                (p.r - (accent.r * 255).round()).abs() +
+                (p.g - (accent.g * 255).round()).abs() +
+                (p.b - (accent.b * 255).round()).abs();
             if (d < best) best = d;
           }
         }
@@ -154,17 +176,17 @@ void main() {
       }
 
       // Edge pixels blend with the background, so compare against the other
-      // lime rather than expecting it to be far away.
+      // accent rather than expecting it to be far away.
       expect(shown(tester), Brightness.dark);
-      final darkRight = await distanceFrom(keyLimeOnDark);
+      final darkRight = await distanceFrom(iconOnDark);
       expect(darkRight, lessThan(40));
-      expect(darkRight, lessThan(await distanceFrom(keyLimeOnLight)));
+      expect(darkRight, lessThan(await distanceFrom(iconOnLight)));
 
       await choose(tester, 'Light');
       expect(shown(tester), Brightness.light);
-      final lightRight = await distanceFrom(keyLimeOnLight);
+      final lightRight = await distanceFrom(iconOnLight);
       expect(lightRight, lessThan(40));
-      expect(lightRight, lessThan(await distanceFrom(keyLimeOnDark)));
+      expect(lightRight, lessThan(await distanceFrom(iconOnDark)));
     });
 
     testWidgets('a forced theme ignores the system setting', (tester) async {

@@ -45,40 +45,52 @@ GoRouter _createRouter() => GoRouter(
   ],
 );
 
-/// Key lime for all icons: a brighter tone on dark surfaces, a deeper one on
-/// light surfaces so icons stay visible.
-const keyLimeOnDark = Color(0xFFBFE04F);
-const keyLimeOnLight = Color(0xFF86AA12);
+/// Original Tangerine. Material 3 builds primary, secondary, outline, and
+/// error from this seed; the surfaces below replace the generated ones.
+const shopItSeed = Color(0xFFEF7008);
 
-// Warm off-white cream (light) and its warm charcoal-green companion (dark).
-const _creamBackground = Color(0xFFFAF6EA);
-const _creamSurface = Color(0xFFF2ECDA);
-const _creamText = Color(0xFF2B2A24);
-const _nightBackground = Color(0xFF1A1C17);
-const _nightSurface = Color(0xFF242720);
-const _nightText = Color(0xFFEDE8D6);
+/// Icons on neutral surfaces: deeper tangerine on light, gold on dark.
+const iconOnDark = Color(0xFFFEC256);
+const iconOnLight = Color(0xFFA8430A);
 
-ThemeData _buildTheme(Brightness brightness) {
+const _lightBackground = Color(0xFFF8F1E7);
+const _lightCards = Color(0xFFF1E7D8);
+const _lightRaised = Color(0xFFFFF8EA);
+const _lightTotals = Color(0xFFE8D8C1);
+const _lightText = Color(0xFF24342D);
+
+const _darkBackground = Color(0xFF171E1A);
+const _darkCards = Color(0xFF202B25);
+const _darkRaised = Color(0xFF26372F);
+const _darkTotals = Color(0xFF304238);
+const _darkText = Color(0xFFFFF8EA);
+
+/// Placeholders such as "0.00" tell the user what to type, so they are not
+/// the 40% used for disabled content. 75% is the lightest step that stays
+/// at least 4.5:1 on every surface in the palette. Resting labels are a
+/// step stronger, and a floating label uses the full text color.
+const _hintOpacity = 0.75;
+const _labelOpacity = 0.85;
+
+ThemeData shopItTheme(Brightness brightness) {
   final dark = brightness == Brightness.dark;
-  final lime = dark ? keyLimeOnDark : keyLimeOnLight;
+  final icon = dark ? iconOnDark : iconOnLight;
   final scheme =
       ColorScheme.fromSeed(
-        seedColor: const Color(0xFF4F7A3A),
+        seedColor: shopItSeed,
         brightness: brightness,
       ).copyWith(
-        surface: dark ? _nightBackground : _creamBackground,
-        onSurface: dark ? _nightText : _creamText,
-        surfaceContainerLowest: dark ? _nightBackground : _creamBackground,
-        surfaceContainerLow: dark ? _nightSurface : _creamSurface,
-        surfaceContainer: dark ? _nightSurface : _creamSurface,
-        surfaceContainerHigh: dark
-            ? const Color(0xFF2C3026)
-            : const Color(0xFFEBE4CF),
-        // Deepest tone of the palette: used for the totals bar so it differs
-        // from the navigation (surfaceContainer) and the cart panel.
-        surfaceContainerHighest: dark
-            ? const Color(0xFF363B2D)
-            : const Color(0xFFE2D9BD),
+        surface: dark ? _darkBackground : _lightBackground,
+        onSurface: dark ? _darkText : _lightText,
+        // Keep elevation from washing the fixed surfaces with the orange seed.
+        surfaceTint: Colors.transparent,
+        surfaceContainerLowest: dark ? _darkBackground : _lightBackground,
+        surfaceContainerLow: dark ? _darkCards : _lightCards,
+        surfaceContainer: dark ? _darkCards : _lightCards,
+        surfaceContainerHigh: dark ? _darkRaised : _lightRaised,
+        // Totals bar. Separate from navigation (surfaceContainer) and the
+        // cart panel (surfaceContainerHigh).
+        surfaceContainerHighest: dark ? _darkTotals : _lightTotals,
       );
   final base = ThemeData(
     colorScheme: scheme,
@@ -87,21 +99,30 @@ ThemeData _buildTheme(Brightness brightness) {
     // Bundled Roboto: the same clean sans-serif everywhere, not Windows' font.
     fontFamily: 'Roboto',
   );
+
+  IconThemeData iconFor(Set<WidgetState> states) {
+    if (states.contains(WidgetState.disabled)) {
+      return IconThemeData(color: icon.withValues(alpha: 0.4));
+    }
+    // The selected pill is a generated fill, so its icon uses that fill's
+    // own foreground. Unselected icons sit on the neutral navigation surface.
+    if (states.contains(WidgetState.selected)) {
+      return IconThemeData(color: scheme.onSecondaryContainer);
+    }
+    return IconThemeData(color: icon);
+  }
+
   return base.copyWith(
-    // Quieter, smaller labels and placeholders on every text field.
     inputDecorationTheme: InputDecorationTheme(
       hintStyle: TextStyle(
         fontSize: 14,
-        color: scheme.onSurface.withValues(alpha: 0.4),
+        color: scheme.onSurface.withValues(alpha: _hintOpacity),
       ),
       labelStyle: TextStyle(
         fontSize: 14,
-        color: scheme.onSurface.withValues(alpha: 0.55),
+        color: scheme.onSurface.withValues(alpha: _labelOpacity),
       ),
-      floatingLabelStyle: TextStyle(
-        fontSize: 12,
-        color: scheme.onSurface.withValues(alpha: 0.65),
-      ),
+      floatingLabelStyle: TextStyle(fontSize: 12, color: scheme.onSurface),
     ),
     appBarTheme: AppBarTheme(
       backgroundColor: scheme.surface,
@@ -111,27 +132,38 @@ ThemeData _buildTheme(Brightness brightness) {
       // 40px inside a 48px tap target, so 12px of bar padding puts that
       // shape 16px from the right edge.
       actionsPadding: const EdgeInsets.only(right: 12),
-      iconTheme: IconThemeData(color: lime),
-      actionsIconTheme: IconThemeData(color: lime),
+      iconTheme: IconThemeData(color: icon),
+      actionsIconTheme: IconThemeData(color: icon),
     ),
-    cardTheme: CardThemeData(color: scheme.surfaceContainerLow),
-    iconTheme: base.iconTheme.copyWith(color: lime),
-    primaryIconTheme: base.primaryIconTheme.copyWith(color: lime),
+    cardTheme: CardThemeData(
+      color: scheme.surfaceContainerLow,
+      surfaceTintColor: Colors.transparent,
+    ),
+    dialogTheme: DialogThemeData(
+      backgroundColor: scheme.surfaceContainerHigh,
+      surfaceTintColor: Colors.transparent,
+    ),
+    iconTheme: base.iconTheme.copyWith(color: icon),
     iconButtonTheme: IconButtonThemeData(
-      style: IconButton.styleFrom(foregroundColor: lime),
+      style: IconButton.styleFrom(
+        foregroundColor: icon,
+        disabledForegroundColor: icon.withValues(alpha: 0.4),
+      ),
     ),
     floatingActionButtonTheme: FloatingActionButtonThemeData(
-      foregroundColor: lime,
+      foregroundColor: icon,
       backgroundColor: scheme.surfaceContainerHigh,
     ),
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: scheme.surfaceContainer,
-      iconTheme: WidgetStatePropertyAll(IconThemeData(color: lime)),
+      indicatorColor: scheme.secondaryContainer,
+      iconTheme: WidgetStateProperty.resolveWith(iconFor),
     ),
     navigationRailTheme: NavigationRailThemeData(
       backgroundColor: scheme.surfaceContainer,
-      selectedIconTheme: IconThemeData(color: lime),
-      unselectedIconTheme: IconThemeData(color: lime.withValues(alpha: 0.7)),
+      indicatorColor: scheme.secondaryContainer,
+      selectedIconTheme: IconThemeData(color: scheme.onSecondaryContainer),
+      unselectedIconTheme: IconThemeData(color: icon),
     ),
   );
 }
@@ -163,8 +195,8 @@ class _ShopItAppState extends ConsumerState<ShopItApp> {
     return MaterialApp.router(
       title: 'ShopIt',
       debugShowCheckedModeBanner: false,
-      theme: _buildTheme(Brightness.light),
-      darkTheme: _buildTheme(Brightness.dark),
+      theme: shopItTheme(Brightness.light),
+      darkTheme: shopItTheme(Brightness.dark),
       themeMode: ref.watch(themeModeProvider),
       routerConfig: _router,
       // On Windows the native title bar is hidden; draw our own.
@@ -212,9 +244,9 @@ class AppShell extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final lime = Theme.of(context).brightness == Brightness.dark
-        ? keyLimeOnDark
-        : keyLimeOnLight;
+    final icon = Theme.of(context).brightness == Brightness.dark
+        ? iconOnDark
+        : iconOnLight;
     final wide = !isPhoneSize(MediaQuery.sizeOf(context));
     final Widget page;
     if (wide) {
@@ -238,7 +270,7 @@ class AppShell extends ConsumerWidget {
                   ),
               ],
               trailing: _SettingsRailButton(
-                color: lime,
+                color: icon,
                 onPressed: () => _openSettings(context, ref),
               ),
             ),
@@ -262,8 +294,8 @@ class AppShell extends ConsumerWidget {
                 tooltip: 'Go to ${d.$2}',
               ),
             NavigationDestination(
-              icon: KeylineIcon(KeylineIcons.settings, color: lime),
-              selectedIcon: KeylineIcon(KeylineIcons.settings, color: lime),
+              icon: KeylineIcon(KeylineIcons.settings, color: icon),
+              selectedIcon: KeylineIcon(KeylineIcons.settings, color: icon),
               label: 'Settings',
               tooltip: 'Settings',
             ),

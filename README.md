@@ -1,16 +1,9 @@
 <h1 align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/brand/shopit-horizontal-dark.png">
-    <img src="docs/brand/shopit-horizontal-light.png" alt="ShopIt primary logo" width="360">
-  </picture>
+  <img src="docs/brand/shopit-horizontal-light.png" alt="ShopIt primary logo" width="360">
 </h1>
 
 <p align="center">
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme-banner-dark.svg">
-  <source media="(prefers-color-scheme: light)" srcset="docs/assets/readme-banner-light.svg">
   <img src="docs/assets/readme-banner-light.svg" alt="ShopIt — make room for the everyday. Household shopping lists, pantry, and recipes for Windows, macOS, Android, and iOS." width="100%">
-</picture>
 </p>
 
 ShopIt is an open source shopping, pantry, and recipe app for Windows, Mac, Android, and iOS. The source is in this repository. The window title, the icon, and Windows Installed apps all say ShopIt. The same lists, categories, prices, recipes, and tax settings work on each of them.
@@ -50,17 +43,9 @@ On Android and iOS, removing the app clears its sandbox. ShopIt does not back li
 
 ## Features
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/workflow-dark.svg">
-  <source media="(prefers-color-scheme: light)" srcset="docs/assets/workflow-light.svg">
-  <img src="docs/assets/workflow-light.svg" alt="ShopIt household loop: plan a shopping list, check items into the cart, track pantry items as Low, Full, or exact amounts, then scale a recipe and cook. Pantry-to-shopping suggestions require the optional Shopping and pantry setting." width="100%">
-</picture>
+<img src="docs/assets/workflow-light.svg" alt="ShopIt household loop: plan a shopping list, check items into the cart, track pantry items as Low, Full, or exact amounts, then scale a recipe and cook. Pantry-to-shopping suggestions require the optional Shopping and pantry setting." width="100%">
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/features-dark.svg">
-  <source media="(prefers-color-scheme: light)" srcset="docs/assets/features-light.svg">
-  <img src="docs/assets/features-light.svg" alt="ShopIt has three connected areas: shopping lists with quantities, prices, coupons, and cart totals; pantry tracking with Low, Full, exact amounts, and Use soon; and recipes with serving scaling, missing-ingredient lists, and pantry deductions on Cook." width="100%">
-</picture>
+<img src="docs/assets/features-light.svg" alt="ShopIt has three connected areas: shopping lists with quantities, prices, coupons, and cart totals; pantry tracking with Low, Full, exact amounts, and Use soon; and recipes with serving scaling, missing-ingredient lists, and pantry deductions on Cook." width="100%">
 
 - **Shopping** — lists with categories, quantities, prices, coupons, and a cart. Categories stay in alphabetical order. Drag an unchecked item onto another category that already has items to file it there. Search finds items already on the open list, items in the pantry, and names you have added before; choosing Recent adds that name again. **Clear all history** in the list menu empties those recents; your lists stay as they are. **Delete all lists** removes every shopping list; the pantry is not affected. A totals bar shows cart and list totals. A name ShopIt does not already know is saved when you add it, so it shows up next time. On a phone or tablet, scan a barcode next to Add. When **Shopping and pantry** is on in Settings, the cart offers **Add to pantry**.
 - **Pantry** — what you already have. Each item can be **Low** or **Full**, or an exact amount. The list menu covers amounts, move/copy, categories, manage lists, CSV import and export, and delete. **Amounts** applies **Low or stocked** or **Exact amounts** to every item on that list. Items that expire within seven days, or that are already past that date, show in a Use soon strip. When **Shopping and pantry** is on, a Low item, an exact amount at zero, or a Use soon item can be added to the open shopping list. On a phone or tablet, scan a barcode to add or increase that item.
@@ -73,11 +58,7 @@ When the shortest side of the window is under 600, Shopping, Pantry, Recipes, an
 
 ## Sync
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/sharing-dark.svg">
-  <source media="(prefers-color-scheme: light)" srcset="docs/assets/sharing-light.svg">
-  <img src="docs/assets/sharing-light.svg" alt="Illustrative ShopIt device diagram: enter the same household code on both devices. Share on the same Wi-Fi while both apps are open, or over the internet while both apps are open. List copies are encrypted, and the household code itself is not sent over the network." width="100%">
-</picture>
+<img src="docs/assets/sharing-light.svg" alt="Illustrative ShopIt device diagram: enter the same household code on both devices. Share on the same Wi-Fi while both apps are open, or over the internet while both apps are open. List copies are encrypted, and the household code itself is not sent over the network." width="100%">
 
 Open **Settings → Share lists** on both devices.
 
