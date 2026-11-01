@@ -546,13 +546,13 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.scrollUntilVisible(
-      find.text('An open source shopping and pantry list app.'),
+      find.text('An open source shopping, pantry, and recipe app.'),
       200,
     );
     expect(find.text('ABOUT'), findsOneWidget);
     expect(find.text('ShopIt'), findsOneWidget);
     expect(
-      find.text('An open source shopping and pantry list app.'),
+      find.text('An open source shopping, pantry, and recipe app.'),
       findsOneWidget,
     );
     expect(
