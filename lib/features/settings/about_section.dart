@@ -44,10 +44,19 @@ class _AboutSectionState extends State<AboutSection> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        Image.asset(
+          'assets/brand/shopit-mark.png',
+          width: 64,
+          height: 64,
+          fit: BoxFit.contain,
+          // The adjacent title supplies the accessible product name.
+          excludeFromSemantics: true,
+        ),
+        const SizedBox(height: 8),
         Text('ShopIt', style: theme.textTheme.titleMedium),
         const SizedBox(height: 4),
         Text(
-          'An open source shopping and pantry list app.',
+          'An open source shopping, pantry, and recipe app.',
           style: theme.textTheme.bodyMedium,
         ),
         const SizedBox(height: 4),
