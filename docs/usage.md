@@ -1,5 +1,12 @@
 # Using ShopIt
 
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="brand/shopit-horizontal-dark.png">
+    <img src="brand/shopit-horizontal-light.png" alt="ShopIt primary logo" width="280">
+  </picture>
+</p>
+
 The app is named **ShopIt** on the window title, under the icon, in the Mac menu bar, in Windows Installed apps, and on the download files.
 
 ShopIt is an open source app. It runs the same way on Windows, Mac, Android, and iOS. Use <img src="icons/shopping.png" width="22" height="22" align="bottom" style="vertical-align: baseline" alt=""> **Shopping** for what you need to buy, <img src="icons/pantry.png" width="22" height="22" align="bottom" style="vertical-align: baseline" alt=""> **Pantry** for what you already have, and <img src="icons/recipes.png" width="22" height="22" align="bottom" style="vertical-align: baseline" alt=""> **Recipes** for meals you plan to cook. When the shortest side is under 600, all four sit in the bottom bar and <img src="icons/settings.png" width="22" height="22" align="bottom" style="vertical-align: baseline" alt="Settings"> **Settings** is a full page. An Android phone or an iPhone stays in portrait. A larger window uses the side rail. Settings is a dialog when that window is at least 700 pixels wide, and a full page when it is narrower. Changing the size switches Settings while it is open. On Windows, **Ctrl+,** opens Settings; on Mac, **Command+,** does. Close the page with the X at the top right or with Done.
