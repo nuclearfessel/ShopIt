@@ -3,6 +3,7 @@ name: Release
 # App updates on main are published. README and docs changes are not a new
 # release. Each publish keeps only the three newest releases.
 on:
+  workflow_dispatch:
   push:
     branches: [main]
     paths-ignore:
