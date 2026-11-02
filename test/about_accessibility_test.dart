@@ -74,10 +74,13 @@ void main() {
       try {
         launcher.throwsPlatformException = platformException;
         await _showAbout(tester);
-        await tester.ensureVisible(find.text(shopItSourceUrl));
-        await tester.tap(find.text(shopItSourceUrl));
+        await tester.ensureVisible(find.text(shopItSiteUrl));
+        await tester.tap(find.text(shopItSiteUrl));
         await tester.pumpAndSettle();
-        expect(find.bySemanticsLabel("Couldn't open GitHub"), findsOneWidget);
+        expect(
+          find.bySemanticsLabel("Couldn't open ShopIt site"),
+          findsOneWidget,
+        );
         expect(
           find.bySemanticsLabel(RegExp('Open this address in your browser')),
           findsOneWidget,
@@ -91,7 +94,7 @@ void main() {
         await tester.sendKeyEvent(LogicalKeyboardKey.escape);
         await tester.pumpAndSettle();
         expect(find.byType(AlertDialog), findsNothing);
-        expect(find.text(shopItSourceUrl), findsOneWidget);
+        expect(find.text(shopItSiteUrl), findsOneWidget);
         expect(tester.takeException(), isNull);
       } finally {
         semantics.dispose();

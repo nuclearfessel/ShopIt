@@ -32,7 +32,7 @@ Future<void> _showAbout(WidgetTester tester) async {
 }
 
 Future<void> _tapSource(WidgetTester tester) async {
-  await tester.tap(find.text(shopItSourceUrl));
+  await tester.tap(find.text(shopItSiteUrl));
   await tester.pumpAndSettle();
 }
 
@@ -59,7 +59,7 @@ void main() {
     await _showAbout(tester);
     await _tapSource(tester);
 
-    expect(launcher.urls, ['https://github.com/nuclearfessel/ShopIt']);
+    expect(launcher.urls, ['https://nuclearfessel.github.io/ShopIt/']);
     expect(find.byType(AlertDialog), findsNothing);
     expect(tester.takeException(), isNull);
   });
@@ -78,18 +78,21 @@ void main() {
         await _showAbout(tester);
         await _tapSource(tester);
 
-        expect(launcher.urls, ['https://github.com/nuclearfessel/ShopIt']);
+        expect(launcher.urls, ['https://nuclearfessel.github.io/ShopIt/']);
         expect(find.byType(AlertDialog), findsOneWidget);
-        expect(find.text("Couldn't open GitHub"), findsOneWidget);
+        expect(find.text("Couldn't open ShopIt site"), findsOneWidget);
         expect(
           find.text(
-            "ShopIt couldn't open the source link. "
+            "ShopIt couldn't open the site link. "
             'Open this address in your browser instead:\n\n'
-            'https://github.com/nuclearfessel/ShopIt',
+            'https://nuclearfessel.github.io/ShopIt/',
           ),
           findsOneWidget,
         );
-        expect(find.bySemanticsLabel("Couldn't open GitHub"), findsOneWidget);
+        expect(
+          find.bySemanticsLabel("Couldn't open ShopIt site"),
+          findsOneWidget,
+        );
         expect(
           find.bySemanticsLabel(RegExp('Open this address in your browser')),
           findsOneWidget,
@@ -118,7 +121,7 @@ void main() {
       await _showAbout(tester);
       await _tapSource(tester);
       expect(find.byType(AlertDialog), findsNothing);
-      expect(launcher.urls, ['https://github.com/nuclearfessel/ShopIt']);
+      expect(launcher.urls, ['https://nuclearfessel.github.io/ShopIt/']);
 
       await tester.pumpWidget(const MaterialApp(home: SizedBox()));
       if (throwsPlatformException) {

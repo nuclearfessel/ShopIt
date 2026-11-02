@@ -266,4 +266,4 @@ If both devices already have a shopping or pantry list with the same name, sync 
 
 In **Settings**, choose <img src="icons/monitor.png" width="22" height="22" align="middle" style="vertical-align: middle" alt="" role="presentation"> **System**, <img src="icons/sun.png" width="22" height="22" align="middle" style="vertical-align: middle" alt="" role="presentation"> **Light**, or <img src="icons/moon.png" width="22" height="22" align="middle" style="vertical-align: middle" alt="" role="presentation"> **Dark**. On Windows, **Ctrl+,** opens Settings. On Mac, **Command+,** does.
 
-**About** is the last section in Settings. It shows ShopIt, the version, and **Privacy** and **Licenses**. Those open in place. They do not open another app.
+**About** is the last section in Settings. It shows ShopIt, the version, a link to the ShopIt site, and **Privacy** and **Licenses**. Privacy and Licenses open in place. They do not open another app.

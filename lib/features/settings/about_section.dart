@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'legal_copy.dart';
 
-const shopItSourceUrl = 'https://github.com/nuclearfessel/ShopIt';
+const shopItSiteUrl = 'https://nuclearfessel.github.io/ShopIt/';
 
 /// The About block at the bottom of Settings, on Windows and Android.
 class AboutSection extends StatefulWidget {
@@ -35,19 +36,19 @@ class _AboutSectionState extends State<AboutSection> {
     }
   }
 
-  Future<void> _openSource() async {
+  Future<void> _openSite() async {
     var opened = false;
     try {
-      opened = await launchUrl(Uri.parse(shopItSourceUrl));
+      opened = await launchUrl(Uri.parse(shopItSiteUrl));
     } on PlatformException {
       // A missing browser or a platform launch failure needs visible feedback.
     }
     if (!mounted || opened) return;
     _showNotice(
       context,
-      "Couldn't open GitHub",
-      "ShopIt couldn't open the source link. "
-          'Open this address in your browser instead:\n\n$shopItSourceUrl',
+      "Couldn't open ShopIt site",
+      "ShopIt couldn't open the site link. "
+          'Open this address in your browser instead:\n\n$shopItSiteUrl',
     );
   }
 
@@ -58,71 +59,80 @@ class _AboutSectionState extends State<AboutSection> {
     final muted = theme.textTheme.bodyMedium?.copyWith(
       color: theme.colorScheme.onSurface.withValues(alpha: 0.75),
     );
+    final lockupAsset = theme.brightness == Brightness.dark
+        ? 'assets/brand/shopit-horizontal-dark.svg'
+        : 'assets/brand/shopit-horizontal-light.svg';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Image.asset(
-          'assets/brand/shopit-mark.png',
-          width: 64,
-          height: 64,
+        SvgPicture.asset(
+          lockupAsset,
+          height: 56,
           fit: BoxFit.contain,
-          // The adjacent title supplies the accessible product name.
-          excludeFromSemantics: true,
+          alignment: Alignment.centerLeft,
+          semanticsLabel: 'ShopIt',
         ),
         const SizedBox(height: 8),
-        Text('ShopIt', style: theme.textTheme.titleMedium),
-        const SizedBox(height: 4),
         Text(
           'An open source shopping, pantry, and recipe app.',
           style: theme.textTheme.bodyMedium,
         ),
         const SizedBox(height: 4),
-        Tooltip(
-          message: 'Open the ShopIt source on GitHub',
-          child: TextButton(
-            style: TextButton.styleFrom(
-              padding: EdgeInsets.zero,
-              minimumSize: Size.zero,
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              alignment: Alignment.centerLeft,
-            ),
-            onPressed: _openSource,
-            child: const Text(shopItSourceUrl),
-          ),
+        _AboutLink(
+          label: shopItSiteUrl,
+          tooltip: 'Open the ShopIt site',
+          onTap: _openSite,
         ),
         const SizedBox(height: 4),
-        Tooltip(
-          message: 'Read what ShopIt sends and how to delete it',
-          child: TextButton(
-            style: TextButton.styleFrom(
-              padding: EdgeInsets.zero,
-              minimumSize: Size.zero,
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              alignment: Alignment.centerLeft,
-            ),
-            onPressed: () =>
-                _showNotice(context, 'Privacy', shopItPrivacyNotice),
-            child: const Text('Privacy'),
-          ),
+        _AboutLink(
+          label: 'Privacy',
+          tooltip: 'Read what ShopIt sends and how to delete it',
+          onTap: () => _showNotice(context, 'Privacy', shopItPrivacyNotice),
         ),
-        Tooltip(
-          message: 'Read the licenses for ShopIt and the pieces it includes',
-          child: TextButton(
-            style: TextButton.styleFrom(
-              padding: EdgeInsets.zero,
-              minimumSize: Size.zero,
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              alignment: Alignment.centerLeft,
-            ),
-            onPressed: () => _showNotice(context, 'Licenses', shopItLicenses),
-            child: const Text('Licenses'),
-          ),
+        const SizedBox(height: 4),
+        _AboutLink(
+          label: 'Licenses',
+          tooltip: 'Read the licenses for ShopIt and the pieces it includes',
+          onTap: () => _showNotice(context, 'Licenses', shopItLicenses),
         ),
         if (version != null) ...[
           const SizedBox(height: 4),
           Text('Version $version', style: muted),
         ],
       ],
+    );
+  }
+}
+
+class _AboutLink extends StatelessWidget {
+  const _AboutLink({
+    required this.label,
+    required this.tooltip,
+    required this.onTap,
+  });
+
+  final String label;
+  final String tooltip;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final style = theme.textTheme.bodyMedium?.copyWith(
+      color: theme.colorScheme.primary,
+      decoration: TextDecoration.underline,
+      decorationColor: theme.colorScheme.primary,
+    );
+    return Tooltip(
+      message: tooltip,
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: GestureDetector(
+          onTap: onTap,
+          behavior: HitTestBehavior.opaque,
+          child: Text(label, style: style),
+        ),
+      ),
     );
   }
 }

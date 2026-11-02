@@ -556,7 +556,7 @@ void main() {
       findsOneWidget,
     );
     expect(
-      find.text('https://github.com/nuclearfessel/ShopIt'),
+      find.text('https://nuclearfessel.github.io/ShopIt/'),
       findsOneWidget,
     );
     expect(find.widgetWithText(AlertDialog, 'About'), findsNothing);

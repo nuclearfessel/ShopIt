@@ -58,6 +58,7 @@ dependencies:
   cryptography: ^2.7.0
   url_launcher: ^6.3.3
   qr: ^4.0.0
+  flutter_svg: ^2.2.3
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -89,6 +90,8 @@ flutter:
     - assets/app_icon.png
     - assets/catalog.json
     - assets/brand/shopit-mark.png
+    - assets/brand/shopit-horizontal-dark.svg
+    - assets/brand/shopit-horizontal-light.svg
 
   # Roboto (Apache 2.0, copied from the Flutter SDK) so the typeface is the same
   # on Windows and Android instead of Windows' Segoe UI.

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shop_it/features/settings/about_section.dart';
@@ -44,35 +45,32 @@ void main() {
               );
               await tester.pumpAndSettle();
 
-              final imageFinder = find.byType(Image);
-              final image = tester.widget<Image>(imageFinder);
+              final logoFinder = find.byType(SvgPicture);
+              expect(logoFinder, findsOneWidget);
+              final logo = tester.widget<SvgPicture>(logoFinder);
+              final expectedAsset = brightness == Brightness.dark
+                  ? 'assets/brand/shopit-horizontal-dark.svg'
+                  : 'assets/brand/shopit-horizontal-light.svg';
+              expect(logo.bytesLoader, isA<SvgAssetLoader>());
               expect(
-                image.image,
-                const AssetImage('assets/brand/shopit-mark.png'),
+                (logo.bytesLoader as SvgAssetLoader).assetName,
+                expectedAsset,
               );
-              expect(image.excludeFromSemantics, isTrue);
-              expect(tester.getSize(imageFinder), const Size(64, 64));
-              // Decode the real bundled PNG; a missing or corrupt asset must fail.
-              await tester.runAsync(() async {
-                await precacheImage(
-                  image.image,
-                  tester.element(imageFinder),
-                  onError: (error, stack) => fail('Brand image failed: $error'),
-                );
-              });
-              expect(find.text('ShopIt'), findsOneWidget);
+              expect(logo.height, 56);
               expect(find.bySemanticsLabel('ShopIt'), findsOneWidget);
+              expect(find.text('ShopIt'), findsNothing);
               expect(
                 find.text('An open source shopping, pantry, and recipe app.'),
                 findsOneWidget,
               );
               expect(find.text('Version 1.2.3'), findsOneWidget);
-              expect(find.text(shopItSourceUrl), findsOneWidget);
+              expect(find.text(shopItSiteUrl), findsOneWidget);
               expect(find.text('Privacy'), findsOneWidget);
               expect(find.text('Licenses'), findsOneWidget);
-              final bounds = tester.getRect(imageFinder);
+              final bounds = tester.getRect(logoFinder);
               expect(bounds.left, greaterThanOrEqualTo(24));
               expect(bounds.right, lessThanOrEqualTo(width - 24));
+              expect(bounds.height, 56);
               expect(tester.takeException(), isNull);
 
               await tester.ensureVisible(find.text('Privacy'));
