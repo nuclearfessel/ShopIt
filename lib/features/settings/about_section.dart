@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -59,18 +58,21 @@ class _AboutSectionState extends State<AboutSection> {
     final muted = theme.textTheme.bodyMedium?.copyWith(
       color: theme.colorScheme.onSurface.withValues(alpha: 0.75),
     );
+    // Pre-rasterized PNGs stay smooth on every platform; flutter_svg jaggies
+    // the curved Daily Circle seams at About size.
     final lockupAsset = theme.brightness == Brightness.dark
-        ? 'assets/brand/shopit-horizontal-dark.svg'
-        : 'assets/brand/shopit-horizontal-light.svg';
+        ? 'assets/brand/shopit-horizontal-dark.png'
+        : 'assets/brand/shopit-horizontal-light.png';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SvgPicture.asset(
+        Image.asset(
           lockupAsset,
           height: 56,
           fit: BoxFit.contain,
           alignment: Alignment.centerLeft,
-          semanticsLabel: 'ShopIt',
+          filterQuality: FilterQuality.high,
+          semanticLabel: 'ShopIt',
         ),
         const SizedBox(height: 8),
         Text(
