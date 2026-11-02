@@ -25,7 +25,15 @@ class IconPackagingTests(unittest.TestCase):
         self.ico.parent.mkdir(parents=True)
         self.master.save(self.ico, sizes=[(s, s) for s in sorted(validator.WINDOWS_SIZES)])
         for density, pixels in validator.ANDROID_SIZES.items():
-            self.write_png(self.android_path(density), pixels, transparent=True)
+            self.write_png(
+                self.android_path(density), pixels, transparent=False, plate=(20, 20, 20)
+            )
+            self.write_png(
+                self.android_round_path(density),
+                pixels,
+                transparent=False,
+                plate=(20, 20, 20),
+            )
         for platform, slots in (("ios", validator.IOS_SLOTS), ("macos", validator.MACOS_SLOTS)):
             directory = self.root / platform / validator.CATALOG_PATH
             directory.mkdir(parents=True)
@@ -40,11 +48,14 @@ class IconPackagingTests(unittest.TestCase):
     def android_path(self, density="mdpi"):
         return self.root / f"android/app/src/main/res/mipmap-{density}/ic_launcher.png"
 
-    def write_png(self, path, pixels, transparent=False):
+    def android_round_path(self, density="mdpi"):
+        return self.root / f"android/app/src/main/res/mipmap-{density}/ic_launcher_round.png"
+
+    def write_png(self, path, pixels, transparent=False, plate=(38, 55, 47)):
         path.parent.mkdir(parents=True, exist_ok=True)
         image = self.master.resize((pixels, pixels), Image.Resampling.LANCZOS)
         if not transparent:
-            background = Image.new("RGBA", image.size, (38, 55, 47, 255))
+            background = Image.new("RGBA", image.size, plate + (255,))
             background.alpha_composite(image)
             image = background.convert("RGB")
         image.save(path)
@@ -83,23 +94,17 @@ class IconPackagingTests(unittest.TestCase):
                 self.assert_failure(f"mipmap-{density}/ic_launcher.png: expected")
                 path.write_bytes(original)
 
-    def test_android_without_alpha_fails(self):
-        self.write_png(self.android_path(), 48)
-        self.assert_failure("lost intended transparency")
-
-    def test_android_all_opaque_alpha_fails(self):
+    def test_android_with_alpha_fails(self):
         Image.new("RGBA", (48, 48), (5, 6, 7, 255)).save(self.android_path())
-        self.assert_failure("near-transparent exterior and fully opaque")
+        self.assert_failure("must not contain an alpha channel")
 
-    def test_android_all_transparent_fails(self):
-        Image.new("RGBA", (48, 48)).save(self.android_path())
-        self.assert_failure("near-transparent exterior and fully opaque")
+    def test_android_round_missing_fails(self):
+        self.android_round_path().unlink()
+        self.assert_failure("mipmap-mdpi/ic_launcher_round.png")
 
-    def test_filled_exterior_corners_fail(self):
-        image = Image.new("RGBA", (48, 48), (5, 6, 7, 255))
-        image.putpixel((24, 24), (0, 0, 0, 0))
-        image.save(self.android_path())
-        self.assert_failure("four exterior corners")
+    def test_android_round_with_alpha_fails(self):
+        Image.new("RGBA", (48, 48), (5, 6, 7, 255)).save(self.android_round_path())
+        self.assert_failure("ic_launcher_round.png")
 
     def test_small_icon_antialias_tolerance_is_bounded(self):
         image = Image.new("RGBA", (16, 16), (20, 30, 40, 255))

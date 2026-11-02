@@ -106,6 +106,10 @@ def check_artwork(root, manifest_path=DEFAULT_MANIFEST):
         errors.append(f"{ico.as_posix()}: {error}")
     for density, size in ANDROID_SIZES.items():
         compare_file(f"android/app/src/main/res/mipmap-{density}/ic_launcher.png", size)
+        compare_file(
+            f"android/app/src/main/res/mipmap-{density}/ic_launcher_round.png",
+            size,
+        )
     for platform in ("ios", "macos"):
         directory = Path(platform) / CATALOG_PATH
         try:

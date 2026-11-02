@@ -134,7 +134,16 @@ def validate(root):
     check(ico_path, lambda: check_ico(root / ico_path))
     for density, pixels in ANDROID_SIZES.items():
         path = Path(f"android/app/src/main/res/mipmap-{density}/ic_launcher.png")
-        check(path, lambda p=path, px=pixels: check_png(root / p, px, "transparent"))
+        # Opaque dark plate + full-bleed mark so OS surfaces never invent a
+        # white circle behind transparent pixels.
+        check(path, lambda p=path, px=pixels: check_png(root / p, px, "opaque"))
+        round_path = Path(
+            f"android/app/src/main/res/mipmap-{density}/ic_launcher_round.png"
+        )
+        check(
+            round_path,
+            lambda p=round_path, px=pixels: check_png(root / p, px, "opaque"),
+        )
 
     for platform, required_slots in (("ios", IOS_SLOTS), ("macos", MACOS_SLOTS)):
         directory = Path(platform) / CATALOG_PATH
