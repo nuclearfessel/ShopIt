@@ -6,9 +6,9 @@
 
 <img src="assets/readme-banner-dark.svg" alt="ShopIt — make room for the everyday. Household shopping lists, pantry, and recipes for Windows, macOS, Android, and iOS." width="1600" height="520">
 
-The app is named **ShopIt** on the window title, under the icon, in the Mac menu bar, in Windows Installed apps, and on the download files.
+The app is named **ShopIt** on the window title, under the icon, in the Mac menu bar, and in Windows Installed apps.
 
-ShopIt is an open source app. It runs the same way on Windows, Mac, Android, and iOS. Use <img src="icons/shopping.png" width="22" height="22" align="middle" style="vertical-align: middle" alt="" role="presentation"> **Shopping** for what you need to buy, <img src="icons/pantry.png" width="22" height="22" align="middle" style="vertical-align: middle" alt="" role="presentation"> **Pantry** for what you already have, and <img src="icons/recipes.png" width="22" height="22" align="middle" style="vertical-align: middle" alt="" role="presentation"> **Recipes** for meals you plan to cook. When the shortest side is under 600, all four sit in the bottom bar and <img src="icons/settings.png" width="22" height="22" align="middle" style="vertical-align: middle" alt="Settings"> **Settings** is a full page. An Android phone or an iPhone stays in portrait. A larger window uses the side rail. Settings is a dialog when that window is at least 700 pixels wide, and a full page when it is narrower. Changing the size switches Settings while it is open. On Windows, **Ctrl+,** opens Settings; on Mac, **Command+,** does. Close the page with the X at the top right or with Done.
+ShopIt runs the same way on Windows, Mac, Android, and iOS. Use <img src="icons/shopping.png" width="22" height="22" align="middle" style="vertical-align: middle" alt="" role="presentation"> **Shopping** for what you need to buy, <img src="icons/pantry.png" width="22" height="22" align="middle" style="vertical-align: middle" alt="" role="presentation"> **Pantry** for what you already have, and <img src="icons/recipes.png" width="22" height="22" align="middle" style="vertical-align: middle" alt="" role="presentation"> **Recipes** for meals you plan to cook. When the shortest side is under 600, all four sit in the bottom bar and <img src="icons/settings.png" width="22" height="22" align="middle" style="vertical-align: middle" alt="Settings"> **Settings** is a full page. An Android phone or an iPhone stays in portrait. A larger window uses the side rail. Settings is a dialog when that window is at least 700 pixels wide, and a full page when it is narrower. Changing the size switches Settings while it is open. On Windows, **Ctrl+,** opens Settings; on Mac, **Command+,** does. Close the page with the X at the top right or with Done.
 
 The list menu is <img src="icons/more.png" width="22" height="22" align="middle" style="vertical-align: middle" alt="List options">.
 
@@ -240,8 +240,6 @@ Create a code on one device and type it on the other. The code is the key, so Sh
 
 Turn **Share on this Wi-Fi** off when this device should not be found on the local network. That choice stays off the next time the app opens.
 
-The Windows installer allows ShopIt on private networks, so the phone can reach the computer on Wi-Fi.
-
 ### Over the internet
 
 Lists keep syncing when the phone is on mobile data. Both apps need an internet connection while they are open. They do not need to be nearby, and they do not need to be online at the exact same moment.
@@ -256,11 +254,9 @@ Or use the QR code:
 1. On Windows or Mac, tap **Show QR code**. Showing it turns **Share on this Wi-Fi** on.
 2. On an iPhone or Android phone, tap **Scan QR code**. The scan joins the internet household and turns **Share on this Wi-Fi** on for the phone.
 
-Both apps need an internet connection while they are open. They do not need to be nearby, and they do not need to be online at the exact same moment. Closing the app, or sending it to the background, publishes one last cloud snapshot.
+Both apps need an internet connection while they are open. They do not need to be nearby, and they do not need to be online at the exact same moment. Closing the app, or sending it to the background, publishes one last cloud snapshot. List contents are encrypted with the household code before they leave the device.
 
-List contents are encrypted with the secret half of the household code before they are stored. The cloud topic contains only the mailbox id, the part before the dot. The broker can store that encrypted copy. It does not receive the key, item names, prices, or notes. Leave cloud sync while online to delete this device's stored copy.
-
-If you paired on an earlier build, leave the household on both devices and create a new code. Older codes and older cloud messages are ignored. What ShopIt sends is described in [Privacy](privacy.md).
+If you paired on an earlier build, leave the household on both devices and create a new code. Older codes are ignored.
 
 ### Lists with the same name
 
@@ -270,24 +266,4 @@ If both devices already have a shopping or pantry list with the same name, sync 
 
 In **Settings**, choose <img src="icons/monitor.png" width="22" height="22" align="middle" style="vertical-align: middle" alt="" role="presentation"> **System**, <img src="icons/sun.png" width="22" height="22" align="middle" style="vertical-align: middle" alt="" role="presentation"> **Light**, or <img src="icons/moon.png" width="22" height="22" align="middle" style="vertical-align: middle" alt="" role="presentation"> **Dark**. On Windows, **Ctrl+,** opens Settings. On Mac, **Command+,** does.
 
-**About** is the last section in Settings. It shows ShopIt, the version, a link to the source on GitHub, and **Privacy** and **Licenses**. Those open in place. They do not open another app.
-
-## Uninstall
-
-Uninstall removes ShopIt and everything it stored on that device: lists, settings, and data folders.
-
-- **Windows** — use Apps and Features, or open **Uninstall ShopIt** from the Start Menu folder the installer created. The uninstaller asks once, then removes the program folder under Program Files and its AppData folders.
-- **Mac** — the release zip includes **Uninstall-ShopIt.command** next to ShopIt.app. Open that script, confirm, and it quits ShopIt if it is running, removes the app from common locations, and deletes Library preferences, support, caches, and related folders.
-- **Android** — uninstall ShopIt from the home screen or from Settings → Apps. The system removes the app and its private data. ShopIt does not write lists into cloud backup, so reinstalling starts empty.
-- **iPhone / iPad** — delete the app from the home screen. iOS removes the app container with it.
-
-## Install and update
-
-- **Windows** — run `ShopIt-Setup-….exe`. If this version is already installed, Setup overrides it in place. If a previous version is installed, Setup removes that program install and installs the new one; lists and settings are kept.
-- **Mac** — unzip the release zip and run **Install-ShopIt.command** next to `ShopIt.app` (or copy the app into Applications). Same version is overwritten; a previous version is replaced. Lists stay in Application Support.
-- **Android** — open the APK, or use `Install-ShopIt-Android.sh` / `.ps1` from the android zip with a device on adb. The helpers replace the installed package in place when they can.
-- **iPhone / iPad** — TestFlight when connected to an Apple Developer account. The ios-install zip has a device helper for a signed build on a paired Mac.
-
-## Releases
-
-Each app update merged to `main` publishes the next version: Windows installer, Android APK (and android zip with adb helpers), Mac zip (with Install and Uninstall scripts), and an ios-install helper zip. The patch number runs `0` through `9`, then the middle number goes up (`1.0.9` → `1.1.0`, `1.9.9` → `2.0.0`, `9.9.9` → `10.0.0`). The Releases page keeps only the three newest builds. Changes that only touch this guide or the GitHub README do not publish a new build.
+**About** is the last section in Settings. It shows ShopIt, the version, and **Privacy** and **Licenses**. Those open in place. They do not open another app.
