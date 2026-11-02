@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shop_it/features/settings/about_section.dart';
@@ -45,18 +44,15 @@ void main() {
               );
               await tester.pumpAndSettle();
 
-              final logoFinder = find.byType(SvgPicture);
+              final logoFinder = find.byType(Image);
               expect(logoFinder, findsOneWidget);
-              final logo = tester.widget<SvgPicture>(logoFinder);
+              final logo = tester.widget<Image>(logoFinder);
               final expectedAsset = brightness == Brightness.dark
-                  ? 'assets/brand/shopit-horizontal-dark.svg'
-                  : 'assets/brand/shopit-horizontal-light.svg';
-              expect(logo.bytesLoader, isA<SvgAssetLoader>());
-              expect(
-                (logo.bytesLoader as SvgAssetLoader).assetName,
-                expectedAsset,
-              );
+                  ? 'assets/brand/shopit-horizontal-dark.png'
+                  : 'assets/brand/shopit-horizontal-light.png';
+              expect(logo.image, AssetImage(expectedAsset));
               expect(logo.height, 56);
+              expect(logo.filterQuality, FilterQuality.high);
               expect(find.bySemanticsLabel('ShopIt'), findsOneWidget);
               expect(find.text('ShopIt'), findsNothing);
               expect(
@@ -72,6 +68,15 @@ void main() {
               expect(bounds.right, lessThanOrEqualTo(width - 24));
               expect(bounds.height, 56);
               expect(tester.takeException(), isNull);
+
+              await tester.runAsync(() async {
+                await precacheImage(
+                  logo.image,
+                  tester.element(logoFinder),
+                  onError: (error, stack) =>
+                      fail('About lockup image failed: $error'),
+                );
+              });
 
               await tester.ensureVisible(find.text('Privacy'));
               await tester.tap(find.text('Privacy'));
