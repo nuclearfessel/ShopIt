@@ -130,10 +130,11 @@
             img.removeAttribute("style");
             var w = img.getAttribute("width");
             var h = img.getAttribute("height");
-            if (w === "22" || w === "60") {
+            if (w === "22" || w === "36") {
               img.style.width = w + "px";
               img.style.height = (h || w) + "px";
               img.style.maxWidth = w + "px";
+              img.style.maxHeight = (h || w) + "px";
             }
           });
           root.querySelectorAll('a[href$=".md"]').forEach(function (a) {

@@ -39,75 +39,75 @@ Windows and Mac use the side rail. An Android phone and an iPhone use the bottom
 </thead>
 <tbody>
 <tr>
-<td><img src="icons/shopping.png" width="60" height="60" alt="" role="presentation"></td>
+<td><img src="icons/shopping.png" width="36" height="36" alt="" role="presentation"></td>
 <td><strong>Shopping</strong> switches to the lists of things to buy.</td>
 </tr>
 <tr>
-<td><img src="icons/pantry.png" width="60" height="60" alt="" role="presentation"></td>
+<td><img src="icons/pantry.png" width="36" height="36" alt="" role="presentation"></td>
 <td><strong>Pantry</strong> switches to what you already have.</td>
 </tr>
 <tr>
-<td><img src="icons/recipes.png" width="60" height="60" alt="" role="presentation"></td>
+<td><img src="icons/recipes.png" width="36" height="36" alt="" role="presentation"></td>
 <td><strong>Recipes</strong> opens meals you have saved.</td>
 </tr>
 <tr>
-<td><img src="icons/settings.png" width="60" height="60" alt="" role="presentation"></td>
+<td><img src="icons/settings.png" width="36" height="36" alt="" role="presentation"></td>
 <td><strong>Settings</strong> opens appearance, sales tax, lists, swipe, sharing, and About. <strong>Shopping and pantry</strong>, under Lists, is off until you turn it on. On Windows, <strong>Ctrl+,</strong> opens Settings. On Mac, <strong>Command+,</strong> does. On a phone it is a full page. On a larger window it is a dialog at 700 pixels wide or more, and a full page below that. Changing the size switches it while it is open. The X at the top right and <strong>Done</strong> both leave that page.</td>
 </tr>
 <tr>
-<td><img src="icons/more.png" width="60" height="60" alt="" role="presentation"></td>
+<td><img src="icons/more.png" width="36" height="36" alt="" role="presentation"></td>
 <td><strong>List options</strong> opens the menu for the list you are looking at.</td>
 </tr>
 <tr>
-<td><img src="icons/plus.png" width="60" height="60" alt="" role="presentation"></td>
+<td><img src="icons/plus.png" width="36" height="36" alt="" role="presentation"></td>
 <td><strong>Add</strong> puts the name in the search field onto the list. A name ShopIt does not already know is saved, so search can find it later.</td>
 </tr>
 <tr>
-<td><img src="icons/scan.png" width="60" height="60" alt="" role="presentation"></td>
+<td><img src="icons/scan.png" width="36" height="36" alt="" role="presentation"></td>
 <td><strong>Scan</strong> reads a barcode and adds that product. It is on Android and iOS, including tablets. Windows and Mac do not show this button.</td>
 </tr>
 <tr>
-<td><img src="icons/pen.png" width="60" height="60" alt="" role="presentation"></td>
+<td><img src="icons/pen.png" width="36" height="36" alt="" role="presentation"></td>
 <td><strong>Edit details</strong> sets quantity, unit, category, price, tax, and a note before the item is added.</td>
 </tr>
 <tr>
-<td><img src="icons/history.png" width="60" height="60" alt="" role="presentation"></td>
+<td><img src="icons/history.png" width="36" height="36" alt="" role="presentation"></td>
 <td><strong>History</strong> opens names you have added to a shopping list before. The trash can removes one of those recents. <strong>Clear all history</strong> in the list menu removes every recent at once. Lists are not affected. The saved name stays in search.</td>
 </tr>
 <tr>
-<td><img src="icons/new-list.png" width="60" height="60" alt="" role="presentation"></td>
+<td><img src="icons/new-list.png" width="36" height="36" alt="" role="presentation"></td>
 <td><strong>New list</strong> starts another shopping or pantry list.</td>
 </tr>
 <tr>
-<td><img src="icons/uncheck.png" width="60" height="60" alt="" role="presentation"></td>
+<td><img src="icons/uncheck.png" width="36" height="36" alt="" role="presentation"></td>
 <td><strong>Uncheck all</strong> moves everything out of the cart and back onto the list.</td>
 </tr>
 <tr>
-<td><img src="icons/pantry.png" width="60" height="60" alt="" role="presentation"></td>
+<td><img src="icons/pantry.png" width="36" height="36" alt="" role="presentation"></td>
 <td><strong>Add to pantry</strong> puts what is in the cart into the pantry. It shows only when <strong>Shopping and pantry</strong> is on in Settings.</td>
 </tr>
 <tr>
-<td><img src="icons/delete.png" width="60" height="60" alt="" role="presentation"></td>
+<td><img src="icons/delete.png" width="36" height="36" alt="" role="presentation"></td>
 <td><strong>Delete checked items</strong> removes what is in the cart.</td>
 </tr>
 <tr>
-<td><img src="icons/bin.png" width="60" height="60" alt="" role="presentation"></td>
+<td><img src="icons/bin.png" width="36" height="36" alt="" role="presentation"></td>
 <td><strong>Delete</strong> removes one item, list, category, or rate.</td>
 </tr>
 <tr>
-<td><img src="icons/locate.png" width="60" height="60" alt="" role="presentation"></td>
+<td><img src="icons/locate.png" width="36" height="36" alt="" role="presentation"></td>
 <td><strong>Use my location</strong> looks up a sales-tax rate for where you are.</td>
 </tr>
 <tr>
-<td><img src="icons/monitor.png" width="60" height="60" alt="" role="presentation"></td>
+<td><img src="icons/monitor.png" width="36" height="36" alt="" role="presentation"></td>
 <td><strong>System</strong> follows the device theme.</td>
 </tr>
 <tr>
-<td><img src="icons/sun.png" width="60" height="60" alt="" role="presentation"></td>
+<td><img src="icons/sun.png" width="36" height="36" alt="" role="presentation"></td>
 <td><strong>Light</strong> uses the light theme.</td>
 </tr>
 <tr>
-<td><img src="icons/moon.png" width="60" height="60" alt="" role="presentation"></td>
+<td><img src="icons/moon.png" width="36" height="36" alt="" role="presentation"></td>
 <td><strong>Dark</strong> uses the dark theme.</td>
 </tr>
 </tbody>

@@ -385,35 +385,40 @@ h1 {
   width: min(100%, 280px);
 }
 
-.guide-body img[width="22"] {
+.guide-body img[width="22"],
+.guide-body img[width="36"] {
   display: inline-block;
+  margin: 0 0.15rem;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+  vertical-align: middle;
+}
+
+.guide-body img[width="22"] {
   width: 22px;
   height: 22px;
   max-width: 22px;
-  margin: 0 0.15rem;
-  border: 0;
-  border-radius: 0;
-  box-shadow: none;
-  background: transparent;
-  vertical-align: middle;
+  max-height: 22px;
 }
 
-.guide-body img[width="60"] {
-  display: inline-block;
-  width: 60px;
-  height: 60px;
-  max-width: 60px;
-  margin: 0 0.15rem;
-  border: 0;
-  border-radius: 0;
-  box-shadow: none;
-  background: transparent;
-  vertical-align: middle;
+.guide-body img[width="36"] {
+  width: 36px;
+  height: 36px;
+  max-width: 36px;
+  max-height: 36px;
 }
 
 .guide-body td:first-child {
-  width: 5rem;
+  width: 3.5rem;
   white-space: nowrap;
+  vertical-align: middle;
+}
+
+.guide-body td:first-child img {
+  display: block;
+  margin: 0;
 }
 
 .guide-body table {
