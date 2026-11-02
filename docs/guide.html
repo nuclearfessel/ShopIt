@@ -51,9 +51,10 @@
           </p>
         </header>
 
-        <nav class="guide-toc" aria-label="On this page" id="toc">
-          <p class="eyebrow">On this page</p>
-          <!-- GUIDE_TOC_START -->
+        <details class="guide-toc" id="toc" open>
+          <summary class="guide-toc-summary">On this page</summary>
+          <nav class="guide-toc-links" aria-label="On this page">
+            <!-- GUIDE_TOC_START -->
             <a href="#on-each-platform">On each platform</a>
             <a href="#controls">Controls</a>
             <a href="#shopping">Shopping</a>
@@ -67,7 +68,8 @@
             <a href="#install-and-update">Install and update</a>
             <a href="#releases">Releases</a>
             <!-- GUIDE_TOC_END -->
-        </nav>
+          </nav>
+        </details>
 
         <article class="guide-body" id="guide-body">
           <!-- GUIDE_BODY_START -->
@@ -317,14 +319,25 @@
     <script>
       (function () {
         var button = document.getElementById("back-to-top");
-        if (!button) return;
+        var toc = document.getElementById("toc");
+        var narrow = window.matchMedia("(max-width: 900px)");
 
-        function sync() {
+        function syncTop() {
+          if (!button) return;
           button.hidden = window.scrollY < 1;
         }
 
-        window.addEventListener("scroll", sync, { passive: true });
-        sync();
+        function syncToc() {
+          if (!toc) return;
+          if (narrow.matches) toc.removeAttribute("open");
+          else toc.setAttribute("open", "");
+        }
+
+        window.addEventListener("scroll", syncTop, { passive: true });
+        if (narrow.addEventListener) narrow.addEventListener("change", syncToc);
+        else narrow.addListener(syncToc);
+        syncTop();
+        syncToc();
       })();
     </script>
   </body>
