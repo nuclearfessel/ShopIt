@@ -333,7 +333,14 @@
           else toc.setAttribute("open", "");
         }
 
+        function closeTocOutside(event) {
+          if (!toc || !narrow.matches || !toc.open) return;
+          if (toc.contains(event.target)) return;
+          toc.removeAttribute("open");
+        }
+
         window.addEventListener("scroll", syncTop, { passive: true });
+        document.addEventListener("pointerdown", closeTocOutside);
         if (narrow.addEventListener) narrow.addEventListener("change", syncToc);
         else narrow.addListener(syncToc);
         syncTop();
