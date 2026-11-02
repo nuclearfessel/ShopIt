@@ -63,7 +63,12 @@ def _png_fallback_by_path(names, density_name):
 
 
 def _png_fallback_by_artwork(archive, names, density_name, manifest):
-    """Find the density PNG when AGP stores it under a hashed res/*.png name."""
+    """Find the density PNG when AGP stores it under a hashed res/*.png name.
+
+    ic_launcher.png and ic_launcher_round.png can be pixel-identical; both may
+    then appear as separate hashed members. Any match of the reviewed launcher
+    artwork is enough.
+    """
     key = f"android/app/src/main/res/mipmap-{density_name}/ic_launcher.png"
     record = manifest.get("exports", {}).get(key)
     if record is None:
@@ -104,9 +109,9 @@ def _png_fallback(archive, names, density_name, manifest):
             f"found {matches}"
         )
     matches = _png_fallback_by_artwork(archive, names, density_name, manifest)
-    if len(matches) != 1:
+    if not matches:
         raise ValueError(
-            f"expected exactly one reviewed ic_launcher.png for {density_name}, "
+            f"expected a reviewed ic_launcher.png for {density_name}, "
             f"found {matches}"
         )
     return matches[0]

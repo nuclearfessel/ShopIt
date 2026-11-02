@@ -104,6 +104,21 @@ class PackagedAndroidIconsTests(unittest.TestCase):
         self.write_apk()
         self.check()
 
+    def test_adaptive_xml_allows_identical_hashed_round_and_launcher(self):
+        """AGP may hash both ic_launcher and ic_launcher_round as res/*.png."""
+        self.badging = "\n".join(
+            f"application-icon-{dpi}:'res/mipmap-anydpi-v26/ic_launcher.xml'"
+            for dpi in DENSITIES
+        )
+        hashed = {"res/mipmap-anydpi-v26/ic_launcher.xml": b"<adaptive-icon/>"}
+        for dpi, density in DENSITIES.items():
+            old = f"res/mipmap-{density}-v4/ic_launcher.png"
+            hashed[f"res/{density[0]}{dpi}.png"] = self.payloads[old]
+            hashed[f"res/{density[0].upper()}{dpi}.png"] = self.payloads[old]
+        self.payloads = hashed
+        self.write_apk()
+        self.check()
+
     def test_corrupt_payload_fails(self):
         self.payloads[next(iter(self.payloads))] = b"invalid PNG"
         self.write_apk()
