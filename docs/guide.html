@@ -23,7 +23,7 @@
     />
     <link rel="stylesheet" href="site.css" />
   </head>
-  <body class="guide-page">
+  <body class="guide-page" id="top">
     <div class="wrap guide-wrap">
       <header class="site-header">
         <a class="mark" href="./">
@@ -305,5 +305,27 @@
         </p>
       </footer>
     </div>
+
+    <a
+      class="back-to-top"
+      href="#top"
+      id="back-to-top"
+      hidden
+      aria-label="Back to top"
+      >Top</a
+    >
+    <script>
+      (function () {
+        var button = document.getElementById("back-to-top");
+        if (!button) return;
+
+        function sync() {
+          button.hidden = window.scrollY < 1;
+        }
+
+        window.addEventListener("scroll", sync, { passive: true });
+        sync();
+      })();
+    </script>
   </body>
 </html>
