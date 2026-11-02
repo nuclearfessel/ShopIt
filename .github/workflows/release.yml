@@ -102,6 +102,18 @@ jobs:
             --build-name=${{ needs.version.outputs.name }} \
             --build-number=${{ needs.version.outputs.code }}
           cp build/app/outputs/flutter-apk/app-release.apk "ShopIt-${{ needs.version.outputs.name }}.apk"
+          STAGE="$GITHUB_WORKSPACE/build/android-package"
+          mkdir -p "$STAGE"
+          cp "ShopIt-${{ needs.version.outputs.name }}.apk" "$STAGE/"
+          cp installer/Install-ShopIt-Android.sh installer/Install-ShopIt-Android.ps1 "$STAGE/"
+          chmod +x "$STAGE/Install-ShopIt-Android.sh"
+          (
+            cd "$STAGE"
+            zip -r "$GITHUB_WORKSPACE/ShopIt-${{ needs.version.outputs.name }}-android.zip" \
+              "ShopIt-${{ needs.version.outputs.name }}.apk" \
+              Install-ShopIt-Android.sh \
+              Install-ShopIt-Android.ps1
+          )
 
       - name: Set up Python for APK icon gate
         uses: actions/setup-python@v6
@@ -123,7 +135,9 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: android-apk
-          path: ShopIt-${{ needs.version.outputs.name }}.apk
+          path: |
+            ShopIt-${{ needs.version.outputs.name }}.apk
+            ShopIt-${{ needs.version.outputs.name }}-android.zip
 
   windows:
     needs: [version, check]
@@ -188,6 +202,11 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "Installer-payload icon failed" }
           python tool/check_built_version.py --windows-exe "$exe" --expected-version "${{ needs.version.outputs.name }}" --expected-build "${{ needs.version.outputs.code }}"
           if ($LASTEXITCODE -ne 0) { throw "Installer-payload version failed" }
+          # Same-version override path: install again over the detection registry entry.
+          $result = Start-Process -FilePath $installer -ArgumentList $arguments -Wait -PassThru
+          if ($result.ExitCode -ne 0) { throw "Same-version override install failed" }
+          python tool/check_built_version.py --windows-exe "$exe" --expected-version "${{ needs.version.outputs.name }}" --expected-build "${{ needs.version.outputs.code }}"
+          if ($LASTEXITCODE -ne 0) { throw "Same-version override version failed" }
 
       - name: Upload installer
         uses: actions/upload-artifact@v7
@@ -221,12 +240,12 @@ jobs:
           STAGE="$GITHUB_WORKSPACE/build/macos-package"
           mkdir -p "$STAGE"
           cp -R build/macos/Build/Products/Release/ShopIt.app "$STAGE/"
-          cp installer/Uninstall-ShopIt.command "$STAGE/"
-          chmod +x "$STAGE/Uninstall-ShopIt.command"
+          cp installer/Install-ShopIt.command installer/Uninstall-ShopIt.command "$STAGE/"
+          chmod +x "$STAGE/Install-ShopIt.command" "$STAGE/Uninstall-ShopIt.command"
           (
             cd "$STAGE"
             zip -r "$GITHUB_WORKSPACE/ShopIt-${{ needs.version.outputs.name }}-macos.zip" \
-              ShopIt.app Uninstall-ShopIt.command
+              ShopIt.app Install-ShopIt.command Uninstall-ShopIt.command
           )
 
       - name: Set up Python for macOS icon gate
@@ -275,6 +294,33 @@ jobs:
           flutter build ios --release --no-codesign \
             --build-name=${{ needs.version.outputs.name }} \
             --build-number=${{ needs.version.outputs.code }}
+          STAGE="$GITHUB_WORKSPACE/build/ios-package"
+          mkdir -p "$STAGE"
+          cp installer/Install-ShopIt-iOS.command "$STAGE/"
+          chmod +x "$STAGE/Install-ShopIt-iOS.command"
+          # Unsigned payload for local re-signing; the install script needs a
+          # device-provisioned IPA or .app before it can push to a phone.
+          APP="build/ios/iphoneos/Runner.app"
+          if [[ -d "$APP" ]]; then
+            cp -R "$APP" "$STAGE/ShopIt.app"
+            (
+              cd "$STAGE"
+              zip -r "$GITHUB_WORKSPACE/ShopIt-${{ needs.version.outputs.name }}-ios-install.zip" \
+                Install-ShopIt-iOS.command ShopIt.app
+            )
+          else
+            (
+              cd "$STAGE"
+              zip -r "$GITHUB_WORKSPACE/ShopIt-${{ needs.version.outputs.name }}-ios-install.zip" \
+                Install-ShopIt-iOS.command
+            )
+          fi
+
+      - name: Upload iOS install helper
+        uses: actions/upload-artifact@v7
+        with:
+          name: ios-install
+          path: ShopIt-${{ needs.version.outputs.name }}-ios-install.zip
 
   publish:
     needs: [version, android, windows, macos, ios]
@@ -295,21 +341,22 @@ jobs:
           VERSION: ${{ needs.version.outputs.name }}
           TAG: ${{ needs.version.outputs.tag }}
         run: |
-          notes="ShopIt ${VERSION}. Install ShopIt-Setup-${VERSION}.exe on Windows, ShopIt-${VERSION}.apk on Android, or unzip ShopIt-${VERSION}-macos.zip on a Mac. Uninstall from Windows Apps and Features (or the Start Menu Uninstall shortcut), from Android/iOS by removing the app, or on a Mac by running Uninstall-ShopIt.command from the zip. Uninstall removes the app and its lists, settings, and data folders."
+          notes="ShopIt ${VERSION}. Windows: run ShopIt-Setup-${VERSION}.exe (overrides the same version, replaces a previous version and keeps lists/settings). Android: open ShopIt-${VERSION}.apk, or use Install-ShopIt-Android.sh/.ps1 from ShopIt-${VERSION}-android.zip with adb. Mac: unzip ShopIt-${VERSION}-macos.zip and run Install-ShopIt.command. iOS: sign the app from ShopIt-${VERSION}-ios-install.zip, then run Install-ShopIt-iOS.command on a Mac with a paired device. Uninstall from Windows Apps and Features (or the Start Menu Uninstall shortcut), from Android/iOS by removing the app, or on a Mac with Uninstall-ShopIt.command. Uninstall removes the app and its lists, settings, and data folders."
+          assets=(
+            "packages/ShopIt-${VERSION}.apk"
+            "packages/ShopIt-${VERSION}-android.zip"
+            "packages/ShopIt-Setup-${VERSION}.exe"
+            "packages/ShopIt-${VERSION}-macos.zip"
+            "packages/ShopIt-${VERSION}-ios-install.zip"
+          )
           if gh release view "$TAG" >/dev/null 2>&1; then
             echo "Release $TAG already exists; replacing its packages."
-            gh release upload "$TAG" \
-              "packages/ShopIt-${VERSION}.apk" \
-              "packages/ShopIt-Setup-${VERSION}.exe" \
-              "packages/ShopIt-${VERSION}-macos.zip" \
-              --clobber
+            gh release upload "$TAG" "${assets[@]}" --clobber
             gh release edit "$TAG" --notes "$notes"
             exit 0
           fi
           gh release create "$TAG" \
-            "packages/ShopIt-${VERSION}.apk" \
-            "packages/ShopIt-Setup-${VERSION}.exe" \
-            "packages/ShopIt-${VERSION}-macos.zip" \
+            "${assets[@]}" \
             --title "$VERSION" \
             --notes "$notes"
           # The release section keeps the three newest releases.
