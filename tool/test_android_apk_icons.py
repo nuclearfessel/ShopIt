@@ -86,8 +86,23 @@ class PackagedAndroidIconsTests(unittest.TestCase):
             "res/mipmap-anydpi-v26/ic_launcher.xml": b"<adaptive-icon/>",
         }
         self.write_apk()
-        with self.assertRaisesRegex(ValueError, "exactly one ic_launcher.png"):
+        with self.assertRaisesRegex(ValueError, "reviewed ic_launcher.png"):
             self.check()
+
+    def test_adaptive_xml_finds_hashed_png_fallback_by_artwork(self):
+        self.badging = "\n".join(
+            f"application-icon-{dpi}:'res/mipmap-anydpi-v26/ic_launcher.xml'"
+            for dpi in DENSITIES
+        )
+        hashed = {}
+        for dpi, density in DENSITIES.items():
+            old = f"res/mipmap-{density}-v4/ic_launcher.png"
+            new = f"res/{density[0].upper()}{dpi}.png"
+            hashed[new] = self.payloads[old]
+        hashed["res/mipmap-anydpi-v26/ic_launcher.xml"] = b"<adaptive-icon/>"
+        self.payloads = hashed
+        self.write_apk()
+        self.check()
 
     def test_corrupt_payload_fails(self):
         self.payloads[next(iter(self.payloads))] = b"invalid PNG"

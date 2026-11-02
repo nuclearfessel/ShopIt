@@ -13,7 +13,7 @@ import subprocess
 from zipfile import ZipFile
 
 from PIL import Image
-from check_icon_artwork import DEFAULT_MANIFEST, check_export
+from check_icon_artwork import DEFAULT_MANIFEST, check_export, pixel_digest
 from validate_app_icons import ANDROID_SIZES
 
 DENSITIES = {160: "mdpi", 240: "hdpi", 320: "xhdpi", 480: "xxhdpi", 640: "xxxhdpi"}
@@ -47,10 +47,10 @@ def _safe_res_member(name):
     return path
 
 
-def _png_fallback(names, density_name):
-    """Find the compiled legacy mipmap PNG for one density inside the APK."""
+def _png_fallback_by_path(names, density_name):
+    """Find a legacy mipmap-* path still present under that name in the APK."""
     prefix = f"mipmap-{density_name}"
-    matches = [
+    return [
         name
         for name in names
         if PurePosixPath(name).suffix.lower() == ".png"
@@ -60,9 +60,54 @@ def _png_fallback(names, density_name):
             for part in PurePosixPath(name).parts
         )
     ]
+
+
+def _png_fallback_by_artwork(archive, names, density_name, manifest):
+    """Find the density PNG when AGP stores it under a hashed res/*.png name."""
+    key = f"android/app/src/main/res/mipmap-{density_name}/ic_launcher.png"
+    record = manifest.get("exports", {}).get(key)
+    if record is None:
+        raise ValueError(f"no reviewed export recorded for {key}")
+    expected_size = tuple(record["size"])
+    expected_digest = record["sha256"]
+    matches = []
+    for name in names:
+        path = PurePosixPath(name)
+        if path.suffix.lower() != ".png" or not name.startswith("res/"):
+            continue
+        if name.endswith(".9.png"):
+            continue
+        entry = archive.getinfo(name)
+        if entry.file_size > 10 * 1024 * 1024:
+            raise ValueError(f"APK icon exceeds byte budget: {name}")
+        payload = archive.read(entry)
+        try:
+            with Image.open(BytesIO(payload)) as image:
+                image.load()
+                if image.format != "PNG" or tuple(image.size) != expected_size:
+                    continue
+                if pixel_digest(image) == expected_digest:
+                    matches.append(name)
+        except OSError:
+            continue
+    return matches
+
+
+def _png_fallback(archive, names, density_name, manifest):
+    """Find the compiled legacy mipmap PNG for one density inside the APK."""
+    matches = _png_fallback_by_path(names, density_name)
+    if len(matches) == 1:
+        return matches[0]
+    if len(matches) > 1:
+        raise ValueError(
+            f"expected exactly one ic_launcher.png under mipmap-{density_name}*, "
+            f"found {matches}"
+        )
+    matches = _png_fallback_by_artwork(archive, names, density_name, manifest)
     if len(matches) != 1:
         raise ValueError(
-            f"expected exactly one ic_launcher.png under {prefix}*, found {matches}"
+            f"expected exactly one reviewed ic_launcher.png for {density_name}, "
+            f"found {matches}"
         )
     return matches[0]
 
@@ -116,7 +161,7 @@ def check_android_apk(apk, manifest, aapt="aapt"):
                     "expected PNG or adaptive XML with PNG mipmap fallbacks"
                 )
             # Adaptive/vector is selected: require the reviewed PNG fallback.
-            fallback = _png_fallback(names, suffix)
+            fallback = _png_fallback(archive, names, suffix, manifest)
             _check_png_member(archive, fallback, suffix, manifest)
 
 
