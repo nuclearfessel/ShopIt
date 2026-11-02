@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1600" height="520" viewBox="0 0 1600 520" role="img"><title>ShopIt — Make room for the everyday.</title><desc>ShopIt household shopping, pantry, and recipes. Cross-platform text names Windows, macOS, Android, and iOS without making a release availability claim.</desc><defs><linearGradient id="tangerine" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#EF7008"/><stop offset=".55" stop-color="#FAA42D"/><stop offset="1" stop-color="#FEC256"/></linearGradient><pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r="1" fill="currentColor" opacity=".12"/></pattern><clipPath id="banner-clip"><rect width="1600" height="520" rx="28" ry="28"/></clipPath></defs><g clip-path="url(#banner-clip)"><rect width="1600" height="520" rx="28" fill="#1B2A23"/><path d="M950 0h650v520H1070c80-135 45-287-120-520Z" fill="#304438" opacity=".62"/><circle cx="1350" cy="58" r="188" fill="url(#tangerine)" opacity=".12"/><svg x="70" y="68" width="390" height="390" viewBox="0 0 80 80" aria-label="Daily Circle Original Tangerine mark"><defs>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1600" height="520" viewBox="0 0 1600 520" role="img"><title>ShopIt — Make room for the everyday.</title><desc>ShopIt household shopping, pantry, and recipes. Cross-platform text names Windows, macOS, Android, and iOS without making a release availability claim.</desc><defs><linearGradient id="tangerine" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#EF7008"/><stop offset=".55" stop-color="#FAA42D"/><stop offset="1" stop-color="#FEC256"/></linearGradient><pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r="1" fill="currentColor" opacity=".12"/></pattern></defs><defs><clipPath id="shopit-banner-rounded-clip" clipPathUnits="userSpaceOnUse"><rect width="1600" height="520" rx="28"/></clipPath></defs><g clip-path="url(#shopit-banner-rounded-clip)"><rect width="1600" height="520" rx="28" fill="#1B2A23"/><path d="M950 0h650v520H1070c80-135 45-287-120-520Z" fill="#304438" opacity=".62"/><circle cx="1350" cy="58" r="188" fill="url(#tangerine)" opacity=".12"/><svg x="70" y="88" width="390" height="390" viewBox="0 0 80 80" aria-label="Daily Circle Original Tangerine mark"><defs>
     <linearGradient id="paint0_linear_2206_5847" x1="65.43" x2="49.22" y1="58.51" y2="38.67" gradientUnits="userSpaceOnUse">
       <stop stop-color="#EF7008" offset="0" />
       <stop stop-color="#FAA42D" offset=".4377" />
@@ -88,7 +88,7 @@
 <path d="M 10.5625 -0.421875 C 10.101562 -0.179688 9.625 -0.00390625 9.125 0.109375 C 8.625 0.222656 8.097656 0.28125 7.546875 0.28125 C 5.578125 0.28125 4.070312 -0.363281 3.03125 -1.65625 C 2 -2.957031 1.484375 -4.832031 1.484375 -7.28125 C 1.484375 -9.726562 2 -11.597656 3.03125 -12.890625 C 4.070312 -14.191406 5.578125 -14.84375 7.546875 -14.84375 C 8.097656 -14.84375 8.625 -14.785156 9.125 -14.671875 C 9.632812 -14.554688 10.113281 -14.378906 10.5625 -14.140625 L 10.5625 -10.9375 C 10.0625 -11.394531 9.578125 -11.726562 9.109375 -11.9375 C 8.648438 -12.144531 8.171875 -12.25 7.671875 -12.25 C 6.617188 -12.25 5.820312 -11.832031 5.28125 -11 C 4.75 -10.164062 4.484375 -8.925781 4.484375 -7.28125 C 4.484375 -5.632812 4.75 -4.394531 5.28125 -3.5625 C 5.820312 -2.726562 6.617188 -2.3125 7.671875 -2.3125 C 8.171875 -2.3125 8.648438 -2.414062 9.109375 -2.625 C 9.578125 -2.832031 10.0625 -3.164062 10.5625 -3.625 Z M 10.5625 -0.421875 " />
 </g>
 </g>
-</defs><g transform="translate(535.00 77.60)"><use xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" href="#t7-glyph-0-0" x="10" y="28.564453" />
+</defs><g transform="translate(529.00 62.60)"><use xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" href="#t7-glyph-0-0" x="10" y="28.564453" />
 <use xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" href="#t7-glyph-0-1" x="22" y="28.564453" />
 <use xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" href="#t7-glyph-0-2" x="34" y="28.564453" />
 <use xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" href="#t7-glyph-0-3" x="46" y="28.564453" />
@@ -149,7 +149,7 @@
 <path d="M 8.53125 -39.5625 L 2.0625 -39.5625 L 2.0625 -44.640625 L 8.53125 -44.640625 L 8.53125 -58.5 L 23.390625 -58.5 L 23.390625 -44.640625 L 35.78125 -44.640625 L 35.78125 -39.5625 L 23.390625 -39.5625 L 23.390625 -12.21875 C 23.390625 -8.332031 23.695312 -5.910156 24.3125 -4.953125 C 24.925781 -4.003906 26.046875 -3.53125 27.671875 -3.53125 C 29.460938 -3.53125 30.789062 -4.128906 31.65625 -5.328125 C 32.53125 -6.535156 32.992188 -8.398438 33.046875 -10.921875 L 39.3125 -10.921875 C 39.050781 -6.441406 37.820312 -3.296875 35.625 -1.484375 C 33.425781 0.316406 29.640625 1.21875 24.265625 1.21875 C 18.140625 1.21875 13.984375 0.257812 11.796875 -1.65625 C 9.617188 -3.570312 8.53125 -7.09375 8.53125 -12.21875 Z M 8.53125 -39.5625 " />
 </g>
 </g>
-</defs><g transform="translate(530.00 87.58)"><use xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" href="#t8-glyph-0-0" x="10" y="90.750977" />
+</defs><g transform="translate(525.00 94.58)"><use xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" href="#t8-glyph-0-0" x="10" y="90.750977" />
 <use xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" href="#t8-glyph-0-1" x="72" y="90.750977" />
 <use xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" href="#t8-glyph-0-2" x="135" y="90.750977" />
 <use xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" href="#t8-glyph-0-3" x="192" y="90.750977" />
@@ -201,7 +201,7 @@
 <path d="M 4.21875 -4.109375 C 4.21875 -5.429688 4.691406 -6.566406 5.640625 -7.515625 C 6.585938 -8.460938 7.722656 -8.9375 9.046875 -8.9375 C 10.378906 -8.9375 11.519531 -8.460938 12.46875 -7.515625 C 13.414062 -6.566406 13.890625 -5.429688 13.890625 -4.109375 C 13.890625 -2.773438 13.414062 -1.632812 12.46875 -0.6875 C 11.519531 0.257812 10.378906 0.734375 9.046875 0.734375 C 7.722656 0.734375 6.585938 0.257812 5.640625 -0.6875 C 4.691406 -1.632812 4.21875 -2.773438 4.21875 -4.109375 Z M 4.21875 -4.109375 " />
 </g>
 </g>
-</defs><g transform="translate(530.00 205.56)"><use xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" href="#t9-glyph-0-0" x="10" y="58.826172" />
+</defs><g transform="translate(528.00 225.56)"><use xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" href="#t9-glyph-0-0" x="10" y="58.826172" />
 <use xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" href="#t9-glyph-0-1" x="68" y="58.826172" />
 <use xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" href="#t9-glyph-0-2" x="102" y="58.826172" />
 <use xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" href="#t9-glyph-0-3" x="138" y="58.826172" />
@@ -286,7 +286,7 @@
 <path d="M 3.203125 -3.71875 L 6.296875 -3.71875 L 6.296875 0 L 3.203125 0 Z M 3.203125 -3.71875 " />
 </g>
 </g>
-</defs><g transform="translate(535.00 311.90)"><use xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" href="#t10-glyph-0-0" x="10" y="37.84668" />
+</defs><g transform="translate(528.00 309.90)"><use xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" href="#t10-glyph-0-0" x="10" y="37.84668" />
 <use xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" href="#t10-glyph-0-1" x="27" y="37.84668" />
 <use xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" href="#t10-glyph-0-2" x="35" y="37.84668" />
 <use xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" href="#t10-glyph-0-3" x="51" y="37.84668" />
@@ -322,7 +322,7 @@
 <use xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" href="#t10-glyph-0-12" x="518" y="37.84668" />
 <use xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" href="#t10-glyph-0-9" x="536" y="37.84668" />
 <use xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" href="#t10-glyph-0-18" x="546" y="37.84668" />
-</g></g><rect x="535" y="400" width="650" height="62" rx="31" fill="#24372E" stroke="#45574A" stroke-width="2"/><g fill="#FFF8EA" aria-hidden="true"><defs><g xmlns="http://www.w3.org/2000/svg">
+</g></g><rect x="541" y="387" width="558" height="50" rx="25" fill="#24372E" stroke="#45574A" stroke-width="2"/><g fill="#FFF8EA" aria-hidden="true"><defs><g xmlns="http://www.w3.org/2000/svg">
 <g id="t11-glyph-0-0">
 <path d="M 0.6875 -16.765625 L 4.828125 -16.765625 L 7.734375 -4.578125 L 10.609375 -16.765625 L 14.765625 -16.765625 L 17.640625 -4.578125 L 20.546875 -16.765625 L 24.65625 -16.765625 L 20.703125 0 L 15.71875 0 L 12.671875 -12.75 L 9.65625 0 L 4.671875 0 Z M 0.6875 -16.765625 " />
 </g>
@@ -371,7 +371,7 @@
 <path d="M 11.28125 -9.15625 C 10.925781 -9.320312 10.570312 -9.441406 10.21875 -9.515625 C 9.875 -9.597656 9.523438 -9.640625 9.171875 -9.640625 C 8.140625 -9.640625 7.34375 -9.304688 6.78125 -8.640625 C 6.226562 -7.972656 5.953125 -7.023438 5.953125 -5.796875 L 5.953125 0 L 1.9375 0 L 1.9375 -12.578125 L 5.953125 -12.578125 L 5.953125 -10.515625 C 6.472656 -11.335938 7.066406 -11.9375 7.734375 -12.3125 C 8.398438 -12.6875 9.203125 -12.875 10.140625 -12.875 C 10.273438 -12.875 10.421875 -12.867188 10.578125 -12.859375 C 10.734375 -12.847656 10.960938 -12.828125 11.265625 -12.796875 Z M 11.28125 -9.15625 " />
 </g>
 </g>
-</defs><g transform="translate(570.00 402.19)"><use xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" href="#t11-glyph-0-0" x="10" y="31.349609" />
+</defs><g transform="translate(573.00 389.19)"><use xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" href="#t11-glyph-0-0" x="10" y="31.349609" />
 <use xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" href="#t11-glyph-0-1" x="35" y="31.349609" />
 <use xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" href="#t11-glyph-0-2" x="43" y="31.349609" />
 <use xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" href="#t11-glyph-0-3" x="59" y="31.349609" />
@@ -463,7 +463,7 @@
 <path d="M 10.015625 0 L 7.484375 0 L 5.109375 -4.09375 L 2.75 0 L 0.21875 0 L 3.859375 -6.296875 L 0.328125 -12.390625 L 2.859375 -12.390625 L 5.109375 -8.453125 L 7.375 -12.390625 L 9.90625 -12.390625 L 6.390625 -6.296875 Z M 10.015625 0 " />
 </g>
 </g>
-</defs><g transform="translate(535.00 477.01)"><use xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" href="#t12-glyph-0-0" x="10" y="25.780273" />
+</defs><g transform="translate(530.00 454.01)"><use xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" href="#t12-glyph-0-0" x="10" y="25.780273" />
 <use xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" href="#t12-glyph-0-1" x="20" y="25.780273" />
 <use xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" href="#t12-glyph-0-2" x="30" y="25.780273" />
 <use xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" href="#t12-glyph-0-3" x="40" y="25.780273" />

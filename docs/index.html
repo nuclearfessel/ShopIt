@@ -13,8 +13,8 @@
       property="og:description"
       content="Make room for the everyday. Lists, pantry, and recipes—together."
     />
-    <meta property="og:image" content="assets/readme-banner-light.png" />
-    <link rel="icon" href="brand/shopit-horizontal-light.png" />
+    <meta property="og:image" content="assets/readme-banner-dark.png" />
+    <link rel="icon" href="brand/shopit-horizontal-dark.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -23,16 +23,16 @@
     />
     <style>
       :root {
-        --bg: #f8f1e7;
-        --cards: #f1e7d8;
-        --raised: #fff8ea;
-        --totals: #e8d8c1;
-        --text: #24342d;
-        --icon: #a8430a;
+        --bg: #15241e;
+        --cards: #1b2a23;
+        --raised: #24372e;
+        --totals: #304438;
+        --text: #fff8ea;
+        --icon: #faa42d;
         --seed: #ef7008;
-        --muted: color-mix(in srgb, var(--text) 72%, transparent);
-        --line: color-mix(in srgb, var(--icon) 22%, var(--cards));
-        --shadow: 0 24px 60px color-mix(in srgb, var(--text) 12%, transparent);
+        --muted: color-mix(in srgb, var(--text) 68%, transparent);
+        --line: color-mix(in srgb, var(--icon) 28%, var(--cards));
+        --shadow: 0 24px 60px color-mix(in srgb, #000 45%, transparent);
       }
 
       * {
@@ -246,7 +246,7 @@
         gap: 0.35rem;
         padding: 1.1rem 1.15rem;
         border-radius: 18px;
-        background: color-mix(in srgb, var(--raised) 88%, white);
+        background: var(--raised);
         border: 1px solid var(--line);
         text-decoration: none;
         color: inherit;
@@ -311,7 +311,7 @@
       <header class="site-header">
         <a class="mark" href="./">
           <img
-            src="brand/shopit-horizontal-light.png"
+            src="brand/shopit-horizontal-dark.png"
             alt="ShopIt"
             width="1100"
             height="300"
@@ -328,7 +328,7 @@
         <section class="hero" aria-label="ShopIt">
           <img
             class="hero-banner"
-            src="assets/readme-banner-light.svg"
+            src="assets/readme-banner-dark.svg"
             width="1600"
             height="520"
             alt="ShopIt — Make room for the everyday. Lists, pantry, and recipes together on Windows, macOS, Android, and iOS."
@@ -352,10 +352,10 @@
         </section>
 
         <section class="section" aria-labelledby="look-heading">
-          <h2 id="look-heading">The light look</h2>
+          <h2 id="look-heading">In the app</h2>
           <p>
-            Cream surfaces, warm text, and tangerine accents — the same ShopIt
-            Light palette the app uses every day.
+            Evergreen surfaces, cream type, and tangerine accents — shopping,
+            pantry, and recipes on every screen.
           </p>
           <div class="shots">
             <img
@@ -363,14 +363,14 @@
               src="screenshots/windows.png"
               width="2400"
               height="1520"
-              alt="ShopIt shopping list on Windows in the light theme"
+              alt="ShopIt shopping list on Windows"
             />
             <img
               class="shot shot-phone"
               src="screenshots/android.png"
               width="824"
               height="1830"
-              alt="ShopIt shopping list on Android in the light theme"
+              alt="ShopIt shopping list on Android"
             />
           </div>
         </section>

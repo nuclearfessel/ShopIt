@@ -1,10 +1,10 @@
 # Using ShopIt
 
 <p align="center">
-  <img src="brand/shopit-horizontal-light.png" alt="ShopIt primary logo" width="280">
+  <img src="brand/shopit-horizontal-dark.png" alt="ShopIt primary logo" width="280">
 </p>
 
-<img src="assets/readme-banner-light.svg" alt="ShopIt — make room for the everyday. Household shopping lists, pantry, and recipes for Windows, macOS, Android, and iOS." width="1600" height="520">
+<img src="assets/readme-banner-dark.svg" alt="ShopIt — make room for the everyday. Household shopping lists, pantry, and recipes for Windows, macOS, Android, and iOS." width="1600" height="520">
 
 The app is named **ShopIt** on the window title, under the icon, in the Mac menu bar, in Windows Installed apps, and on the download files.
 
@@ -24,9 +24,9 @@ Windows and Mac use the side rail. An Android phone and an iPhone use the bottom
 <img src="screenshots/android.png" alt="ShopIt on an Android phone" width="280">
 </p>
 
-<img src="assets/workflow-light.svg" alt="ShopIt household loop: plan a shopping list, check items into the cart, track pantry items as Low, Full, or exact amounts, then scale a recipe and cook. Pantry-to-shopping suggestions require the optional Shopping and pantry setting." width="100%">
+<img src="assets/workflow-dark.svg" alt="ShopIt household loop: plan a shopping list, check items into the cart, track pantry items as Low, Full, or exact amounts, then scale a recipe and cook. Pantry-to-shopping suggestions require the optional Shopping and pantry setting." width="100%">
 
-<img src="assets/features-light.svg" alt="ShopIt has three connected areas: shopping lists with quantities, prices, coupons, and cart totals; pantry tracking with Low, Full, exact amounts, and Use soon; and recipes with serving scaling, missing-ingredient lists, and pantry deductions on Cook." width="100%">
+<img src="assets/features-dark.svg" alt="ShopIt has three connected areas: shopping lists with quantities, prices, coupons, and cart totals; pantry tracking with Low, Full, exact amounts, and Use soon; and recipes with serving scaling, missing-ingredient lists, and pantry deductions on Cook." width="100%">
 
 ## Controls
 
@@ -221,7 +221,7 @@ Each one is **Check or uncheck** or **Delete**. On a shopping list, check moves 
 
 ## Sync between phone and computer
 
-<img src="assets/sharing-light.svg" alt="Illustrative ShopIt device diagram: enter the same household code on both devices. Share on the same Wi-Fi while both apps are open, or over the internet while both apps are open. List copies are encrypted, and the household code itself is not sent over the network." width="100%">
+<img src="assets/sharing-dark.svg" alt="Illustrative ShopIt device diagram: enter the same household code on both devices. Share on the same Wi-Fi while both apps are open, or over the internet while both apps are open. List copies are encrypted, and the household code itself is not sent over the network." width="100%">
 
 On both devices, open **Settings → Share lists**.
 
