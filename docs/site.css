@@ -583,7 +583,7 @@ h1 {
   .guide-toc {
     padding: 0;
     border: 1px solid var(--line);
-    border-radius: 14px;
+    border-radius: 10px;
     background: color-mix(in srgb, var(--raised) 82%, transparent);
     overflow: hidden;
   }
@@ -592,45 +592,59 @@ h1 {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 0.75rem;
     cursor: pointer;
     margin: 0;
-    padding: 0.9rem 1rem;
+    padding: 0.55rem 0.75rem;
     color: var(--text);
-    font-size: 0.92rem;
-    letter-spacing: 0.04em;
+    font-size: 0.78rem;
+    letter-spacing: 0.1em;
+  }
+
+  .guide-toc-summary:hover,
+  .guide-toc-summary:focus-visible {
+    background: color-mix(in srgb, var(--totals) 45%, transparent);
+    color: var(--icon);
   }
 
   .guide-toc-summary::after {
     content: "";
-    width: 0.45rem;
-    height: 0.45rem;
-    border-right: 2px solid var(--icon);
-    border-bottom: 2px solid var(--icon);
+    flex: 0 0 auto;
+    width: 0.35rem;
+    height: 0.35rem;
+    border-right: 1.5px solid var(--icon);
+    border-bottom: 1.5px solid var(--icon);
     transform: rotate(45deg);
     transition: transform 160ms ease;
   }
 
   .guide-toc[open] .guide-toc-summary::after {
     transform: rotate(-135deg);
-    translate: 0 0.15rem;
+    translate: 0 0.12rem;
   }
 
   .guide-toc-links {
     display: grid;
     gap: 0;
-    padding: 0 0.35rem 0.45rem;
+    padding: 0.15rem 0.3rem 0.3rem;
     border-top: 1px solid var(--line);
   }
 
   .guide-toc-links a {
     display: block;
     min-height: 0;
-    padding: 0.7rem 0.65rem;
+    padding: 0.35rem 0.45rem;
     border: 0;
-    border-radius: 8px;
+    border-radius: 6px;
     background: transparent;
-    font-size: 0.95rem;
-    line-height: 1.35;
+    font-size: 0.84rem;
+    line-height: 1.25;
+  }
+
+  .guide-toc-links a:hover,
+  .guide-toc-links a:focus-visible {
+    color: var(--text);
+    background: color-mix(in srgb, var(--totals) 55%, transparent);
   }
 }
 
