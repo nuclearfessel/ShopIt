@@ -47,6 +47,9 @@ def polish_html(html: str) -> tuple[str, str]:
             tag = tag.replace('class="', 'class="guide-icon ', 1)
         else:
             tag = tag.replace("<img ", '<img class="guide-icon" ', 1)
+        # Keep inline icons optically level with surrounding text.
+        if 'width="22"' in tag:
+            tag = tag.replace("<img ", '<img style="vertical-align: -0.2em" ', 1)
         return tag
 
     html = re.sub(

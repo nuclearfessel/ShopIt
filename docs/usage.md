@@ -8,9 +8,9 @@
 
 The app is named **ShopIt** on the window title, under the icon, in the Mac menu bar, in Windows Installed apps, and on the download files.
 
-ShopIt is an open source app. It runs the same way on Windows, Mac, Android, and iOS. Use <img src="icons/shopping.png" width="22" height="22" align="bottom" style="vertical-align: baseline" alt="" role="presentation"> **Shopping** for what you need to buy, <img src="icons/pantry.png" width="22" height="22" align="bottom" style="vertical-align: baseline" alt="" role="presentation"> **Pantry** for what you already have, and <img src="icons/recipes.png" width="22" height="22" align="bottom" style="vertical-align: baseline" alt="" role="presentation"> **Recipes** for meals you plan to cook. When the shortest side is under 600, all four sit in the bottom bar and <img src="icons/settings.png" width="22" height="22" align="bottom" style="vertical-align: baseline" alt="Settings"> **Settings** is a full page. An Android phone or an iPhone stays in portrait. A larger window uses the side rail. Settings is a dialog when that window is at least 700 pixels wide, and a full page when it is narrower. Changing the size switches Settings while it is open. On Windows, **Ctrl+,** opens Settings; on Mac, **Command+,** does. Close the page with the X at the top right or with Done.
+ShopIt is an open source app. It runs the same way on Windows, Mac, Android, and iOS. Use <img src="icons/shopping.png" width="22" height="22" align="middle" style="vertical-align: middle" alt="" role="presentation"> **Shopping** for what you need to buy, <img src="icons/pantry.png" width="22" height="22" align="middle" style="vertical-align: middle" alt="" role="presentation"> **Pantry** for what you already have, and <img src="icons/recipes.png" width="22" height="22" align="middle" style="vertical-align: middle" alt="" role="presentation"> **Recipes** for meals you plan to cook. When the shortest side is under 600, all four sit in the bottom bar and <img src="icons/settings.png" width="22" height="22" align="middle" style="vertical-align: middle" alt="Settings"> **Settings** is a full page. An Android phone or an iPhone stays in portrait. A larger window uses the side rail. Settings is a dialog when that window is at least 700 pixels wide, and a full page when it is narrower. Changing the size switches Settings while it is open. On Windows, **Ctrl+,** opens Settings; on Mac, **Command+,** does. Close the page with the X at the top right or with Done.
 
-The list menu is <img src="icons/more.png" width="22" height="22" align="bottom" style="vertical-align: baseline" alt="List options">.
+The list menu is <img src="icons/more.png" width="22" height="22" align="middle" style="vertical-align: middle" alt="List options">.
 
 ## On each platform
 
@@ -119,13 +119,13 @@ Windows and Mac use the side rail. An Android phone and an iPhone use the bottom
 <img src="screenshots/search.png" alt="Search showing Milk already on the list, Oat milk from recent history, and catalog matches" width="720">
 </p>
 
-1. Open <img src="icons/shopping.png" width="22" height="22" align="bottom" style="vertical-align: baseline" alt="" role="presentation"> **Shopping**.
-2. Create a list from the empty screen, or choose **New list** from <img src="icons/more.png" width="22" height="22" align="bottom" style="vertical-align: baseline" alt="List options">.
+1. Open <img src="icons/shopping.png" width="22" height="22" align="middle" style="vertical-align: middle" alt="" role="presentation"> **Shopping**.
+2. Create a list from the empty screen, or choose **New list** from <img src="icons/more.png" width="22" height="22" align="middle" style="vertical-align: middle" alt="List options">.
 3. If you have more than one list, use the name at the top to switch between them.
-4. Type in **Search or add an item**, then press Enter or tap <img src="icons/plus.png" width="22" height="22" align="bottom" style="vertical-align: baseline" alt="Add">. Use <img src="icons/pen.png" width="22" height="22" align="bottom" style="vertical-align: baseline" alt="Edit"> to set quantity, unit, category, price, tax, and a note before you add. On a phone or tablet, tap <img src="icons/scan.png" width="22" height="22" align="bottom" style="vertical-align: baseline" alt="Scan"> to add from a barcode instead of typing.
+4. Type in **Search or add an item**, then press Enter or tap <img src="icons/plus.png" width="22" height="22" align="middle" style="vertical-align: middle" alt="Add">. Use <img src="icons/pen.png" width="22" height="22" align="middle" style="vertical-align: middle" alt="Edit"> to set quantity, unit, category, price, tax, and a note before you add. On a phone or tablet, tap <img src="icons/scan.png" width="22" height="22" align="middle" style="vertical-align: middle" alt="Scan"> to add from a barcode instead of typing.
 5. Tap an item to edit it. Check an item to move it into the cart. Swipe left or right to check or delete, depending on **Swipe** in Settings. When categories are on, drag an unchecked item onto another category that already has items to file it there. Sideways swipe still works on that same row.
 
-From the cart you can uncheck everything (<img src="icons/uncheck.png" width="22" height="22" align="bottom" style="vertical-align: baseline" alt="Uncheck all">) or delete the checked items (<img src="icons/delete.png" width="22" height="22" align="bottom" style="vertical-align: baseline" alt="Delete all">). When **Shopping and pantry** is on in Settings, <img src="icons/pantry.png" width="22" height="22" align="bottom" style="vertical-align: baseline" alt="Add to pantry"> **Add to pantry** is there too. One pantry list is used. More than one asks which list. A new name is added. A name already there is marked Full, or its exact amount increases by what you bought. Undo puts that change back.
+From the cart you can uncheck everything (<img src="icons/uncheck.png" width="22" height="22" align="middle" style="vertical-align: middle" alt="Uncheck all">) or delete the checked items (<img src="icons/delete.png" width="22" height="22" align="middle" style="vertical-align: middle" alt="Delete all">). When **Shopping and pantry** is on in Settings, <img src="icons/pantry.png" width="22" height="22" align="middle" style="vertical-align: middle" alt="Add to pantry"> **Add to pantry** is there too. One pantry list is used. More than one asks which list. A new name is added. A name already there is marked Full, or its exact amount increases by what you bought. Undo puts that change back.
 
 When the list has items, a bar at the bottom shows **Cart total**, **List total**, tax when a rate is set, **Items in cart**, and **Items in list**.
 
@@ -141,14 +141,14 @@ The field at the top looks through more than the catalog.
 
 - **On this list** — the name is already on the open shopping list. Choosing it does not add a second copy. ShopIt shows that it is already there and moves the list to that item.
 - **In pantry** — you already have it in the pantry. Choosing it does not add it to the shopping list.
-- **Recent** — a name from History. Choosing it adds the item again, even if that name is already on this list. <img src="icons/history.png" width="22" height="22" align="bottom" style="vertical-align: baseline" alt="History"> still opens the full history. The trash can beside a name there removes that recent only. **Clear all history** in the list menu removes every recent at once. Lists are not affected. The name stays searchable, and the item stays on any list that already has it.
-- Catalog matches come after those. Press Enter or tap <img src="icons/plus.png" width="22" height="22" align="bottom" style="vertical-align: baseline" alt="Add"> to add something that is not already on the list or in the pantry.
+- **Recent** — a name from History. Choosing it adds the item again, even if that name is already on this list. <img src="icons/history.png" width="22" height="22" align="middle" style="vertical-align: middle" alt="History"> still opens the full history. The trash can beside a name there removes that recent only. **Clear all history** in the list menu removes every recent at once. Lists are not affected. The name stays searchable, and the item stays on any list that already has it.
+- Catalog matches come after those. Press Enter or tap <img src="icons/plus.png" width="22" height="22" align="middle" style="vertical-align: middle" alt="Add"> to add something that is not already on the list or in the pantry.
 
 With the field focused and empty, ShopIt shows up to six recent names so repeat groceries are one tap away. On Windows and Mac, the Up and Down arrow keys move through the suggestions, including those empty-field recents.
 
-A name that is not already in ShopIt is saved when you add it to a shopping list or to the pantry. The next search offers it with the built-in items. Adding that same name again does not store a second copy. A new name is filed under **Other**. To pick the category first, tap <img src="icons/pen.png" width="22" height="22" align="bottom" style="vertical-align: baseline" alt="Edit">, choose the category, then add. That category is what the name uses from then on. A pantry name is saved for search, and it does not appear under Recent. Recent is names you have added to a shopping list.
+A name that is not already in ShopIt is saved when you add it to a shopping list or to the pantry. The next search offers it with the built-in items. Adding that same name again does not store a second copy. A new name is filed under **Other**. To pick the category first, tap <img src="icons/pen.png" width="22" height="22" align="middle" style="vertical-align: middle" alt="Edit">, choose the category, then add. That category is what the name uses from then on. A pantry name is saved for search, and it does not appear under Recent. Recent is names you have added to a shopping list.
 
-On a phone or tablet, <img src="icons/scan.png" width="22" height="22" align="bottom" style="vertical-align: baseline" alt="Scan"> sits next to Add. A known code adds that name. An unknown code looks up the package, then adds it. If there is no match, you name it; the code is kept so the next scan finds it. Windows and Mac have no scan button. A name added from a scan on the phone still appears on the computer through sync.
+On a phone or tablet, <img src="icons/scan.png" width="22" height="22" align="middle" style="vertical-align: middle" alt="Scan"> sits next to Add. A known code adds that name. An unknown code looks up the package, then adds it. If there is no match, you name it; the code is kept so the next scan finds it. Windows and Mac have no scan button. A name added from a scan on the phone still appears on the computer through sync.
 
 ### Editing an item
 
@@ -172,7 +172,7 @@ Tap a category header to change its color. Manage the full category list from th
 <img src="screenshots/pantry.png" alt="Pantry with a Use soon strip for expired Milk and Yogurt expiring in two days" width="720">
 </p>
 
-Open <img src="icons/pantry.png" width="22" height="22" align="bottom" style="vertical-align: baseline" alt="" role="presentation"> **Pantry** for stock you already have. Add items the same way as on a shopping list, including the <img src="icons/plus.png" width="22" height="22" align="bottom" style="vertical-align: baseline" alt="Add"> button. An item can be **Low** or **Full**, or an exact amount, and it can include a place and an expiry date. Tap an item to edit quantity, unit, notes, location, and expiry. On a phone or tablet, <img src="icons/scan.png" width="22" height="22" align="bottom" style="vertical-align: baseline" alt="Scan"> adds that product or increases the count if it is already there. Swipe left or right uses the same **Swipe** settings as Shopping; **Check or uncheck** switches Low and Full (or 0 and 1 for an exact amount).
+Open <img src="icons/pantry.png" width="22" height="22" align="middle" style="vertical-align: middle" alt="" role="presentation"> **Pantry** for stock you already have. Add items the same way as on a shopping list, including the <img src="icons/plus.png" width="22" height="22" align="middle" style="vertical-align: middle" alt="Add"> button. An item can be **Low** or **Full**, or an exact amount, and it can include a place and an expiry date. Tap an item to edit quantity, unit, notes, location, and expiry. On a phone or tablet, <img src="icons/scan.png" width="22" height="22" align="middle" style="vertical-align: middle" alt="Scan"> adds that product or increases the count if it is already there. Swipe left or right uses the same **Swipe** settings as Shopping; **Check or uncheck** switches Low and Full (or 0 and 1 for an exact amount).
 
 The pantry list menu covers create new list, move/copy, amounts, manage categories, manage lists, CSV import and export, and delete this list. **Manage lists** renames, reorders, adds, or deletes pantry lists.
 
@@ -186,7 +186,7 @@ The pantry list menu covers create new list, move/copy, amounts, manage categori
 
 ## Recipes
 
-Open <img src="icons/recipes.png" width="22" height="22" align="bottom" style="vertical-align: baseline" alt="" role="presentation"> **Recipes** to save a meal.
+Open <img src="icons/recipes.png" width="22" height="22" align="middle" style="vertical-align: middle" alt="" role="presentation"> **Recipes** to save a meal.
 
 1. Tap the new-recipe button and name it.
 2. Set how many it serves.
@@ -199,14 +199,14 @@ Recipes use the same item names as Shopping and Pantry. They are not a second ca
 
 ## Sales tax
 
-In **Settings** (<img src="icons/settings.png" width="22" height="22" align="bottom" style="vertical-align: baseline" alt="" role="presentation">), under sales tax (<img src="icons/tax.png" width="22" height="22" align="bottom" style="vertical-align: baseline" alt="" role="presentation">):
+In **Settings** (<img src="icons/settings.png" width="22" height="22" align="middle" style="vertical-align: middle" alt="" role="presentation">), under sales tax (<img src="icons/tax.png" width="22" height="22" align="middle" style="vertical-align: middle" alt="" role="presentation">):
 
 - Choose **No tax**, or add a saved rate. A rate can include a grocery rate and its own tax rules (what is taxed).
-- **Use my location** (<img src="icons/locate.png" width="22" height="22" align="bottom" style="vertical-align: baseline" alt="" role="presentation">) looks up a rate for where you are. Nothing is sent until you tap the button.
+- **Use my location** (<img src="icons/locate.png" width="22" height="22" align="middle" style="vertical-align: middle" alt="" role="presentation">) looks up a rate for where you are. Nothing is sent until you tap the button.
 - **Place lookup service** sets the host used for that place name (default is OpenStreetMap Nominatim).
 - **Ziptax API key** saves or removes your own ZipTax key for US lookups.
 
-Open Settings while Shopping is on screen to pick which rate that list uses. New items start taxable. You can turn tax off for one item in the item editor. To change every item on the list, open **List settings** from <img src="icons/more.png" width="22" height="22" align="bottom" style="vertical-align: baseline" alt="List options">.
+Open Settings while Shopping is on screen to pick which rate that list uses. New items start taxable. You can turn tax off for one item in the item editor. To change every item on the list, open **List settings** from <img src="icons/more.png" width="22" height="22" align="middle" style="vertical-align: middle" alt="List options">.
 
 ## Swipe
 
@@ -268,7 +268,7 @@ If both devices already have a shopping or pantry list with the same name, sync 
 
 ## Appearance and About
 
-In **Settings**, choose <img src="icons/monitor.png" width="22" height="22" align="bottom" style="vertical-align: baseline" alt="" role="presentation"> **System**, <img src="icons/sun.png" width="22" height="22" align="bottom" style="vertical-align: baseline" alt="" role="presentation"> **Light**, or <img src="icons/moon.png" width="22" height="22" align="bottom" style="vertical-align: baseline" alt="" role="presentation"> **Dark**. On Windows, **Ctrl+,** opens Settings. On Mac, **Command+,** does.
+In **Settings**, choose <img src="icons/monitor.png" width="22" height="22" align="middle" style="vertical-align: middle" alt="" role="presentation"> **System**, <img src="icons/sun.png" width="22" height="22" align="middle" style="vertical-align: middle" alt="" role="presentation"> **Light**, or <img src="icons/moon.png" width="22" height="22" align="middle" style="vertical-align: middle" alt="" role="presentation"> **Dark**. On Windows, **Ctrl+,** opens Settings. On Mac, **Command+,** does.
 
 **About** is the last section in Settings. It shows ShopIt, the version, a link to the source on GitHub, and **Privacy** and **Licenses**. Those open in place. They do not open another app.
 
