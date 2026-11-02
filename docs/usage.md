@@ -4,7 +4,7 @@
   <img src="brand/shopit-horizontal-light.png" alt="ShopIt primary logo" width="280">
 </p>
 
-<img src="assets/readme-banner-light.png" alt="ShopIt — make room for the everyday. Household shopping lists, pantry, and recipes for Windows, macOS, Android, and iOS." width="100%">
+<img src="assets/readme-banner-light.svg" alt="ShopIt — make room for the everyday. Household shopping lists, pantry, and recipes for Windows, macOS, Android, and iOS." width="1600" height="520">
 
 The app is named **ShopIt** on the window title, under the icon, in the Mac menu bar, in Windows Installed apps, and on the download files.
 
@@ -281,6 +281,13 @@ Uninstall removes ShopIt and everything it stored on that device: lists, setting
 - **Android** — uninstall ShopIt from the home screen or from Settings → Apps. The system removes the app and its private data. ShopIt does not write lists into cloud backup, so reinstalling starts empty.
 - **iPhone / iPad** — delete the app from the home screen. iOS removes the app container with it.
 
+## Install and update
+
+- **Windows** — run `ShopIt-Setup-….exe`. If this version is already installed, Setup overrides it in place. If a previous version is installed, Setup removes that program install and installs the new one; lists and settings are kept.
+- **Mac** — unzip the release zip and run **Install-ShopIt.command** next to `ShopIt.app` (or copy the app into Applications). Same version is overwritten; a previous version is replaced. Lists stay in Application Support.
+- **Android** — open the APK, or use `Install-ShopIt-Android.sh` / `.ps1` from the android zip with a device on adb. The helpers replace the installed package in place when they can.
+- **iPhone / iPad** — TestFlight when connected to an Apple Developer account. The ios-install zip has a device helper for a signed build on a paired Mac.
+
 ## Releases
 
-Each app update merged to `main` publishes from the version in `pubspec.yaml`: a Windows installer, an Android APK, and a Mac app. The Mac zip includes the uninstall script. The Releases page keeps only the three newest builds. Changes that only touch this guide or the GitHub README do not publish a new build.
+Each app update merged to `main` publishes the next version: Windows installer, Android APK (and android zip with adb helpers), Mac zip (with Install and Uninstall scripts), and an ios-install helper zip. The patch number runs `0` through `9`, then the middle number goes up (`1.0.9` → `1.1.0`, `1.9.9` → `2.0.0`, `9.9.9` → `10.0.0`). The Releases page keeps only the three newest builds. Changes that only touch this guide or the GitHub README do not publish a new build.

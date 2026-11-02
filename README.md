@@ -3,7 +3,7 @@
 </h1>
 
 <p align="center">
-  <img src="docs/assets/readme-banner-light.png" alt="ShopIt — make room for the everyday. Household shopping lists, pantry, and recipes for Windows, macOS, Android, and iOS." width="100%">
+  <img src="docs/assets/readme-banner-light.svg" alt="ShopIt — make room for the everyday. Household shopping lists, pantry, and recipes for Windows, macOS, Android, and iOS." width="1600" height="520">
 </p>
 
 ShopIt is an open source shopping, pantry, and recipe app for Windows, Mac, Android, and iOS. The source is in this repository. The window title, the icon, and Windows Installed apps all say ShopIt. The same lists, categories, prices, recipes, and tax settings work on each of them.
@@ -18,15 +18,15 @@ ShopIt is an open source shopping, pantry, and recipe app for Windows, Mac, Andr
 
 ## Download
 
-**Current version: 1.0.0**
+**Current version: 1.0.1**
 
 | Platform | Package |
 | --- | --- |
-| Windows | [ShopIt-Setup-1.0.0.exe](https://github.com/nuclearfessel/ShopIt/releases/download/v1.0.0/ShopIt-Setup-1.0.0.exe) |
-| Android | [ShopIt-1.0.0.apk](https://github.com/nuclearfessel/ShopIt/releases/download/v1.0.0/ShopIt-1.0.0.apk) |
-| Mac | [ShopIt-1.0.0-macos.zip](https://github.com/nuclearfessel/ShopIt/releases/download/v1.0.0/ShopIt-1.0.0-macos.zip) |
+| Windows | [ShopIt-Setup-1.0.1.exe](https://github.com/nuclearfessel/ShopIt/releases/download/v1.0.1/ShopIt-Setup-1.0.1.exe) |
+| Android | [ShopIt-1.0.1.apk](https://github.com/nuclearfessel/ShopIt/releases/download/v1.0.1/ShopIt-1.0.1.apk) |
+| Mac | [ShopIt-1.0.1-macos.zip](https://github.com/nuclearfessel/ShopIt/releases/download/v1.0.1/ShopIt-1.0.1-macos.zip) |
 
-On Windows, run the installer. On Android, allow installs from the APK, then open it. On a Mac, unzip the app and open ShopIt. iPhone and iPad installs go through TestFlight once an Apple Developer account is connected, so they are not a file on this page. Older packages stay in [Releases](https://github.com/nuclearfessel/ShopIt/releases) until a newer build replaces them; only the three newest releases are kept.
+On Windows, run the installer — it overrides the same version in place, or replaces a previous version and keeps your lists. On Android, allow installs from the APK, then open it (or use the adb helpers in the android zip). On a Mac, unzip and run **Install-ShopIt.command**, or open ShopIt.app. iPhone and iPad installs go through TestFlight once an Apple Developer account is connected; a signed-device helper zip is also on the release. Older packages stay in [Releases](https://github.com/nuclearfessel/ShopIt/releases) until a newer build replaces them; only the three newest releases are kept. Each release bumps the patch (`1.0.0` → `1.0.1` … `1.0.9` → `1.1.0`, and so on through `9.9.9` → `10.0.0`).
 
 ## Uninstall
 
