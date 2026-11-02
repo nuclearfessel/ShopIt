@@ -550,7 +550,7 @@ void main() {
       200,
     );
     expect(find.text('ABOUT'), findsOneWidget);
-    expect(find.text('ShopIt'), findsOneWidget);
+    expect(find.bySemanticsLabel('ShopIt'), findsOneWidget);
     expect(
       find.text('An open source shopping, pantry, and recipe app.'),
       findsOneWidget,
