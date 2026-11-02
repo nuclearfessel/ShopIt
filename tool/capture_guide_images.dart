@@ -7,6 +7,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:shop_it/app/app.dart';
 import 'package:shop_it/data/database.dart';
 import 'package:shop_it/ui/keyline/keyline_icon.dart';
 
@@ -14,13 +15,10 @@ import '../test/support/harness.dart';
 
 /// One-shot: `flutter test tool/capture_guide_images.dart`
 ///
-/// Writes the icons and screens used by docs/usage.md. Icons match the app:
-/// Original Tangerine accent on the ShopIt Light cream background.
+/// Writes the icons and screens used by docs/usage.md. Icons match the app
+/// dark theme: gold accent on a transparent background.
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-
-  const cream = Color(0xFFF8F1E7);
-  const accent = Color(0xFFA8430A);
 
   setUpAll(() async {
     SharedPreferences.setMockInitialValues({});
@@ -58,11 +56,8 @@ void main() {
         tester,
         width: 48,
         height: 48,
-        child: ColoredBox(
-          color: cream,
-          child: Center(
-            child: KeylineIcon(entry.value, size: 26, color: accent),
-          ),
+        child: Center(
+          child: KeylineIcon(entry.value, size: 32, color: iconOnDark),
         ),
       );
       await _write(tester, File('${iconDir.path}/${entry.key}.png'), bytes);
@@ -93,7 +88,7 @@ void main() {
       items: items,
       pantry: [fakePantryItem('p', 'Yogurt')],
       history: [fakeHistory('h1', 'Oat milk', category: 'Dairy & Eggs')],
-      themeMode: ThemeMode.light,
+      themeMode: ThemeMode.dark,
       boundary: searchKey,
     );
     await tester.enterText(find.byType(TextField).first, 'mi');
@@ -112,7 +107,7 @@ void main() {
       height: 820,
       lists: lists,
       items: items,
-      themeMode: ThemeMode.light,
+      themeMode: ThemeMode.dark,
       boundary: menuKey,
     );
     await tester.tap(find.byTooltip('List options'));
@@ -142,7 +137,7 @@ void main() {
           expiryDate: start.subtract(const Duration(days: 1)),
         ),
       ],
-      themeMode: ThemeMode.light,
+      themeMode: ThemeMode.dark,
       boundary: pantryKey,
     );
     await tester.tap(find.byTooltip('Go to Pantry'));

@@ -60,7 +60,7 @@ void main() {
         lists: lists,
         items: items,
         categories: categories,
-        themeMode: ThemeMode.light,
+        themeMode: ThemeMode.dark,
         boundary: key,
       );
       await tester.pump(const Duration(milliseconds: 500));

@@ -128,6 +128,13 @@
           root.querySelectorAll("img").forEach(function (img) {
             img.removeAttribute("align");
             img.removeAttribute("style");
+            var w = img.getAttribute("width");
+            var h = img.getAttribute("height");
+            if (w === "22" || w === "60") {
+              img.style.width = w + "px";
+              img.style.height = (h || w) + "px";
+              img.style.maxWidth = w + "px";
+            }
           });
           root.querySelectorAll('a[href$=".md"]').forEach(function (a) {
             var href = a.getAttribute("href") || "";

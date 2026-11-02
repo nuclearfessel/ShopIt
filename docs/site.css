@@ -375,7 +375,7 @@ h1 {
   display: block;
   width: min(100%, 920px);
   margin: 1rem 0 1.5rem;
-  border-radius: 18px;
+  border-radius: 0;
   border: 1px solid var(--line);
   background: var(--raised);
   box-shadow: var(--shadow);
@@ -385,16 +385,35 @@ h1 {
   width: min(100%, 280px);
 }
 
-.guide-body img[width="22"],
-.guide-body img[width="60"] {
+.guide-body img[width="22"] {
   display: inline-block;
-  width: auto;
+  width: 22px;
+  height: 22px;
+  max-width: 22px;
   margin: 0 0.15rem;
   border: 0;
   border-radius: 0;
   box-shadow: none;
   background: transparent;
   vertical-align: middle;
+}
+
+.guide-body img[width="60"] {
+  display: inline-block;
+  width: 60px;
+  height: 60px;
+  max-width: 60px;
+  margin: 0 0.15rem;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+  vertical-align: middle;
+}
+
+.guide-body td:first-child {
+  width: 5rem;
+  white-space: nowrap;
 }
 
 .guide-body table {
