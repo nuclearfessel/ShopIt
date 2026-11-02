@@ -122,6 +122,10 @@ class ArtworkIntegrationTests(unittest.TestCase):
             "        bg = Image.new('RGBA', image.size, (38,55,47,255))\n"
             "        bg.alpha_composite(image)\n"
             "        image = bg.convert('RGB')\n"
+            "    elif '/mipmap-' in name:\n"
+            "        bg = Image.new('RGBA', image.size, (20,20,20,255))\n"
+            "        bg.alpha_composite(image)\n"
+            "        image = bg.convert('RGB')\n"
             "    image.save(name)\n")
         self.command = [sys.executable, "generate.py"]
 
@@ -161,7 +165,8 @@ class ArtworkIntegrationTests(unittest.TestCase):
         path = self.fixture.android_path()
         with Image.open(path) as image:
             wrong = image.copy()
-        wrong.paste((10, 30, 200, 255), (16, 16, 32, 32))
+        fill = (10, 30, 200) if wrong.mode == "RGB" else (10, 30, 200, 255)
+        wrong.paste(fill, (16, 16, 32, 32))
         wrong.save(path)
         before = self.snapshot()
         self.assertTrue(check_artwork(self.root, self.manifest))

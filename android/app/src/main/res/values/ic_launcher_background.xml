@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Transparent so the orange circle fills the launcher mask with no plate. -->
-    <color name="ic_launcher_background">#00000000</color>
+    <!-- Dark plate under the full-bleed Daily Circle; never a white OS fill. -->
+    <color name="ic_launcher_background">#141414</color>
 </resources>

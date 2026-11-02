@@ -15,7 +15,8 @@ import xml.etree.ElementTree as ET
 
 from PIL import Image
 import resvg_py
-from make_adaptive_icon import make_adaptive_icons, render_circle_mark
+from make_adaptive_icon import main as make_android_launcher_icons
+from make_adaptive_icon import render_circle_mark
 
 SVG_SOURCE = Path("assets/brand/daily-circle-original-tangerine.svg")
 SOURCE = Path("assets/brand/shopit-app-icon-original-tangerine.png")
@@ -80,21 +81,8 @@ def main():
         sizes=[(size, size) for size in (16, 24, 32, 48, 64, 128, 256)],
     )
 
-    # Android legacy launcher assets: circle-cropped, full-bleed, transparent.
-    for density, pixels in {
-        "mdpi": 48,
-        "hdpi": 72,
-        "xhdpi": 96,
-        "xxhdpi": 144,
-        "xxxhdpi": 192,
-    }.items():
-        render_circle_mark(pixels).save(
-            f"android/app/src/main/res/mipmap-{density}/ic_launcher.png",
-            format="PNG",
-            optimize=True,
-        )
-
-    make_adaptive_icons()
+    # Android adaptive, legacy, and round launcher icons (full-bleed circle).
+    make_android_launcher_icons()
 
     # macOS AppIcon catalog uses physical-pixel sizes in its filenames.
     macos_catalog_dir = Path("macos/Runner/Assets.xcassets/AppIcon.appiconset")
