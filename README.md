@@ -1,5 +1,5 @@
 <h1 align="center">
-  <img src="docs/brand/shopit-horizontal-dark.svg" alt="ShopIt primary logo" width="360" height="98">
+  <img src="docs/brand/shopit-horizontal-dark.png" alt="ShopIt primary logo" width="360" height="98">
 </h1>
 
 <p align="center">
@@ -54,7 +54,7 @@ On Android and iOS, removing the app clears its sandbox. ShopIt does not back li
 - **Swipe** — in Settings, set phone and desktop swipe left and right separately to check or delete. On pantry items, check switches Low and Full.
 - **Sync** — share lists after you type the same household code on both devices, or scan the QR code shown on Windows or Mac. The code is the key and is not sent over the network. Creating, joining, or scanning the code turns Share on this Wi-Fi on, including on Windows. Wi-Fi sync and internet sync both send an encrypted copy of lists, tax rates, history, categories, recipes, and saved catalog names. Items added on any device are added to the others. Checking an item moves it to the cart everywhere. Deleting an item removes it everywhere. Share lists shows the last Wi-Fi sync and the last cloud sync separately. While lists are shared, Shopping and Pantry show one line: synced just now, waiting to sync, or the short error. [Privacy](docs/privacy.md) says what leaves the device.
 
-When the shortest side of the window is under 600, Shopping, Pantry, Recipes, and Settings sit in the bottom bar, and Settings is a full page. That is a phone: an Android phone or an iPhone stays in portrait. A larger window uses the side rail. Settings is a dialog when that window is at least 700 pixels wide, and a full page when it is narrower. Changing the size switches Settings while it is open. Tablets, Windows, and Mac can rotate or be resized. Close the page with the X or with Done. On Windows, **Ctrl+,** opens Settings; on Mac, **Command+,** does. Settings covers appearance, tax, lists, swipe, sharing, and About. **Shopping and pantry**, under Lists, is off until you turn it on. The walkthrough in [Using ShopIt](docs/usage.md) shows each button next to the step that uses it. Scanning a barcode is on Android and iOS, including tablets. Windows and Mac do not show it. A name scanned on a phone still appears on the computer through sync.
+When the shortest side of the window is under 600, Shopping, Pantry, Recipes, and Settings sit in the bottom bar, and Settings is a full page. That is a phone: an Android phone or an iPhone stays in portrait. A larger window uses the side rail. Settings is a dialog when that window is at least 700 pixels wide, and a full page when it is narrower. Changing the size switches Settings while it is open. Tablets, Windows, and Mac can rotate or be resized. Close the page with the X or with Done. On Windows, **Ctrl+,** opens Settings; on Mac, **Command+,** does. Settings covers appearance, tax, lists, swipe, sharing, and About. **Shopping and pantry**, under Lists, is off until you turn it on. The walkthrough in [Using ShopIt](https://nuclearfessel.github.io/ShopIt/guide.html) shows each button next to the step that uses it. Scanning a barcode is on Android and iOS, including tablets. Windows and Mac do not show it. A name scanned on a phone still appears on the computer through sync.
 
 ## Sync
 
@@ -73,7 +73,7 @@ While sharing is on, Shopping and Pantry show that same result in one line under
 
 ## Docs
 
-Full walkthrough: [Using ShopIt](docs/usage.md).
+Full walkthrough: [Using ShopIt](https://nuclearfessel.github.io/ShopIt/guide.html) ([source](docs/usage.md)).
 
 ## License
 

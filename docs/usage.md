@@ -1,7 +1,7 @@
 # Using ShopIt
 
 <p align="center">
-  <img src="brand/shopit-horizontal-dark.svg" alt="ShopIt primary logo" width="280" height="76">
+  <img src="brand/shopit-horizontal-dark.png" alt="ShopIt primary logo" width="280" height="76">
 </p>
 
 <img src="assets/readme-banner-dark.svg" alt="ShopIt — make room for the everyday. Household shopping lists, pantry, and recipes for Windows, macOS, Android, and iOS." width="1600" height="520">

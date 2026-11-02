@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Using ShopIt — User Guide</title>
+    <meta
+      name="description"
+      content="User guide for ShopIt: shopping lists, pantry, recipes, settings, sync, and installers on Windows, macOS, Android, and iOS."
+    />
+    <meta property="og:title" content="Using ShopIt" />
+    <meta
+      property="og:description"
+      content="Walk through Shopping, Pantry, Recipes, Settings, sync, and installers."
+    />
+    <meta property="og:image" content="assets/readme-banner-dark.png" />
+    <link rel="icon" href="brand/shopit-horizontal-dark.png" type="image/png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,560;9..144,700&family=Nunito+Sans:opsz,wght@6..12,500;6..12,700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="site.css" />
+  </head>
+  <body>
+    <div class="wrap">
+      <header class="site-header">
+        <a class="mark" href="./">
+          <img
+            src="brand/shopit-horizontal-dark.png"
+            alt="ShopIt"
+            width="1024"
+            height="279"
+          />
+        </a>
+        <nav class="nav" aria-label="Primary">
+          <a href="./#download">Download</a>
+          <a href="guide.html" aria-current="page">Guide</a>
+          <a href="https://github.com/nuclearfessel/ShopIt">Source</a>
+        </nav>
+      </header>
+
+      <main>
+        <section class="hero" aria-label="User Guide">
+          <img
+            class="hero-banner"
+            src="assets/readme-banner-dark.svg"
+            width="1600"
+            height="520"
+            alt="ShopIt — Make room for the everyday. Lists, pantry, and recipes together on Windows, macOS, Android, and iOS."
+          />
+          <div class="hero-copy">
+            <p class="eyebrow">User Guide</p>
+            <h1>Using ShopIt</h1>
+            <p class="lede">
+              Shopping, pantry, and recipes on every screen — controls, settings,
+              sync, and how to install or remove the app.
+            </p>
+            <div class="cta-row">
+              <a class="button button-primary" href="./#download">Get ShopIt</a>
+              <a class="button button-secondary" href="./">Back to home</a>
+            </div>
+          </div>
+        </section>
+
+        <div class="guide-layout">
+          <nav class="guide-toc" aria-label="On this page" id="toc">
+            <p class="eyebrow">On this page</p>
+          </nav>
+          <article
+            class="guide-body"
+            id="guide-body"
+            aria-live="polite"
+          >
+            <p class="guide-status">Loading the guide…</p>
+          </article>
+        </div>
+      </main>
+
+      <footer class="site-footer">
+        <p>
+          ShopIt is open source under the
+          <a href="https://github.com/nuclearfessel/ShopIt/blob/main/LICENSE"
+            >MIT License</a
+          >.
+          Source text:
+          <a href="usage.md">usage.md</a>.
+        </p>
+      </footer>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/marked@15.0.7/marked.min.js"></script>
+    <script>
+      (function () {
+        function slugify(text) {
+          return String(text)
+            .toLowerCase()
+            .replace(/<[^>]+>/g, "")
+            .replace(/&[^;]+;/g, "")
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/^-+|-+$/g, "");
+        }
+
+        function stripChrome(md) {
+          return md
+            .replace(/^#\s+Using ShopIt\s*\r?\n+/, "")
+            .replace(/^<p\s+align="center">[\s\S]*?<\/p>\s*/i, "")
+            .replace(
+              /^<img\s+src="assets\/readme-banner-dark\.svg"[\s\S]*?>\s*/i,
+              ""
+            );
+        }
+
+        function buildToc(root, toc) {
+          root.querySelectorAll("h2").forEach(function (heading) {
+            var id = slugify(heading.textContent);
+            if (!id) return;
+            heading.id = id;
+            var link = document.createElement("a");
+            link.href = "#" + id;
+            link.textContent = heading.textContent;
+            toc.appendChild(link);
+          });
+        }
+
+        function polish(root) {
+          root.querySelectorAll("img").forEach(function (img) {
+            img.removeAttribute("align");
+            img.removeAttribute("style");
+          });
+          root.querySelectorAll('a[href$=".md"]').forEach(function (a) {
+            var href = a.getAttribute("href") || "";
+            if (href === "usage.md" || href.endsWith("/usage.md")) {
+              a.setAttribute("href", "guide.html");
+            }
+          });
+        }
+
+        async function loadGuide() {
+          var body = document.getElementById("guide-body");
+          var toc = document.getElementById("toc");
+          try {
+            var res = await fetch("usage.md", { cache: "no-cache" });
+            if (!res.ok) throw new Error("Could not load usage.md");
+            var md = stripChrome(await res.text());
+            body.innerHTML = marked.parse(md, { breaks: false });
+            polish(body);
+            buildToc(body, toc);
+          } catch (err) {
+            body.innerHTML =
+              '<p class="guide-status">Could not load the guide. Open <a href="usage.md">usage.md</a> instead.</p>';
+          }
+        }
+
+        loadGuide();
+      })();
+    </script>
+  </body>
+</html>
