@@ -14,15 +14,29 @@ import resvg_py
 SOURCE = Path("assets/brand/daily-circle-original-tangerine.svg")
 RES = Path("android/app/src/main/res")
 CANVAS_DP = 108
-SAFE_DIAMETER_DP = 62  # 2dp inset absorbs raster antialiasing at every density.
+# Fill the adaptive mask circle edge-to-edge. A padded safe-zone mark leaves a
+# transparent ring that many Android launchers fill with a white plate.
+MARK_DIAMETER_DP = 108
+
+
+def render_circle_mark(pixels: int) -> Image.Image:
+    """Rasterize the Daily Circle cropped to its outer circle, full-bleed."""
+    # Preserve gradients, clipping, transparent seams, and geometry.
+    # Outer clip is a circle centered at (40, 39.05), radius 33.4.
+    root = ET.parse(SOURCE).getroot()
+    root.set("viewBox", "6.6 5.65 66.8 66.8")
+    root.set("width", str(pixels))
+    root.set("height", str(pixels))
+    return Image.open(
+        BytesIO(
+            resvg_py.svg_to_bytes(
+                svg_string=ET.tostring(root, encoding="unicode"),
+            )
+        )
+    ).convert("RGBA")
 
 
 def make_adaptive_icons():
-    # Preserve the source gradients, clipping, transparent seams, and geometry.
-    # The source outer clip is a circle centered at (40, 39.05), radius 33.4.
-    # Reframe that circle rather than centering the slightly asymmetric SVG page.
-    root = ET.parse(SOURCE).getroot()
-    root.set("viewBox", "6.6 5.65 66.8 66.8")
     for density, scale in {
         "mdpi": 1,
         "hdpi": 1.5,
@@ -30,12 +44,8 @@ def make_adaptive_icons():
         "xxhdpi": 3,
         "xxxhdpi": 4,
     }.items():
-        mark_pixels = round(SAFE_DIAMETER_DP * scale)
-        root.set("width", str(mark_pixels))
-        root.set("height", str(mark_pixels))
-        mark = Image.open(BytesIO(resvg_py.svg_to_bytes(
-            svg_string=ET.tostring(root, encoding="unicode"),
-        ))).convert("RGBA")
+        mark_pixels = round(MARK_DIAMETER_DP * scale)
+        mark = render_circle_mark(mark_pixels)
         canvas_pixels = round(CANVAS_DP * scale)
         foreground = Image.new("RGBA", (canvas_pixels, canvas_pixels))
         offset = (canvas_pixels - mark_pixels) // 2

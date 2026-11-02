@@ -15,7 +15,7 @@ import xml.etree.ElementTree as ET
 
 from PIL import Image
 import resvg_py
-from make_adaptive_icon import make_adaptive_icons
+from make_adaptive_icon import make_adaptive_icons, render_circle_mark
 
 SVG_SOURCE = Path("assets/brand/daily-circle-original-tangerine.svg")
 SOURCE = Path("assets/brand/shopit-app-icon-original-tangerine.png")
@@ -48,8 +48,10 @@ def resized(source, size):
     return source.resize((size, size), RESAMPLE)
 
 
-def save_ios_icon(source, size, destination):
-    icon = resized(source, size)
+def save_ios_icon(size, destination):
+    # Full-bleed circle on the opaque tile so the Home Screen mask is orange
+    # edge-to-edge, with no padded plate around a smaller mark.
+    icon = render_circle_mark(size)
     background = Image.new("RGBA", icon.size, IOS_BACKGROUND + (255,))
     background.alpha_composite(icon)
     background.convert("RGB").save(destination, format="PNG", optimize=True)
@@ -78,7 +80,7 @@ def main():
         sizes=[(size, size) for size in (16, 24, 32, 48, 64, 128, 256)],
     )
 
-    # Android legacy launcher assets at their native density sizes.
+    # Android legacy launcher assets: circle-cropped, full-bleed, transparent.
     for density, pixels in {
         "mdpi": 48,
         "hdpi": 72,
@@ -86,7 +88,7 @@ def main():
         "xxhdpi": 144,
         "xxxhdpi": 192,
     }.items():
-        resized(source, pixels).save(
+        render_circle_mark(pixels).save(
             f"android/app/src/main/res/mipmap-{density}/ic_launcher.png",
             format="PNG",
             optimize=True,
@@ -104,7 +106,7 @@ def main():
         match = re.search(r"_(\d+)\.png$", filename)
         if not match:
             raise ValueError(f"Cannot determine physical icon size: {filename}")
-        resized(source, int(match.group(1))).save(
+        render_circle_mark(int(match.group(1))).save(
             macos_catalog_dir / filename,
             format="PNG",
             optimize=True,
@@ -124,7 +126,6 @@ def main():
         scale = float(entry["scale"].removesuffix("x"))
         pixels = round(logical_size * scale)
         save_ios_icon(
-            source,
             pixels,
             Path("ios/Runner/Assets.xcassets/AppIcon.appiconset") / filename,
         )

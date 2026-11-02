@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Approved Daily Circle cream; full bleed, with no baked-in corner mask. -->
-    <color name="ic_launcher_background">#FFF8EA</color>
+    <!-- Transparent so the orange circle fills the launcher mask with no plate. -->
+    <color name="ic_launcher_background">#00000000</color>
 </resources>

@@ -35,6 +35,12 @@ jobs:
           # Compute only here. Publish rewrites pubspec after a successful release
           # so a failed build can retry the same next version.
           next=$(python3 tool/bump_release_version.py)
+          # Re-emit step outputs explicitly so build jobs always receive them.
+          name="${next%%+*}"
+          code="${next##*+}"
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          echo "tag=v$name" >> "$GITHUB_OUTPUT"
           echo "Publishing $next"
 
   check:
@@ -91,6 +97,16 @@ jobs:
 
       - name: Install dependencies
         run: flutter pub get
+
+      - name: Configure Android sideload signing
+        run: |
+          # Same committed sideload.jks on every runner so APKs can replace each other.
+          printf '%s\n' \
+            'storePassword=shopit-sideload' \
+            'keyPassword=shopit-sideload' \
+            'keyAlias=shopit' \
+            'storeFile=sideload.jks' \
+            > android/key.properties
 
       - name: Build Android APK
         run: |
