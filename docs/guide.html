@@ -23,15 +23,15 @@
     />
     <link rel="stylesheet" href="site.css" />
   </head>
-  <body>
-    <div class="wrap">
+  <body class="guide-page">
+    <div class="wrap guide-wrap">
       <header class="site-header">
         <a class="mark" href="./">
           <img
             src="brand/shopit-horizontal-dark.png"
             alt="ShopIt"
-            width="1024"
-            height="279"
+            width="832"
+            height="300"
           />
         </a>
         <nav class="nav" aria-label="Primary">
@@ -42,40 +42,256 @@
       </header>
 
       <main>
-        <section class="hero" aria-label="User Guide">
-          <img
-            class="hero-banner"
-            src="assets/readme-banner-dark.svg"
-            width="1600"
-            height="520"
-            alt="ShopIt — Make room for the everyday. Lists, pantry, and recipes together on Windows, macOS, Android, and iOS."
-          />
-          <div class="hero-copy">
-            <p class="eyebrow">User Guide</p>
-            <h1>Using ShopIt</h1>
-            <p class="lede">
-              Shopping, pantry, and recipes on every screen — controls, settings,
-              sync, and how to install or remove the app.
-            </p>
-            <div class="cta-row">
-              <a class="button button-primary" href="./#download">Get ShopIt</a>
-              <a class="button button-secondary" href="./">Back to home</a>
-            </div>
-          </div>
-        </section>
+        <header class="guide-intro">
+          <p class="eyebrow">User Guide</p>
+          <h1>Using ShopIt</h1>
+          <p class="lede">
+            Shopping, pantry, recipes, settings, sync, and installers — one
+            walkthrough for every screen.
+          </p>
+        </header>
 
-        <div class="guide-layout">
-          <nav class="guide-toc" aria-label="On this page" id="toc">
-            <p class="eyebrow">On this page</p>
-          </nav>
-          <article
-            class="guide-body"
-            id="guide-body"
-            aria-live="polite"
-          >
-            <p class="guide-status">Loading the guide…</p>
-          </article>
-        </div>
+        <nav class="guide-toc" aria-label="On this page" id="toc">
+          <p class="eyebrow">On this page</p>
+          <!-- GUIDE_TOC_START -->
+            <a href="#on-each-platform">On each platform</a>
+            <a href="#controls">Controls</a>
+            <a href="#shopping">Shopping</a>
+            <a href="#pantry">Pantry</a>
+            <a href="#recipes">Recipes</a>
+            <a href="#sales-tax">Sales tax</a>
+            <a href="#swipe">Swipe</a>
+            <a href="#sync-between-phone-and-computer">Sync between phone and computer</a>
+            <a href="#appearance-and-about">Appearance and About</a>
+            <a href="#uninstall">Uninstall</a>
+            <a href="#install-and-update">Install and update</a>
+            <a href="#releases">Releases</a>
+            <!-- GUIDE_TOC_END -->
+        </nav>
+
+        <article class="guide-body" id="guide-body">
+          <!-- GUIDE_BODY_START -->
+<p>The app is named <strong>ShopIt</strong> on the window title, under the icon, in the Mac menu bar, in Windows Installed apps, and on the download files.</p>
+<p>ShopIt is an open source app. It runs the same way on Windows, Mac, Android, and iOS. Use <img class="guide-icon" src="icons/shopping.png" width="22" height="22" alt="" role="presentation"> <strong>Shopping</strong> for what you need to buy, <img class="guide-icon" src="icons/pantry.png" width="22" height="22" alt="" role="presentation"> <strong>Pantry</strong> for what you already have, and <img class="guide-icon" src="icons/recipes.png" width="22" height="22" alt="" role="presentation"> <strong>Recipes</strong> for meals you plan to cook. When the shortest side is under 600, all four sit in the bottom bar and <img class="guide-icon" src="icons/settings.png" width="22" height="22" alt="Settings"> <strong>Settings</strong> is a full page. An Android phone or an iPhone stays in portrait. A larger window uses the side rail. Settings is a dialog when that window is at least 700 pixels wide, and a full page when it is narrower. Changing the size switches Settings while it is open. On Windows, <strong>Ctrl+,</strong> opens Settings; on Mac, <strong>Command+,</strong> does. Close the page with the X at the top right or with Done.</p>
+<p>The list menu is <img class="guide-icon" src="icons/more.png" width="22" height="22" alt="List options">.</p>
+<h2 id="on-each-platform">On each platform</h2>
+<p>Windows and Mac use the side rail. An Android phone and an iPhone use the bottom bar and stay in portrait. An Android tablet and an iPad use the side rail and can turn. The barcode button is on the phones and tablets.</p>
+<div class="guide-shots"><figure class="guide-figure guide-figure-desktop"><img src="screenshots/windows.png" alt="ShopIt on Windows" width="800"></figure><figure class="guide-figure guide-figure-phone"><img src="screenshots/android.png" alt="ShopIt on an Android phone" width="280"></figure></div>
+
+<figure class="guide-figure guide-figure-wide"><img src="assets/workflow-dark.svg" alt="ShopIt household loop: plan a shopping list, check items into the cart, track pantry items as Low, Full, or exact amounts, then scale a recipe and cook. Pantry-to-shopping suggestions require the optional Shopping and pantry setting." width="100%"></figure>
+<figure class="guide-figure guide-figure-wide"><img src="assets/features-dark.svg" alt="ShopIt has three connected areas: shopping lists with quantities, prices, coupons, and cart totals; pantry tracking with Low, Full, exact amounts, and Use soon; and recipes with serving scaling, missing-ingredient lists, and pantry deductions on Cook." width="100%"></figure>
+<h2 id="controls">Controls</h2>
+<table>
+<thead>
+<tr>
+<th>Icon</th>
+<th>Icon use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><img class="guide-icon" src="icons/shopping.png" width="36" height="36" alt="" role="presentation"></td>
+<td><strong>Shopping</strong> switches to the lists of things to buy.</td>
+</tr>
+<tr>
+<td><img class="guide-icon" src="icons/pantry.png" width="36" height="36" alt="" role="presentation"></td>
+<td><strong>Pantry</strong> switches to what you already have.</td>
+</tr>
+<tr>
+<td><img class="guide-icon" src="icons/recipes.png" width="36" height="36" alt="" role="presentation"></td>
+<td><strong>Recipes</strong> opens meals you have saved.</td>
+</tr>
+<tr>
+<td><img class="guide-icon" src="icons/settings.png" width="36" height="36" alt="" role="presentation"></td>
+<td><strong>Settings</strong> opens appearance, sales tax, lists, swipe, sharing, and About. <strong>Shopping and pantry</strong>, under Lists, is off until you turn it on. On Windows, <strong>Ctrl+,</strong> opens Settings. On Mac, <strong>Command+,</strong> does. On a phone it is a full page. On a larger window it is a dialog at 700 pixels wide or more, and a full page below that. Changing the size switches it while it is open. The X at the top right and <strong>Done</strong> both leave that page.</td>
+</tr>
+<tr>
+<td><img class="guide-icon" src="icons/more.png" width="36" height="36" alt="" role="presentation"></td>
+<td><strong>List options</strong> opens the menu for the list you are looking at.</td>
+</tr>
+<tr>
+<td><img class="guide-icon" src="icons/plus.png" width="36" height="36" alt="" role="presentation"></td>
+<td><strong>Add</strong> puts the name in the search field onto the list. A name ShopIt does not already know is saved, so search can find it later.</td>
+</tr>
+<tr>
+<td><img class="guide-icon" src="icons/scan.png" width="36" height="36" alt="" role="presentation"></td>
+<td><strong>Scan</strong> reads a barcode and adds that product. It is on Android and iOS, including tablets. Windows and Mac do not show this button.</td>
+</tr>
+<tr>
+<td><img class="guide-icon" src="icons/pen.png" width="36" height="36" alt="" role="presentation"></td>
+<td><strong>Edit details</strong> sets quantity, unit, category, price, tax, and a note before the item is added.</td>
+</tr>
+<tr>
+<td><img class="guide-icon" src="icons/history.png" width="36" height="36" alt="" role="presentation"></td>
+<td><strong>History</strong> opens names you have added to a shopping list before. The trash can removes one of those recents. <strong>Clear all history</strong> in the list menu removes every recent at once. Lists are not affected. The saved name stays in search.</td>
+</tr>
+<tr>
+<td><img class="guide-icon" src="icons/new-list.png" width="36" height="36" alt="" role="presentation"></td>
+<td><strong>New list</strong> starts another shopping or pantry list.</td>
+</tr>
+<tr>
+<td><img class="guide-icon" src="icons/uncheck.png" width="36" height="36" alt="" role="presentation"></td>
+<td><strong>Uncheck all</strong> moves everything out of the cart and back onto the list.</td>
+</tr>
+<tr>
+<td><img class="guide-icon" src="icons/pantry.png" width="36" height="36" alt="" role="presentation"></td>
+<td><strong>Add to pantry</strong> puts what is in the cart into the pantry. It shows only when <strong>Shopping and pantry</strong> is on in Settings.</td>
+</tr>
+<tr>
+<td><img class="guide-icon" src="icons/delete.png" width="36" height="36" alt="" role="presentation"></td>
+<td><strong>Delete checked items</strong> removes what is in the cart.</td>
+</tr>
+<tr>
+<td><img class="guide-icon" src="icons/bin.png" width="36" height="36" alt="" role="presentation"></td>
+<td><strong>Delete</strong> removes one item, list, category, or rate.</td>
+</tr>
+<tr>
+<td><img class="guide-icon" src="icons/locate.png" width="36" height="36" alt="" role="presentation"></td>
+<td><strong>Use my location</strong> looks up a sales-tax rate for where you are.</td>
+</tr>
+<tr>
+<td><img class="guide-icon" src="icons/monitor.png" width="36" height="36" alt="" role="presentation"></td>
+<td><strong>System</strong> follows the device theme.</td>
+</tr>
+<tr>
+<td><img class="guide-icon" src="icons/sun.png" width="36" height="36" alt="" role="presentation"></td>
+<td><strong>Light</strong> uses the light theme.</td>
+</tr>
+<tr>
+<td><img class="guide-icon" src="icons/moon.png" width="36" height="36" alt="" role="presentation"></td>
+<td><strong>Dark</strong> uses the dark theme.</td>
+</tr>
+</tbody>
+</table>
+
+<h2 id="shopping">Shopping</h2>
+<figure class="guide-figure"><img src="screenshots/search.png" alt="Search showing Milk already on the list, Oat milk from recent history, and catalog matches" width="720"></figure>
+
+<ol>
+<li>Open <img class="guide-icon" src="icons/shopping.png" width="22" height="22" alt="" role="presentation"> <strong>Shopping</strong>.</li>
+<li>Create a list from the empty screen, or choose <strong>New list</strong> from <img class="guide-icon" src="icons/more.png" width="22" height="22" alt="List options">.</li>
+<li>If you have more than one list, use the name at the top to switch between them.</li>
+<li>Type in <strong>Search or add an item</strong>, then press Enter or tap <img class="guide-icon" src="icons/plus.png" width="22" height="22" alt="Add">. Use <img class="guide-icon" src="icons/pen.png" width="22" height="22" alt="Edit"> to set quantity, unit, category, price, tax, and a note before you add. On a phone or tablet, tap <img class="guide-icon" src="icons/scan.png" width="22" height="22" alt="Scan"> to add from a barcode instead of typing.</li>
+<li>Tap an item to edit it. Check an item to move it into the cart. Swipe left or right to check or delete, depending on <strong>Swipe</strong> in Settings. When categories are on, drag an unchecked item onto another category that already has items to file it there. Sideways swipe still works on that same row.</li>
+</ol>
+<p>From the cart you can uncheck everything (<img class="guide-icon" src="icons/uncheck.png" width="22" height="22" alt="Uncheck all">) or delete the checked items (<img class="guide-icon" src="icons/delete.png" width="22" height="22" alt="Delete all">). When <strong>Shopping and pantry</strong> is on in Settings, <img class="guide-icon" src="icons/pantry.png" width="22" height="22" alt="Add to pantry"> <strong>Add to pantry</strong> is there too. One pantry list is used. More than one asks which list. A new name is added. A name already there is marked Full, or its exact amount increases by what you bought. Undo puts that change back.</p>
+<p>When the list has items, a bar at the bottom shows <strong>Cart total</strong>, <strong>List total</strong>, tax when a rate is set, <strong>Items in cart</strong>, and <strong>Items in list</strong>.</p>
+<figure class="guide-figure"><img src="screenshots/menu.png" alt="List menu open, with Rename this list directly above Delete this list" width="720"></figure>
+
+<p>The list menu covers a new list, move/copy, check and uncheck, categories, list settings, manage lists, clear all history, CSV import and export, rename, delete this list, and delete all lists. <strong>Clear all history</strong> sits directly under <strong>Manage lists</strong>. It asks you to confirm, then empties Recent and History. Your lists are not affected. <strong>Manage lists</strong> lets you rename, reorder (drag by the handle), add, or delete shopping lists. <strong>Rename this list</strong> sits directly above <strong>Delete this list</strong>. <strong>Delete all lists</strong> is last; it asks you to confirm, then removes every shopping list and its items. The pantry is not affected. Delete still asks you to confirm.</p>
+<h3>Search</h3>
+<p>The field at the top looks through more than the catalog.</p>
+<ul>
+<li><strong>On this list</strong> — the name is already on the open shopping list. Choosing it does not add a second copy. ShopIt shows that it is already there and moves the list to that item.</li>
+<li><strong>In pantry</strong> — you already have it in the pantry. Choosing it does not add it to the shopping list.</li>
+<li><strong>Recent</strong> — a name from History. Choosing it adds the item again, even if that name is already on this list. <img class="guide-icon" src="icons/history.png" width="22" height="22" alt="History"> still opens the full history. The trash can beside a name there removes that recent only. <strong>Clear all history</strong> in the list menu removes every recent at once. Lists are not affected. The name stays searchable, and the item stays on any list that already has it.</li>
+<li>Catalog matches come after those. Press Enter or tap <img class="guide-icon" src="icons/plus.png" width="22" height="22" alt="Add"> to add something that is not already on the list or in the pantry.</li>
+</ul>
+<p>With the field focused and empty, ShopIt shows up to six recent names so repeat groceries are one tap away. On Windows and Mac, the Up and Down arrow keys move through the suggestions, including those empty-field recents.</p>
+<p>A name that is not already in ShopIt is saved when you add it to a shopping list or to the pantry. The next search offers it with the built-in items. Adding that same name again does not store a second copy. A new name is filed under <strong>Other</strong>. To pick the category first, tap <img class="guide-icon" src="icons/pen.png" width="22" height="22" alt="Edit">, choose the category, then add. That category is what the name uses from then on. A pantry name is saved for search, and it does not appear under Recent. Recent is names you have added to a shopping list.</p>
+<p>On a phone or tablet, <img class="guide-icon" src="icons/scan.png" width="22" height="22" alt="Scan"> sits next to Add. A known code adds that name. An unknown code looks up the package, then adds it. If there is no match, you name it; the code is kept so the next scan finds it. Windows and Mac have no scan button. A name added from a scan on the phone still appears on the computer through sync.</p>
+<h3>Editing an item</h3>
+<p>Tap a shopping item to open the editor. On a wide window it is a dialog. On a narrow window it is a bottom sheet. You can change quantity, unit, category, price, tax, notes, and <strong>I have a coupon for this item</strong>. <strong>Move</strong> and <strong>Copy</strong> send the item to another shopping list or to the pantry when those targets exist. Delete removes that item from this list.</p>
+<h3>List settings and categories</h3>
+<p>Categories are alphabetical on every list. A new category slots into that order on its own.</p>
+<p><strong>List settings</strong> controls whether items are grouped by category (<strong>Enable categories</strong>), whether new items are filed automatically (<strong>Auto-categorize items</strong>), and whether empty category headers stay visible (<strong>Show empty categories</strong>). The same screen is where you change tax for the whole list:</p>
+<ul>
+<li><strong>Use automatic tax rules</strong> — each item follows the rate's rules again.</li>
+<li><strong>Mark all items taxable</strong></li>
+<li><strong>Mark all items not taxable</strong></li>
+</ul>
+<p>Tap a category header to change its color. Manage the full category list from the list menu: add, recolor, or delete. Category order is alphabetical; there is no drag-to-reorder for categories. To move one item into a category that already has items, drag that unchecked row onto the category.</p>
+<h2 id="pantry">Pantry</h2>
+<figure class="guide-figure"><img src="screenshots/pantry.png" alt="Pantry with a Use soon strip for expired Milk and Yogurt expiring in two days" width="720"></figure>
+
+<p>Open <img class="guide-icon" src="icons/pantry.png" width="22" height="22" alt="" role="presentation"> <strong>Pantry</strong> for stock you already have. Add items the same way as on a shopping list, including the <img class="guide-icon" src="icons/plus.png" width="22" height="22" alt="Add"> button. An item can be <strong>Low</strong> or <strong>Full</strong>, or an exact amount, and it can include a place and an expiry date. Tap an item to edit quantity, unit, notes, location, and expiry. On a phone or tablet, <img class="guide-icon" src="icons/scan.png" width="22" height="22" alt="Scan"> adds that product or increases the count if it is already there. Swipe left or right uses the same <strong>Swipe</strong> settings as Shopping; <strong>Check or uncheck</strong> switches Low and Full (or 0 and 1 for an exact amount).</p>
+<p>The pantry list menu covers create new list, move/copy, amounts, manage categories, manage lists, CSV import and export, and delete this list. <strong>Manage lists</strong> renames, reorders, adds, or deletes pantry lists.</p>
+<p><strong>Amounts</strong>, in the list menu, sets every item on that pantry list at once. <strong>Low or stocked</strong> uses the Low and Full states. <strong>Exact amounts</strong> uses a number, such as 3 cans. <strong>Apply to all</strong> saves that choice for the items already there and for items you add later. One item can still be changed on its own.</p>
+<p><strong>Use soon</strong> appears at the top when something expires within the next seven days, or is already past its date. Each name says <strong>today</strong>, <strong>tomorrow</strong>, <strong>in N days</strong>, or <strong>expired</strong>.</p>
+<p><strong>Shopping and pantry</strong> in Settings is off until you turn it on. With it on, a Low item, an exact amount at zero, or a Use soon item offers <strong>Add to list</strong>. <strong>Use soon</strong> also has <strong>Add to shopping list</strong> for every name in that strip. The name goes on the shopping list you have open. If that name is already on the list, it is left as it is. Undo removes only the names that step added.</p>
+<p><strong>Move/Copy items</strong> still sends items between shopping lists and pantry lists when that one-step handoff is not enough.</p>
+<h2 id="recipes">Recipes</h2>
+<p>Open <img class="guide-icon" src="icons/recipes.png" width="22" height="22" alt="" role="presentation"> <strong>Recipes</strong> to save a meal.</p>
+<ol>
+<li>Tap the new-recipe button and name it.</li>
+<li>Set how many it serves.</li>
+<li>Add ingredients by the same names you would search for in ShopIt, with an amount and unit. Search suggestions work the same way as on a shopping list.</li>
+<li><strong>Add to list</strong> asks which shopping list and how many servings to shop for. Amounts scale from the recipe. Names the pantry already covers are skipped; the rest go on the list. A new line's note says which recipe it is for.</li>
+<li><strong>Cook</strong> takes those amounts off the pantry. A full/low item is marked low.</li>
+<li><strong>Delete</strong> removes the recipe. Shopping and pantry lists are not changed.</li>
+</ol>
+<p>Recipes use the same item names as Shopping and Pantry. They are not a second catalog.</p>
+<h2 id="sales-tax">Sales tax</h2>
+<p>In <strong>Settings</strong> (<img class="guide-icon" src="icons/settings.png" width="22" height="22" alt="" role="presentation">), under sales tax (<img class="guide-icon" src="icons/tax.png" width="22" height="22" alt="" role="presentation">):</p>
+<ul>
+<li>Choose <strong>No tax</strong>, or add a saved rate. A rate can include a grocery rate and its own tax rules (what is taxed).</li>
+<li><strong>Use my location</strong> (<img class="guide-icon" src="icons/locate.png" width="22" height="22" alt="" role="presentation">) looks up a rate for where you are. Nothing is sent until you tap the button.</li>
+<li><strong>Place lookup service</strong> sets the host used for that place name (default is OpenStreetMap Nominatim).</li>
+<li><strong>Ziptax API key</strong> saves or removes your own ZipTax key for US lookups.</li>
+</ul>
+<p>Open Settings while Shopping is on screen to pick which rate that list uses. New items start taxable. You can turn tax off for one item in the item editor. To change every item on the list, open <strong>List settings</strong> from <img class="guide-icon" src="icons/more.png" width="22" height="22" alt="List options">.</p>
+<h2 id="swipe">Swipe</h2>
+<p>In <strong>Settings</strong>, under <strong>Swipe</strong>, choose what swipe right and swipe left do. A phone and a desktop are set separately:</p>
+<ul>
+<li><strong>Phone, swipe right</strong></li>
+<li><strong>Phone, swipe left</strong></li>
+<li><strong>Desktop, swipe right</strong></li>
+<li><strong>Desktop, swipe left</strong></li>
+</ul>
+<p>Each one is <strong>Check or uncheck</strong> or <strong>Delete</strong>. On a shopping list, check moves the item into or out of the cart. On a pantry list, check switches Low and Full, or 0 and 1 for an exact amount. Delete removes that item.</p>
+<h2 id="sync-between-phone-and-computer">Sync between phone and computer</h2>
+<figure class="guide-figure guide-figure-wide"><img src="assets/sharing-dark.svg" alt="Illustrative ShopIt device diagram: enter the same household code on both devices. Share on the same Wi-Fi while both apps are open, or over the internet while both apps are open. List copies are encrypted, and the household code itself is not sent over the network." width="100%"></figure>
+<p>On both devices, open <strong>Settings → Share lists</strong>.</p>
+<p>The summary at the top tells you which channels are on. Under it, each channel has its own line:</p>
+<ul>
+<li><strong>Wi-Fi: synced just now</strong> (or a longer time), or <strong>Wi-Fi: not synced yet.</strong></li>
+<li><strong>Cloud: synced just now</strong>, or <strong>Cloud: not synced yet.</strong></li>
+</ul>
+<p>A failure stays on that channel. A successful Wi-Fi sync does not clear a cloud error, and the other way around. The same errors also show under <strong>Devices</strong> in Settings.</p>
+<p>While sharing is on, Shopping and Pantry show one short line under the list name: <strong>Synced just now</strong>, <strong>Waiting to sync</strong>, or that short error. Share lists still holds the code, the QR code, and the Wi-Fi switch.</p>
+<h3>Same Wi-Fi</h3>
+<p>Create a code on one device and type it on the other. The code is the key, so ShopIt does not send it over the network. Creating, joining, or scanning the code turns <strong>Share on this Wi-Fi</strong> on, including on Windows. Keep both apps open on the same network. Lists appear on the other device only after both have that code.</p>
+<p>Turn <strong>Share on this Wi-Fi</strong> off when this device should not be found on the local network. That choice stays off the next time the app opens.</p>
+<p>The Windows installer allows ShopIt on private networks, so the phone can reach the computer on Wi-Fi.</p>
+<h3>Over the internet</h3>
+<p>Lists keep syncing when the phone is on mobile data. Both apps need an internet connection while they are open. They do not need to be nearby, and they do not need to be online at the exact same moment.</p>
+<p>Pair them by hand:</p>
+<ol>
+<li>On one device, tap <strong>Create cloud code</strong>. That turns <strong>Share on this Wi-Fi</strong> on.</li>
+<li>On the other, enter that full code and tap <strong>Join with code</strong>. That turns <strong>Share on this Wi-Fi</strong> on there too.</li>
+</ol>
+<p>Or use the QR code:</p>
+<ol>
+<li>On Windows or Mac, tap <strong>Show QR code</strong>. Showing it turns <strong>Share on this Wi-Fi</strong> on.</li>
+<li>On an iPhone or Android phone, tap <strong>Scan QR code</strong>. The scan joins the internet household and turns <strong>Share on this Wi-Fi</strong> on for the phone.</li>
+</ol>
+<p>Both apps need an internet connection while they are open. They do not need to be nearby, and they do not need to be online at the exact same moment. Closing the app, or sending it to the background, publishes one last cloud snapshot.</p>
+<p>List contents are encrypted with the secret half of the household code before they are stored. The cloud topic contains only the mailbox id, the part before the dot. The broker can store that encrypted copy. It does not receive the key, item names, prices, or notes. Leave cloud sync while online to delete this device's stored copy.</p>
+<p>If you paired on an earlier build, leave the household on both devices and create a new code. Older codes and older cloud messages are ignored. What ShopIt sends is described in <a href="privacy.md">Privacy</a>.</p>
+<h3>Lists with the same name</h3>
+<p>If both devices already have a shopping or pantry list with the same name, sync keeps one list and adds every device's items onto it. A list the other device has never used does not wipe items on this one. Deleting an item, including clearing the cart, removes that item on the other devices. Checking an item moves it to the cart on the other devices. An item that exists only on one device stays until that item itself is deleted. It does not create a second list. History, tax rates, categories, recipes, and saved catalog names travel in the same encrypted copy.</p>
+<h2 id="appearance-and-about">Appearance and About</h2>
+<p>In <strong>Settings</strong>, choose <img class="guide-icon" src="icons/monitor.png" width="22" height="22" alt="" role="presentation"> <strong>System</strong>, <img class="guide-icon" src="icons/sun.png" width="22" height="22" alt="" role="presentation"> <strong>Light</strong>, or <img class="guide-icon" src="icons/moon.png" width="22" height="22" alt="" role="presentation"> <strong>Dark</strong>. On Windows, <strong>Ctrl+,</strong> opens Settings. On Mac, <strong>Command+,</strong> does.</p>
+<p><strong>About</strong> is the last section in Settings. It shows ShopIt, the version, a link to the source on GitHub, and <strong>Privacy</strong> and <strong>Licenses</strong>. Those open in place. They do not open another app.</p>
+<h2 id="uninstall">Uninstall</h2>
+<p>Uninstall removes ShopIt and everything it stored on that device: lists, settings, and data folders.</p>
+<ul>
+<li><strong>Windows</strong> — use Apps and Features, or open <strong>Uninstall ShopIt</strong> from the Start Menu folder the installer created. The uninstaller asks once, then removes the program folder under Program Files and its AppData folders.</li>
+<li><strong>Mac</strong> — the release zip includes <strong>Uninstall-ShopIt.command</strong> next to ShopIt.app. Open that script, confirm, and it quits ShopIt if it is running, removes the app from common locations, and deletes Library preferences, support, caches, and related folders.</li>
+<li><strong>Android</strong> — uninstall ShopIt from the home screen or from Settings → Apps. The system removes the app and its private data. ShopIt does not write lists into cloud backup, so reinstalling starts empty.</li>
+<li><strong>iPhone / iPad</strong> — delete the app from the home screen. iOS removes the app container with it.</li>
+</ul>
+<h2 id="install-and-update">Install and update</h2>
+<ul>
+<li><strong>Windows</strong> — run <code>ShopIt-Setup-….exe</code>. If this version is already installed, Setup overrides it in place. If a previous version is installed, Setup removes that program install and installs the new one; lists and settings are kept.</li>
+<li><strong>Mac</strong> — unzip the release zip and run <strong>Install-ShopIt.command</strong> next to <code>ShopIt.app</code> (or copy the app into Applications). Same version is overwritten; a previous version is replaced. Lists stay in Application Support.</li>
+<li><strong>Android</strong> — open the APK, or use <code>Install-ShopIt-Android.sh</code> / <code>.ps1</code> from the android zip with a device on adb. The helpers replace the installed package in place when they can.</li>
+<li><strong>iPhone / iPad</strong> — TestFlight when connected to an Apple Developer account. The ios-install zip has a device helper for a signed build on a paired Mac.</li>
+</ul>
+<h2 id="releases">Releases</h2>
+<p>Each app update merged to <code>main</code> publishes the next version: Windows installer, Android APK (and android zip with adb helpers), Mac zip (with Install and Uninstall scripts), and an ios-install helper zip. The patch number runs <code>0</code> through <code>9</code>, then the middle number goes up (<code>1.0.9</code> → <code>1.1.0</code>, <code>1.9.9</code> → <code>2.0.0</code>, <code>9.9.9</code> → <code>10.0.0</code>). The Releases page keeps only the three newest builds. Changes that only touch this guide or the GitHub README do not publish a new build.</p>
+          <!-- GUIDE_BODY_END -->
+        </article>
       </main>
 
       <footer class="site-footer">
@@ -89,80 +305,5 @@
         </p>
       </footer>
     </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/marked@15.0.7/marked.min.js"></script>
-    <script>
-      (function () {
-        function slugify(text) {
-          return String(text)
-            .toLowerCase()
-            .replace(/<[^>]+>/g, "")
-            .replace(/&[^;]+;/g, "")
-            .replace(/[^a-z0-9]+/g, "-")
-            .replace(/^-+|-+$/g, "");
-        }
-
-        function stripChrome(md) {
-          return md
-            .replace(/^#\s+Using ShopIt\s*\r?\n+/, "")
-            .replace(/^<p\s+align="center">[\s\S]*?<\/p>\s*/i, "")
-            .replace(
-              /^<img\s+src="assets\/readme-banner-dark\.svg"[\s\S]*?>\s*/i,
-              ""
-            );
-        }
-
-        function buildToc(root, toc) {
-          root.querySelectorAll("h2").forEach(function (heading) {
-            var id = slugify(heading.textContent);
-            if (!id) return;
-            heading.id = id;
-            var link = document.createElement("a");
-            link.href = "#" + id;
-            link.textContent = heading.textContent;
-            toc.appendChild(link);
-          });
-        }
-
-        function polish(root) {
-          root.querySelectorAll("img").forEach(function (img) {
-            img.removeAttribute("align");
-            img.removeAttribute("style");
-            var w = img.getAttribute("width");
-            var h = img.getAttribute("height");
-            if (w === "22" || w === "36") {
-              img.style.width = w + "px";
-              img.style.height = (h || w) + "px";
-              img.style.maxWidth = w + "px";
-              img.style.maxHeight = (h || w) + "px";
-            }
-          });
-          root.querySelectorAll('a[href$=".md"]').forEach(function (a) {
-            var href = a.getAttribute("href") || "";
-            if (href === "usage.md" || href.endsWith("/usage.md")) {
-              a.setAttribute("href", "guide.html");
-            }
-          });
-        }
-
-        async function loadGuide() {
-          var body = document.getElementById("guide-body");
-          var toc = document.getElementById("toc");
-          try {
-            var res = await fetch("usage.md", { cache: "no-cache" });
-            if (!res.ok) throw new Error("Could not load usage.md");
-            var md = stripChrome(await res.text());
-            body.innerHTML = marked.parse(md, { breaks: false });
-            polish(body);
-            buildToc(body, toc);
-          } catch (err) {
-            body.innerHTML =
-              '<p class="guide-status">Could not load the guide. Open <a href="usage.md">usage.md</a> instead.</p>';
-          }
-        }
-
-        loadGuide();
-      })();
-    </script>
   </body>
 </html>

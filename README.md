@@ -1,5 +1,5 @@
 <h1 align="center">
-  <img src="docs/brand/shopit-horizontal-dark.png" alt="ShopIt primary logo" width="360" height="98">
+  <img src="docs/brand/shopit-horizontal-dark.png" alt="ShopIt primary logo" width="360" height="130">
 </h1>
 
 <p align="center">
