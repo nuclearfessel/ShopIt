@@ -207,4 +207,12 @@ void main() {
     expect(tls.secure, isTrue);
     expect(tls.port, 8883);
   });
+
+  test('mailbox endpoints include a second public broker', () {
+    expect(
+      cloudEndpoints.any((endpoint) => endpoint.server.contains('emqx')),
+      isTrue,
+    );
+    expect(cloudEndpoints.every((endpoint) => endpoint.port != 1883), isTrue);
+  });
 }

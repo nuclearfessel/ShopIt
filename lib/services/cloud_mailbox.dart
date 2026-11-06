@@ -48,6 +48,11 @@ class CloudEndpoint {
 
 /// TLS only. Plain websocket is not used, because it would expose the
 /// ciphertext and the mailbox id without encryption on the connection.
+///
+/// More than one public broker is listed because a given network often
+/// blocks one of them. Sync collects from and publishes to every broker
+/// that answers, so two devices still meet when each can only reach a
+/// different host.
 const cloudEndpoints = <CloudEndpoint>[
   CloudEndpoint(
     server: 'wss://broker.hivemq.com/mqtt',
@@ -55,6 +60,12 @@ const cloudEndpoints = <CloudEndpoint>[
     websocket: true,
   ),
   CloudEndpoint(server: defaultCloudMqttHost, port: 8883, websocket: false),
+  CloudEndpoint(
+    server: 'wss://broker.emqx.io:8084/mqtt',
+    port: 8084,
+    websocket: true,
+  ),
+  CloudEndpoint(server: 'broker.emqx.io', port: 8883, websocket: false),
 ];
 
 const _mailboxMacBytes = 16;
@@ -166,7 +177,7 @@ class CloudMailbox {
 
   /// Loads every retained device snapshot for [code].
   Future<CloudMailboxDoc> read(String code) async {
-    final devices = await _collect(code);
+    final devices = await _collectAcrossBrokers(code);
     return CloudMailboxDoc(devices: devices);
   }
 
@@ -175,7 +186,7 @@ class CloudMailbox {
   Future<void> write(String code, CloudMailboxDoc doc) async {
     // Kept for tests and older call sites. Live sync uses [syncDevice].
     for (final entry in doc.devices.entries) {
-      await _publish(code, entry.value);
+      await _publishAcrossBrokers(code, entry.value);
     }
   }
 
@@ -186,7 +197,7 @@ class CloudMailbox {
     required String deviceName,
     required AppDatabase db,
   }) async {
-    final others = await _collect(code, ignoreDeviceId: deviceId);
+    final others = await _collectAcrossBrokers(code, ignoreDeviceId: deviceId);
     await _mergePeerSnapshots(db, others.values);
     final mine = CloudDeviceEntry(
       deviceId: deviceId,
@@ -194,7 +205,7 @@ class CloudMailbox {
       updatedAt: DateTime.now().toUtc(),
       snapshot: await db.exportSnapshot(),
     );
-    await _publish(code, mine);
+    await _publishAcrossBrokers(code, mine);
   }
 
   /// Applies peer snapshots oldest-first. Live items from every device stay.
@@ -228,35 +239,127 @@ class CloudMailbox {
     required String code,
     required String deviceId,
   }) async {
-    final client = await _open('d-${_shortId()}');
-    try {
-      final topic = _deviceTopic(code, deviceId);
-      final empty = MqttClientPayloadBuilder().payload!;
-      client.publishMessage(topic, MqttQos.atLeastOnce, empty, retain: true);
-      await Future<void>.delayed(const Duration(milliseconds: 400));
-    } on SyncException {
-      rethrow;
-    } on Object {
+    final topic = _deviceTopic(code, deviceId);
+    Object? last;
+    var cleared = false;
+    for (final endpoint in _endpoints) {
+      final client = buildCloudMqttClient(
+        endpoint: endpoint,
+        clientId: 'd-${_shortId()}',
+      );
+      try {
+        await _connect(client);
+        await _publishRetained(client, topic, MqttClientPayloadBuilder());
+        cleared = true;
+        _preferred = endpoint;
+      } on Object catch (error) {
+        last = error;
+      } finally {
+        _disconnect(client);
+      }
+    }
+    if (!cleared) {
+      if (last is SyncException) throw last;
       throw const SyncException(
         'Could not remove the stored cloud copy. Leave sync again when you are online.',
       );
-    } finally {
-      _disconnect(client);
+    }
+  }
+
+  /// Collects retained peers from every broker this network can reach.
+  Future<Map<String, CloudDeviceEntry>> _collectAcrossBrokers(
+    String code, {
+    String? ignoreDeviceId,
+  }) async {
+    final devices = <String, CloudDeviceEntry>{};
+    Object? last;
+    var any = false;
+    for (final endpoint in _endpoints) {
+      final client = buildCloudMqttClient(
+        endpoint: endpoint,
+        clientId: 'r-${_shortId()}',
+      );
+      try {
+        await _connect(client);
+        final found = await _collect(
+          code,
+          ignoreDeviceId: ignoreDeviceId,
+          client: client,
+        );
+        any = true;
+        _preferred = endpoint;
+        for (final entry in found.entries) {
+          final existing = devices[entry.key];
+          if (existing == null ||
+              entry.value.updatedAt.isAfter(existing.updatedAt)) {
+            devices[entry.key] = entry.value;
+          }
+        }
+      } on Object catch (error) {
+        last = error;
+      } finally {
+        _disconnect(client);
+      }
+    }
+    if (!any) {
+      if (last is SyncException) throw last;
+      throw const SyncException(
+        "Can't reach the cloud mailbox. Check the internet connection.",
+      );
+    }
+    return devices;
+  }
+
+  /// Publishes [entry] to every broker that answers, so a peer on either
+  /// host still sees this device.
+  Future<void> _publishAcrossBrokers(
+    String code,
+    CloudDeviceEntry entry,
+  ) async {
+    Object? last;
+    var uploaded = false;
+    for (final endpoint in _endpoints) {
+      final client = buildCloudMqttClient(
+        endpoint: endpoint,
+        clientId: 'w-${_shortId()}',
+      );
+      try {
+        await _connect(client);
+        await _publish(code, entry, client: client);
+        uploaded = true;
+        _preferred = endpoint;
+      } on Object catch (error) {
+        last = error;
+      } finally {
+        _disconnect(client);
+      }
+    }
+    if (!uploaded) {
+      if (last is SyncException) throw last;
+      throw const SyncException('Could not save to the cloud mailbox.');
     }
   }
 
   Future<Map<String, CloudDeviceEntry>> _collect(
     String code, {
     String? ignoreDeviceId,
+    MqttServerClient? client,
   }) async {
-    final client = await _open('r-${_shortId()}');
+    final ownsClient = client == null;
+    final session = client ?? await _open('r-${_shortId()}');
     final devices = <String, CloudDeviceEntry>{};
+    final previousOnSubscribed = session.onSubscribed;
     try {
       final topic = _householdTopic(code);
-      client.subscribe(topic, MqttQos.atLeastOnce);
       final pending = <Future<void>>[];
       var closed = false;
-      final sub = client.updates?.listen((messages) {
+      final updates = session.updates;
+      if (updates == null) {
+        throw const SyncException('The cloud mailbox did not answer.');
+      }
+      // Listen before subscribe. updates is a broadcast stream with no
+      // backlog, so retained peer snapshots that arrive in the gap are lost.
+      final sub = updates.listen((messages) {
         if (closed) return;
         for (final message in messages) {
           final rec = message.payload;
@@ -273,18 +376,29 @@ class CloudMailbox {
           }());
         }
       }, onError: (Object _, StackTrace _) {});
-      // Retained messages can arrive after the first wait, especially on a
-      // phone. Keep draining until the connection has been quiet, and do not
-      // touch the map again once it has been returned.
+      final subscribed = Completer<void>();
+      session.onSubscribed = (String subscribedTopic) {
+        previousOnSubscribed?.call(subscribedTopic);
+        if (!subscribed.isCompleted) subscribed.complete();
+      };
+      session.subscribe(topic, MqttQos.atLeastOnce);
+      try {
+        await subscribed.future.timeout(const Duration(seconds: 8));
+      } on TimeoutException {
+        // Keep waiting below; some brokers deliver retained messages anyway.
+      }
+      // Retained messages can arrive after SUBACK, especially on a phone.
+      // Keep draining until the connection has been quiet. Cap the wait so
+      // trying several brokers in one sync still finishes promptly.
       final started = DateTime.now();
-      var quietSince = started;
-      while (DateTime.now().difference(started) < const Duration(seconds: 4)) {
+      var quietSince = DateTime.now();
+      while (DateTime.now().difference(started) < const Duration(seconds: 3)) {
         await Future<void>.delayed(const Duration(milliseconds: 100));
         if (pending.isEmpty) {
           final waited = DateTime.now().difference(started);
           final quiet = DateTime.now().difference(quietSince);
-          if (waited >= const Duration(seconds: 2) &&
-              quiet >= const Duration(milliseconds: 300)) {
+          if (waited >= const Duration(milliseconds: 1200) &&
+              quiet >= const Duration(milliseconds: 400)) {
             break;
           }
           continue;
@@ -298,7 +412,7 @@ class CloudMailbox {
       if (pending.isNotEmpty) {
         await Future.wait(List<Future<void>>.from(pending));
       }
-      await sub?.cancel();
+      await sub.cancel();
       return Map<String, CloudDeviceEntry>.from(devices);
     } on SyncException {
       rethrow;
@@ -311,26 +425,25 @@ class CloudMailbox {
     } on Object {
       throw const SyncException('The cloud mailbox did not answer.');
     } finally {
-      _disconnect(client);
+      session.onSubscribed = previousOnSubscribed;
+      if (ownsClient) _disconnect(session);
     }
   }
 
-  Future<void> _publish(String code, CloudDeviceEntry entry) async {
-    final client = await _open('w-${_shortId()}');
+  Future<void> _publish(
+    String code,
+    CloudDeviceEntry entry, {
+    MqttServerClient? client,
+  }) async {
+    final ownsClient = client == null;
+    final session = client ?? await _open('w-${_shortId()}');
     try {
       final topic = _deviceTopic(code, entry.deviceId);
-      final builder = MqttClientPayloadBuilder();
-      builder.addString(
-        await sealMailboxPayload(code, jsonEncode(entry.toJson())),
-      );
-      client.publishMessage(
-        topic,
-        MqttQos.atLeastOnce,
-        builder.payload!,
-        retain: true,
-      );
-      // Give the broker a moment to accept the retained publish.
-      await Future<void>.delayed(const Duration(milliseconds: 400));
+      final builder = MqttClientPayloadBuilder()
+        ..addString(
+          await sealMailboxPayload(code, jsonEncode(entry.toJson())),
+        );
+      await _publishRetained(session, topic, builder);
     } on SyncException {
       rethrow;
     } on SocketException {
@@ -342,7 +455,38 @@ class CloudMailbox {
     } on Object {
       throw const SyncException('Could not save to the cloud mailbox.');
     } finally {
-      _disconnect(client);
+      if (ownsClient) _disconnect(session);
+    }
+  }
+
+  /// Publishes a retained message and waits for the broker's PUBACK.
+  Future<void> _publishRetained(
+    MqttServerClient client,
+    String topic,
+    MqttClientPayloadBuilder builder,
+  ) async {
+    final payload = builder.payload;
+    if (payload == null) {
+      throw const SyncException('Could not save to the cloud mailbox.');
+    }
+    final published = client.published;
+    if (published == null) {
+      throw const SyncException('Could not save to the cloud mailbox.');
+    }
+    final mid = client.publishMessage(
+      topic,
+      MqttQos.atLeastOnce,
+      payload,
+      retain: true,
+    );
+    try {
+      await published
+          .firstWhere((message) {
+            return message.variableHeader?.messageIdentifier == mid;
+          })
+          .timeout(const Duration(seconds: 8));
+    } on TimeoutException {
+      throw const SyncException('Could not save to the cloud mailbox.');
     }
   }
 

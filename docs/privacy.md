@@ -12,7 +12,7 @@ The encrypted copy includes shopping and pantry lists and their items, tax rates
 
 On the same Wi-Fi, the other ShopIt receives only that encrypted copy, and only if it presents the same key. That local exchange happens when Share on this Wi-Fi is on.
 
-Over the internet, ShopIt publishes the encrypted copy to HiveMQ's public broker at `broker.hivemq.com`, using an encrypted connection. The topic contains a random mailbox id, which is the part of the code before the dot. HiveMQ and anyone who learns that id can download the encrypted copy. They cannot read the lists without the key. HiveMQ offers that broker for testing, not as private storage.
+Over the internet, ShopIt publishes the encrypted copy to public MQTT brokers (`broker.hivemq.com` and `broker.emqx.io`), using an encrypted connection. The topic contains a random mailbox id, which is the part of the code before the dot. Those brokers and anyone who learns that id can download the encrypted copy. They cannot read the lists without the key. The brokers are testing services, not private storage.
 
 Leave cloud sync while online to delete this device's stored copy. If the device is offline, the copy can remain until you leave again while online. Deleting the app does not by itself delete a copy already stored at the broker.
 
