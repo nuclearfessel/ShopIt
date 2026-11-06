@@ -48,6 +48,12 @@ Filename: "{app}\shop_it.exe"; Description: "Launch ShopIt"; Flags: nowait posti
 Type: filesandordirs; Name: "{app}"
 
 [Code]
+var
+  DataPage: TInputOptionWizardPage;
+  UpgradeExisting: Boolean;
+  KeepLists: Boolean;
+  KeepSettings: Boolean;
+
 function CmdLineHasFlag(const Flag: String): Boolean;
 var
   I: Integer;
@@ -115,19 +121,92 @@ begin
   Result := ResultCode = 0;
 end;
 
+procedure DeleteIfExists(const Path: String);
+begin
+  if FileExists(Path) then
+    DeleteFile(Path);
+end;
+
+procedure ClearShopItLists();
+var
+  Root: String;
+begin
+  Root := ExpandConstant('{userappdata}\com.nuclearfessel\ShopIt\');
+  DeleteIfExists(Root + 'shop_it.sqlite');
+  DeleteIfExists(Root + 'shop_it.sqlite-wal');
+  DeleteIfExists(Root + 'shop_it.sqlite-shm');
+  Root := ExpandConstant('{userappdata}\com.nuclearfessel\shop_it\');
+  DeleteIfExists(Root + 'shop_it.sqlite');
+  DeleteIfExists(Root + 'shop_it.sqlite-wal');
+  DeleteIfExists(Root + 'shop_it.sqlite-shm');
+  Root := ExpandConstant('{localappdata}\com.nuclearfessel\ShopIt\');
+  DeleteIfExists(Root + 'shop_it.sqlite');
+  DeleteIfExists(Root + 'shop_it.sqlite-wal');
+  DeleteIfExists(Root + 'shop_it.sqlite-shm');
+  Root := ExpandConstant('{localappdata}\com.nuclearfessel\shop_it\');
+  DeleteIfExists(Root + 'shop_it.sqlite');
+  DeleteIfExists(Root + 'shop_it.sqlite-wal');
+  DeleteIfExists(Root + 'shop_it.sqlite-shm');
+end;
+
+procedure ClearShopItSettings();
+begin
+  DeleteIfExists(ExpandConstant('{userappdata}\com.nuclearfessel\ShopIt\shared_preferences.json'));
+  DeleteIfExists(ExpandConstant('{userappdata}\com.nuclearfessel\shop_it\shared_preferences.json'));
+  DeleteIfExists(ExpandConstant('{localappdata}\com.nuclearfessel\ShopIt\shared_preferences.json'));
+  DeleteIfExists(ExpandConstant('{localappdata}\com.nuclearfessel\shop_it\shared_preferences.json'));
+end;
+
+procedure ApplyDataRetentionChoice();
+begin
+  if not KeepLists then
+    ClearShopItLists();
+  if not KeepSettings then
+    ClearShopItSettings();
+end;
+
+procedure ReadDataChoiceFromPage();
+begin
+  if Assigned(DataPage) then
+  begin
+    KeepLists := DataPage.Values[0];
+    KeepSettings := DataPage.Values[1];
+  end;
+end;
+
+procedure ResolveSilentDataFlags();
+begin
+  KeepLists := True;
+  KeepSettings := True;
+  if CmdLineHasFlag('/CLEAR_DATA') then
+  begin
+    KeepLists := False;
+    KeepSettings := False;
+  end;
+  if CmdLineHasFlag('/CLEAR_LISTS') then
+    KeepLists := False;
+  if CmdLineHasFlag('/CLEAR_SETTINGS') then
+    KeepSettings := False;
+end;
+
 function InitializeSetup(): Boolean;
 var
   InstalledVersion: String;
 begin
   Result := True;
+  UpgradeExisting := False;
+  KeepLists := True;
+  KeepSettings := True;
   InstalledVersion := '';
   if not IsShopItInstalled() then
     Exit;
 
+  UpgradeExisting := True;
+  ResolveSilentDataFlags();
+
   if GetInstalledVersion(InstalledVersion) and
      (CompareText(InstalledVersion, '{#AppVersion}') = 0) then
   begin
-    { Same version: overwrite files in the existing install directory. }
     Log('ShopIt ' + InstalledVersion + ' is already installed; overriding in place.');
     Exit;
   end;
@@ -135,19 +214,58 @@ begin
   if InstalledVersion = '' then
     InstalledVersion := 'a previous version';
   Log('Replacing ShopIt ' + InstalledVersion + ' with {#AppVersion}.');
-  if not WizardSilent then
-    MsgBox(
-      'ShopIt ' + InstalledVersion + ' is installed and will be replaced with {#AppVersion}.' + #13#10 +
-      'Your lists and settings are kept.',
-      mbInformation, MB_OK);
+end;
 
-  if not UninstallPreviousVersion() then
+procedure InitializeWizard();
+begin
+  DataPage := CreateInputOptionPage(
+    wpSelectDir,
+    'Lists and settings',
+    'Choose what to keep from the ShopIt already on this computer',
+    'Unchecked items are removed before the new version is installed.',
+    False, False);
+  DataPage.Add('Keep shopping lists, pantry, history, and recipes');
+  DataPage.Add('Keep settings (theme, sync code, tax, and sharing)');
+  DataPage.Values[0] := True;
+  DataPage.Values[1] := True;
+end;
+
+function ShouldSkipPage(PageID: Integer): Boolean;
+begin
+  Result := False;
+  if (DataPage <> nil) and (PageID = DataPage.ID) then
+    Result := (not UpgradeExisting) or WizardSilent;
+end;
+
+function PrepareToInstall(var NeedsRestart: Boolean): String;
+var
+  InstalledVersion: String;
+  SameVersion: Boolean;
+begin
+  Result := '';
+  NeedsRestart := False;
+  if not UpgradeExisting then
+    Exit;
+
+  if not WizardSilent then
+    ReadDataChoiceFromPage()
+  else
+    ResolveSilentDataFlags();
+
+  SameVersion := GetInstalledVersion(InstalledVersion) and
+    (CompareText(InstalledVersion, '{#AppVersion}') = 0);
+
+  if not SameVersion then
   begin
-    MsgBox(
-      'Could not remove the installed ShopIt before upgrading. Close ShopIt and try again.',
-      mbError, MB_OK);
-    Result := False;
+    if not UninstallPreviousVersion() then
+    begin
+      Result :=
+        'Could not remove the installed ShopIt before upgrading. Close ShopIt and try again.';
+      Exit;
+    end;
   end;
+
+  ApplyDataRetentionChoice();
 end;
 
 procedure AllowShopItOnPrivateNetworks();

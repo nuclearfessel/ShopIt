@@ -1,7 +1,9 @@
 #!/bin/bash
 # Installs or replaces ShopIt on a connected iPhone/iPad.
-# Same version: override in place. Previous version: replace the installed
-# bundle in place, keeping lists and settings when the device accepts an update.
+# Same version: override in place. Previous version: replace in place when possible.
+# When ShopIt is already installed, you choose whether to keep data. iOS cannot
+# separate lists from settings from this installer, so those choices keep or
+# clear both.
 #
 # Expects a signed ShopIt.ipa (or .app) next to this script, or a path argument.
 # Requires Xcode's devicectl, ideviceinstaller, or ios-deploy, plus a paired device.
@@ -10,6 +12,7 @@ set -euo pipefail
 APP_NAME="ShopIt"
 BUNDLE_ID="com.nuclearfessel.shopit"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+KEEP_DATA=1
 
 pick_payload() {
   if [[ $# -ge 1 && -e "$1" ]]; then
@@ -85,6 +88,60 @@ app_installed_idevice() {
   ideviceinstaller -l 2>/dev/null | tr -d '\r' | grep -F "$BUNDLE_ID" >/dev/null
 }
 
+uninstall_existing() {
+  if command -v ideviceinstaller >/dev/null 2>&1; then
+    ideviceinstaller -U "$BUNDLE_ID" >/dev/null 2>&1 || true
+    return
+  fi
+  local udid
+  udid="$(first_device_udid)"
+  if [[ -n "$udid" ]] && command -v xcrun >/dev/null 2>&1 && xcrun --find devicectl >/dev/null 2>&1; then
+    xcrun devicectl device uninstall app --device "$udid" "$BUNDLE_ID" >/dev/null 2>&1 || true
+  fi
+}
+
+ask_data_choice() {
+  echo
+  echo "ShopIt is already on the device. Choose what to keep:"
+  echo "  1) Keep lists and settings"
+  echo "  2) Keep lists, reset settings"
+  echo "  3) Keep settings, clear lists"
+  echo "  4) Clear lists and settings"
+  echo
+  echo "On iPhone and iPad this installer can only keep everything or clear"
+  echo "everything. Choices 2 and 3 clear both."
+  echo
+  while true; do
+    read -r -p "Choice [1]: " reply || reply=1
+    reply="${reply:-1}"
+    case "$reply" in
+      1)
+        KEEP_DATA=1
+        return
+        ;;
+      2|3)
+        echo
+        echo "Lists and settings cannot be separated on this device from the installer."
+        while true; do
+          read -r -p "Clear both and continue? [y/N] " confirm || confirm=n
+          case "$confirm" in
+            y|Y|yes|YES) KEEP_DATA=0; return ;;
+            n|N|no|NO|"") KEEP_DATA=1; echo "Keeping lists and settings."; return ;;
+            *) echo "Enter y or n." ;;
+          esac
+        done
+        ;;
+      4)
+        KEEP_DATA=0
+        return
+        ;;
+      *)
+        echo "Enter 1, 2, 3, or 4."
+        ;;
+    esac
+  done
+}
+
 install_with_devicectl() {
   local payload="$1"
   local udid
@@ -143,14 +200,22 @@ if [[ "$HAS_INSTALLER" -eq 0 ]]; then
   exit 1
 fi
 
+ALREADY_INSTALLED=0
 if app_installed_idevice; then
+  ALREADY_INSTALLED=1
   OLD_VERSION="$(installed_version_idevice)"
   [[ -n "$OLD_VERSION" ]] || OLD_VERSION="unknown"
   if [[ "$OLD_VERSION" == "$NEW_VERSION" ]]; then
     echo "ShopIt ${OLD_VERSION} is already installed. Overriding it in place."
   else
     echo "Replacing ShopIt ${OLD_VERSION} with ${NEW_VERSION}."
-    echo "Your lists and settings are kept when the device accepts an in-place update."
+  fi
+  ask_data_choice
+  if [[ "$KEEP_DATA" -eq 0 ]]; then
+    echo "Clearing lists and settings by removing the installed app first."
+    uninstall_existing
+  else
+    echo "Keeping lists and settings."
   fi
 else
   echo "Installing ShopIt ${NEW_VERSION}."
