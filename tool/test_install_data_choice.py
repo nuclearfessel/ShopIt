@@ -10,6 +10,11 @@ class InstallDataChoiceTests(unittest.TestCase):
     def test_windows_setup_has_data_page_and_silent_flags(self):
         text = (INSTALLER / "shop_it.iss").read_text(encoding="utf-8")
         self.assertIn("CreateInputOptionPage", text)
+        # Must follow Welcome. A page after Destination is skipped on upgrade
+        # when DisableDirPage=auto.
+        self.assertIn("DisableWelcomePage=no", text)
+        self.assertRegex(text, r"CreateInputOptionPage\(\s*wpWelcome")
+        self.assertNotRegex(text, r"CreateInputOptionPage\(\s*wpSelectDir")
         self.assertIn("Keep shopping lists, pantry, history, and recipes", text)
         self.assertIn("Keep settings (theme, sync code, tax, and sharing)", text)
         self.assertIn("/CLEAR_LISTS", text)
@@ -17,6 +22,7 @@ class InstallDataChoiceTests(unittest.TestCase):
         self.assertIn("/CLEAR_DATA", text)
         self.assertIn("ClearShopItLists", text)
         self.assertIn("ClearShopItSettings", text)
+        self.assertIn("HasShopItUserData", text)
         self.assertIn("shared_preferences.json", text)
         self.assertIn("shop_it.sqlite", text)
 

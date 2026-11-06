@@ -15,6 +15,10 @@ AppPublisher=ShopIt
 DefaultDirName={autopf}\Shop-it
 DefaultGroupName=ShopIt
 DisableProgramGroupPage=yes
+; Welcome must stay on so the lists/settings page (after wpWelcome) is shown.
+; With DisableWelcomePage=yes and DisableDirPage=auto, an upgrade skips both
+; Welcome and Destination — and a page attached after Destination never appears.
+DisableWelcomePage=no
 DisableDirPage=auto
 DirExistsWarning=no
 UsePreviousAppDir=yes
@@ -91,6 +95,20 @@ var
   Unused: String;
 begin
   Result := QueryUninstallValue('UninstallString', Unused);
+end;
+
+function HasShopItUserData(): Boolean;
+begin
+  Result :=
+    DirExists(ExpandConstant('{userappdata}\com.nuclearfessel\ShopIt')) or
+    DirExists(ExpandConstant('{userappdata}\com.nuclearfessel\shop_it')) or
+    FileExists(ExpandConstant('{userappdata}\com.nuclearfessel\ShopIt\shop_it.sqlite')) or
+    FileExists(ExpandConstant('{userappdata}\com.nuclearfessel\ShopIt\shared_preferences.json'));
+end;
+
+function ShouldOfferDataChoice(): Boolean;
+begin
+  Result := IsShopItInstalled() or HasShopItUserData();
 end;
 
 function GetUninstallString(): String;
@@ -198,13 +216,13 @@ begin
   KeepLists := True;
   KeepSettings := True;
   InstalledVersion := '';
-  if not IsShopItInstalled() then
+  if not ShouldOfferDataChoice() then
     Exit;
 
   UpgradeExisting := True;
   ResolveSilentDataFlags();
 
-  if GetInstalledVersion(InstalledVersion) and
+  if IsShopItInstalled() and GetInstalledVersion(InstalledVersion) and
      (CompareText(InstalledVersion, '{#AppVersion}') = 0) then
   begin
     Log('ShopIt ' + InstalledVersion + ' is already installed; overriding in place.');
@@ -218,8 +236,10 @@ end;
 
 procedure InitializeWizard();
 begin
+  { After Welcome — not after Destination. Destination is skipped on upgrade
+    when DisableDirPage=auto, which hid this page in 1.0.6. }
   DataPage := CreateInputOptionPage(
-    wpSelectDir,
+    wpWelcome,
     'Lists and settings',
     'Choose what to keep from the ShopIt already on this computer',
     'Unchecked items are removed before the new version is installed.',
@@ -237,6 +257,13 @@ begin
     Result := (not UpgradeExisting) or WizardSilent;
 end;
 
+function NextButtonClick(CurPageID: Integer): Boolean;
+begin
+  Result := True;
+  if (DataPage <> nil) and (CurPageID = DataPage.ID) then
+    ReadDataChoiceFromPage();
+end;
+
 function PrepareToInstall(var NeedsRestart: Boolean): String;
 var
   InstalledVersion: String;
@@ -252,10 +279,10 @@ begin
   else
     ResolveSilentDataFlags();
 
-  SameVersion := GetInstalledVersion(InstalledVersion) and
+  SameVersion := IsShopItInstalled() and GetInstalledVersion(InstalledVersion) and
     (CompareText(InstalledVersion, '{#AppVersion}') = 0);
 
-  if not SameVersion then
+  if IsShopItInstalled() and (not SameVersion) then
   begin
     if not UninstallPreviousVersion() then
     begin
